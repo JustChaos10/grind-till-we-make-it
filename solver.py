@@ -167,8 +167,8 @@ def _solve_scale_fallback(orders, available, parts_by_id, *, time_limit_seconds:
     """Construct a deterministic feasible schedule without quadratic CP-SAT arcs.
 
     For large instances, sequence circuits grow quadratically in the number of
-    operations per machine. A ready-list schedule keeps model construction and
-    memory bounded while still respecting routes, tools, calendars, locks,
+    operations per machine. A due-date/priority/remaining-work dispatch path
+    keeps runtime bounded while respecting routes, tools, calendars, locks,
     resource capacities, and setup transitions.
     """
     started = time.perf_counter()
