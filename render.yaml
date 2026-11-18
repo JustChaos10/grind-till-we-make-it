@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: indoflow-api
+    runtime: docker
+    plan: 1c-2g
+    region: singapore
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: ENABLE_PRODUCTION_SEED
+        value: "false"
+      - key: CORS_ORIGINS
+        value: http://localhost:3000,http://localhost:5173
+      - key: DATABASE_URL
+        fromDatabase:
+          name: indoflow-db
+          property: connectionString
+      - key: INDOFLOW_API_TOKEN
+        generateValue: true
+      - key: INDOFLOW_ADMIN_TOKEN
+        generateValue: true
+
+databases:
+  - name: indoflow-db
+    databaseName: indoflow
+    user: indoflow_app
+    plan: 0.5c-1g
+    region: singapore
+    diskSizeGB: 15
