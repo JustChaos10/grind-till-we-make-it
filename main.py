@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+import csv
 import hmac
+import io
 import math
 import os
+import logging
 import uuid
 from datetime import datetime, timezone
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
@@ -18,10 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from baseline import schedule as run_baseline
 from database import get_session, init_db
-from domain import OrderSpec, STAGES
+from domain import ALLOYS, SEGMENTS, OrderSpec, STAGES
 from models import Part, Resource, ScheduleVersion, ScheduledOperation, WorkOrder
-from seed import seed_database
+from seed import RECIPES, seed_database
 from solver import SchedulingError, solve as run_solver
+
+logger = logging.getLogger("indoflow.import")
 
 
 @asynccontextmanager
@@ -155,6 +160,153 @@ async def seed() -> SeedResponse:
     return SeedResponse(message="Factory data reset and seeded", **counts)
 
 
+@app.post("/api/import/erp-csv", dependencies=[Depends(require_admin)])
+async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_session)) -> dict:
+    """Import valid ERP work orders from a UTF-8 CSV request body.
+
+    Invalid rows are isolated and returned with row numbers and actionable
+    reasons; valid rows in the same file are committed.
+    """
+    body = await request.body()
+    try:
+        text_body = body.decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(text_body))
+    except (UnicodeDecodeError, csv.Error) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid UTF-8 CSV: {exc}") from exc
+    if not reader.fieldnames:
+        raise HTTPException(status_code=422, detail="CSV must include a header row")
+
+    def canonical(value: str | None, values: tuple[str, ...]) -> str | None:
+        key = (value or "").strip().casefold().replace("_", "-")
+        return next((item for item in values if item.casefold() == key), None)
+
+    recipe_by_alloy = {alloy: RECIPES[alloy] for alloy in ALLOYS}
+    recipe_aliases = {recipe.casefold(): recipe for recipe in RECIPES.values()}
+    existing_parts = {
+        part.sku_code.casefold(): part
+        for part in (await session.scalars(select(Part))).all()
+    }
+    existing_orders = {
+        order.wo_number.casefold()
+        for order in (await session.scalars(select(WorkOrder))).all()
+    }
+    seen_orders: set[str] = set()
+    imported = 0
+    rejected = []
+    for row_number, raw in enumerate(reader, start=2):
+        row = {
+            key.strip().casefold(): str(value or "").strip()
+            for key, value in raw.items() if key is not None
+        }
+        errors: list[str] = []
+        if None in raw or len(row) != len(raw):
+            errors.append("row has more values than the CSV header")
+        wo_number = row.get("wo_number", "")
+        sku_code = row.get("sku_code", "").upper()
+        if not wo_number:
+            errors.append("wo_number is required")
+        elif wo_number.casefold() in seen_orders or wo_number.casefold() in existing_orders:
+            errors.append(f"duplicate work-order ID '{wo_number}'")
+        quantity_text = row.get("quantity", "")
+        try:
+            quantity = int(quantity_text)
+            if quantity <= 0:
+                errors.append("quantity must be greater than zero")
+        except (TypeError, ValueError):
+            quantity = 0
+            errors.append("quantity must be a positive integer")
+        alloy = canonical(row.get("alloy_family"), ALLOYS)
+        if not alloy:
+            errors.append(f"unknown or missing alloy_family '{row.get('alloy_family', '')}'")
+        recipe_input = row.get("sintering_recipe_id", "").strip()
+        recipe = recipe_aliases.get(recipe_input.casefold()) if recipe_input else None
+        if not recipe and alloy:
+            recipe = recipe_by_alloy[alloy]
+        elif recipe_input and not recipe:
+            errors.append(f"unknown sintering_recipe_id '{recipe_input}'")
+        if recipe and alloy and recipe != recipe_by_alloy[alloy]:
+            errors.append(f"recipe {recipe} is incompatible with alloy {alloy}")
+        stage_input = row.get("current_stage", "").strip().casefold().replace("_", " ")
+        stage = next((item for item in STAGES if item.casefold() == stage_input), None)
+        if not stage:
+            errors.append(f"current_stage must be one of: {', '.join(STAGES)}")
+        segment = canonical(row.get("segment"), SEGMENTS) or "Automotive"
+        try:
+            due = float(row.get("due_date_hours", ""))
+            if not math.isfinite(due):
+                raise ValueError
+        except (TypeError, ValueError):
+            due = 0.0
+            errors.append("due_date_hours must be a finite number")
+        try:
+            priority = int(row.get("priority") or "3")
+            if not 1 <= priority <= 5:
+                raise ValueError
+        except ValueError:
+            priority = 3
+            errors.append("priority must be an integer from 1 to 5")
+        try:
+            wip_age = float(row.get("wip_age_hours") or "0")
+            if not math.isfinite(wip_age) or wip_age < 0:
+                raise ValueError
+        except ValueError:
+            wip_age = 0.0
+            errors.append("wip_age_hours must be a non-negative finite number")
+        machining_value = row.get("requires_machining", "true").casefold()
+        if machining_value not in {"1", "0", "true", "false", "yes", "no", "y", "n"}:
+            errors.append("requires_machining must be true or false")
+        if not sku_code:
+            errors.append("sku_code is required")
+        existing_part = existing_parts.get(sku_code.casefold())
+        if existing_part and alloy and existing_part.alloy_family != alloy:
+            errors.append(
+                f"SKU {sku_code} is registered as {existing_part.alloy_family}, not {alloy}"
+            )
+        if errors:
+            logger.warning("ERP CSV row %d rejected for %s: %s", row_number, wo_number or "<missing ID>", "; ".join(errors))
+            rejected.append({"row": row_number, "work_order_id": wo_number or None, "errors": errors})
+            continue
+
+        part = existing_part
+        if part is None:
+            part = Part(
+                id=f"erp-part-{uuid.uuid4().hex}",
+                sku_code=sku_code,
+                name=row.get("part_name") or sku_code,
+                segment=segment,
+                alloy_family=alloy,
+                sintering_recipe_id=recipe,
+                cycle_times_mins={
+                    "Molding": 2.0,
+                    "Debinding": 390,
+                    "Sintering": 600,
+                    "CNC Machining": 3.0,
+                    "Finishing": 1.2,
+                },
+                requires_machining=machining_value in {"1", "true", "yes", "y"},
+                tool_id=row.get("tool_id") or None,
+            )
+            session.add(part)
+            existing_parts[sku_code.casefold()] = part
+        order = WorkOrder(
+            id=f"erp-wo-{uuid.uuid4().hex}",
+            wo_number=wo_number,
+            part_id=part.id,
+            quantity=quantity,
+            due_date_hours=due,
+            priority=priority,
+            current_stage=stage,
+            status="QUEUED",
+            wip_age_hours=wip_age,
+        )
+        session.add(order)
+        seen_orders.add(wo_number.casefold())
+        imported += 1
+
+    await session.commit()
+    return {"imported": imported, "rejected": len(rejected), "rejected_rows": rejected}
+
+
 @app.get("/api/flow-board", response_model=FlowBoardResponse, dependencies=[Depends(require_api_access)])
 async def flow_board(session: AsyncSession = Depends(get_session)) -> FlowBoardResponse:
     orders = list((await session.scalars(select(WorkOrder))).all())
@@ -216,6 +368,9 @@ def _order_specs(work_orders: list[WorkOrder]) -> list[OrderSpec]:
         priority=order.priority,
         current_stage=order.current_stage,
         wip_age_hours=order.wip_age_hours,
+        status=order.status,
+        locked_resource_id=order.locked_resource_id,
+        locked_until_hour=order.locked_until_hour,
     ) for order in work_orders]
 
 

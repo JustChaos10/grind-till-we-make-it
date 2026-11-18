@@ -28,6 +28,9 @@ class Resource(Base):
     alloy_compatibility: Mapped[list[str]] = mapped_column(JSON, default=list)
     recipe_compatibility: Mapped[list[str]] = mapped_column(JSON, default=list)
     setup_changeover_mins: Mapped[int] = mapped_column(Integer, default=0)
+    # Absolute planning-horizon blackout intervals in hours, e.g. [[8, 16]].
+    # Weekly shift rules should be expanded to these windows for each horizon.
+    blackout_windows: Mapped[list[list[float]]] = mapped_column(JSON, default=list)
     status: Mapped[str] = mapped_column(String(16), default="ACTIVE", index=True)
 
 
@@ -42,6 +45,7 @@ class Part(Base):
     sintering_recipe_id: Mapped[str] = mapped_column(String(64), index=True)
     cycle_times_mins: Mapped[dict[str, float]] = mapped_column(JSON)
     requires_machining: Mapped[bool] = mapped_column(Boolean, default=True)
+    tool_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
 
 
 class WorkOrder(Base):
@@ -57,6 +61,8 @@ class WorkOrder(Base):
     current_stage: Mapped[str] = mapped_column(String(32), index=True)
     status: Mapped[str] = mapped_column(String(24), default="QUEUED", index=True)
     wip_age_hours: Mapped[float] = mapped_column(Float, default=0)
+    locked_resource_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    locked_until_hour: Mapped[float] = mapped_column(Float, default=0)
 
 
 class ScheduleVersion(Base):

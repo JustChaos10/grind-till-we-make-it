@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import math
 import re
+import time
 
 from ortools.sat.python import cp_model
 
-from domain import OperationResult, OrderSpec, duration_ticks, eligible_resources, route_for, ticks_to_hours
+from domain import OperationResult, OrderSpec, duration_ticks, eligible_resources, hours_to_ticks, route_for, ticks_to_hours
 from schedule_utils import ScheduleResult, calculate_metrics
 
 MAX_TIME_TICKS = 4000  # 1,000 hours at 15-minute resolution
@@ -16,6 +17,28 @@ MAX_SOLVER_SECONDS = 1.8  # Leave time for model construction and API serializat
 
 class SchedulingError(RuntimeError):
     pass
+
+
+def _next_open_tick(start: int, duration: int, resource) -> int:
+    """Move an uninterruptible operation past any overlapping blackout."""
+    windows = sorted(getattr(resource, "blackout_windows", None) or [])
+    while True:
+        moved = False
+        for blackout_start, blackout_end in windows:
+            start_tick = hours_to_ticks(float(blackout_start))
+            end_tick = hours_to_ticks(float(blackout_end))
+            if start < end_tick and start + duration > start_tick:
+                start = end_tick
+                moved = True
+        if not moved:
+            return start
+
+
+def _add_blackout_constraints(model, start, end, resource, literal, prefix: str) -> None:
+    for index, (blackout_start, blackout_end) in enumerate(getattr(resource, "blackout_windows", None) or []):
+        before = model.NewBoolVar(f"before_blackout_{prefix}_{index}")
+        model.Add(end <= hours_to_ticks(float(blackout_start))).OnlyEnforceIf([literal, before])
+        model.Add(start >= hours_to_ticks(float(blackout_end))).OnlyEnforceIf([literal, before.Not()])
 
 
 def _safe_name(value: str) -> str:
@@ -59,7 +82,13 @@ def _greedy_schedule_hints(orders, parts_by_id, resources, task_vars, routes, ba
 
     completed: set[tuple] = set()
     times: dict[tuple, tuple[int, int, str]] = {}
-    last_sku: dict[str, str] = {}
+    last_part: dict[str, str] = {}
+    tool_free_at: dict[str, int] = {}
+    for order in orders:
+        if order.locked_resource_id and order.locked_until_hour > 0:
+            free_at[order.locked_resource_id] = max(
+                free_at.get(order.locked_resource_id, 0), hours_to_ticks(order.locked_until_hour)
+            )
     while len(completed) < len(node_orders):
         ready = [node for node in node_orders if node not in completed and predecessors[node] <= completed]
         if not ready:
@@ -68,39 +97,172 @@ def _greedy_schedule_hints(orders, parts_by_id, resources, task_vars, routes, ba
         def urgency(node):
             associated = [order_map[oid] for oid in node_orders[node]]
             return (
-                min(order.due_date_hours - order.priority * 2 for order in associated),
+                min(order.due_date_hours for order in associated),
                 -max(order.priority for order in associated),
+                min(order.wip_age_hours for order in associated),
                 str(node),
             )
 
-        node = min(ready, key=urgency)
-        if node[0] == "batch":
-            key = (node[1], node[2])
-            candidates = list(batch_resource[key])
-            duration = batch_records[key]["duration"]
-        else:
-            order_id, stage = node[1], node[2]
-            candidates = list(task_vars[(order_id, stage)]["assign"])
-            duration = task_vars[(order_id, stage)]["duration"]
-        predecessor_end = max((times[pred][1] for pred in predecessors[node]), default=0)
-        options = []
-        for resource_id in candidates:
-            resource = resource_by_id[resource_id]
-            setup = 0
-            if node[0] == "order" and node[2] == "CNC Machining":
-                part = parts_by_id[order_map[node[1]].part_id]
-                if resource_id in last_sku and last_sku[resource_id] != part.sku_code:
-                    setup = math.ceil(resource.setup_changeover_mins / 15)
-            start = max(predecessor_end, free_at[resource_id] + setup)
-            options.append((start, resource_id))
-        start, resource_id = min(options)
+        feasible_choices = []
+        for candidate_node in ready:
+            if candidate_node[0] == "batch":
+                key = (candidate_node[1], candidate_node[2])
+                candidates = list(batch_resource[key])
+                duration = batch_records[key]["duration"]
+            else:
+                order_id, stage = candidate_node[1], candidate_node[2]
+                candidates = list(task_vars[(order_id, stage)]["assign"])
+                duration = task_vars[(order_id, stage)]["duration"]
+                order = order_map[order_id]
+                if stage == order.current_stage and order.locked_resource_id:
+                    candidates = [item for item in candidates if item == order.locked_resource_id]
+            predecessor_end = max(
+                (times[pred][1] for pred in predecessors[candidate_node]), default=0
+            )
+            for resource_id in candidates:
+                resource = resource_by_id[resource_id]
+                setup = 0
+                tool = None
+                if candidate_node[0] == "order":
+                    part = parts_by_id[order_map[candidate_node[1]].part_id]
+                    if (
+                        candidate_node[2] in {"Molding", "CNC Machining", "Finishing"}
+                        and resource_id in last_part
+                        and last_part[resource_id] != part.id
+                    ):
+                        setup = math.ceil(resource.setup_changeover_mins / 15)
+                    if candidate_node[2] == "Molding" and part.tool_id:
+                        tool = part.tool_id
+                earliest = max(predecessor_end, free_at[resource_id] + setup)
+                if tool:
+                    earliest = max(earliest, tool_free_at.get(tool, 0))
+                if (
+                    candidate_node[0] == "order"
+                    and candidate_node[2] == order_map[candidate_node[1]].current_stage
+                ):
+                    earliest = max(earliest, hours_to_ticks(order_map[candidate_node[1]].locked_until_hour))
+                earliest = _next_open_tick(earliest, duration, resource)
+                feasible_choices.append((
+                    earliest, urgency(candidate_node), str(candidate_node), resource_id,
+                    candidate_node, duration,
+                ))
+        if not feasible_choices:
+            raise SchedulingError("No feasible resource remains for ready manufacturing operations")
+        start, _, _, resource_id, node, duration = min(feasible_choices)
         end = start + duration
         times[node] = (start, end, resource_id)
         free_at[resource_id] = end
-        if node[0] == "order" and node[2] == "CNC Machining":
-            last_sku[resource_id] = parts_by_id[order_map[node[1]].part_id].sku_code
+        if node[0] == "order" and node[2] in {"Molding", "CNC Machining", "Finishing"}:
+            part = parts_by_id[order_map[node[1]].part_id]
+            last_part[resource_id] = part.id
+        if node[0] == "order" and node[2] == "Molding":
+            part = parts_by_id[order_map[node[1]].part_id]
+            if part.tool_id:
+                tool_free_at[part.tool_id] = end
         completed.add(node)
     return times, order_nodes
+
+
+def _solve_scale_fallback(orders, available, parts_by_id, *, time_limit_seconds: float) -> ScheduleResult:
+    """Construct a deterministic feasible schedule without quadratic CP-SAT arcs.
+
+    For large instances, sequence circuits grow quadratically in the number of
+    operations per machine. A ready-list schedule keeps model construction and
+    memory bounded while still respecting routes, tools, calendars, locks,
+    resource capacities, and setup transitions.
+    """
+    started = time.perf_counter()
+    free_at = {resource.id: 0 for resource in available}
+    resource_names = {resource.id: resource.name for resource in available}
+    last_part: dict[str, str] = {}
+    tool_free_at: dict[str, int] = {}
+    for order in orders:
+        if order.locked_resource_id:
+            free_at[order.locked_resource_id] = max(
+                free_at.get(order.locked_resource_id, 0), hours_to_ticks(order.locked_until_hour)
+            )
+
+    def route_and_work(order):
+        part = parts_by_id[order.part_id]
+        route = route_for(order, part.requires_machining)
+        work = sum(duration_ticks(order, part, stage) for stage in route)
+        return route, work
+
+    routes = {order.id: route_and_work(order)[0] for order in orders}
+    # Earliest due date and priority drive tardiness; remaining processing
+    # burden breaks ties to keep short orders flowing and reduce average WIP.
+    ordered_orders = sorted(orders, key=lambda order: (
+        order.due_date_hours,
+        -order.priority,
+        route_and_work(order)[1],
+        order.wo_number,
+    ))
+    operations: list[OperationResult] = []
+    for order in ordered_orders:
+        part = parts_by_id[order.part_id]
+        ready = 0
+        for stage in routes[order.id]:
+            candidates = eligible_resources(available, part, stage)
+            if stage == order.current_stage and order.locked_resource_id:
+                candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
+            if not candidates:
+                raise SchedulingError(f"No active compatible resource for {order.wo_number} at {stage}")
+            duration = duration_ticks(order, part, stage)
+            choices = []
+            for resource in candidates:
+                setup = 0
+                if (
+                    stage in {"Molding", "CNC Machining", "Finishing"}
+                    and resource.id in last_part
+                    and last_part[resource.id] != part.id
+                ):
+                    setup = math.ceil(resource.setup_changeover_mins / 15)
+                start = max(ready, free_at[resource.id] + setup)
+                if stage == order.current_stage:
+                    start = max(start, hours_to_ticks(order.locked_until_hour))
+                if stage == "Molding" and part.tool_id:
+                    start = max(start, tool_free_at.get(part.tool_id, 0))
+                start = _next_open_tick(start, duration, resource)
+                choices.append((start, resource.id))
+            start, resource_id = min(choices)
+            end = start + duration
+            free_at[resource_id] = end
+            if stage in {"Molding", "CNC Machining", "Finishing"}:
+                last_part[resource_id] = part.id
+            if stage == "Molding" and part.tool_id:
+                tool_free_at[part.tool_id] = end
+            operations.append(OperationResult(
+                work_order_id=order.id,
+                resource_id=resource_id,
+                stage=stage,
+                start_hour=ticks_to_hours(start),
+                end_hour=ticks_to_hours(end),
+                batch_id=f"SCALE-{order.id}" if stage == "Sintering" else None,
+            ))
+            ready = end
+
+    metrics, late_ids, completions = calculate_metrics(orders, available, operations)
+    late_set = set(late_ids)
+    explanations = {}
+    for order in orders:
+        order_ops = [op for op in operations if op.work_order_id == order.id]
+        previous_end = 0.0
+        for op in order_ops:
+            if op.start_hour - previous_end > 0.24:
+                op.delay_reason = f"Queue on {op.stage} resource {resource_names[op.resource_id]}"
+            op.is_late = order.id in late_set
+            previous_end = op.end_hour
+        if order.id in late_set:
+            explanations[order.id] = next(
+                (op.delay_reason for op in order_ops if op.delay_reason),
+                "Capacity-constrained weighted-tardiness schedule",
+            )
+    metrics["solver_status"] = "HEURISTIC_SCALE_FALLBACK"
+    metrics["cp_sat_status"] = "NOT_RUN_SCALE_FALLBACK"
+    metrics["solver_time_limit_seconds"] = max(0.0, time_limit_seconds)
+    metrics["solver_wall_time_seconds"] = round(time.perf_counter() - started, 3)
+    metrics["objective_value"] = None
+    return ScheduleResult("INDOFLOW_OPTIMIZED", operations, metrics, late_ids, completions, explanations)
 
 
 def solve(
@@ -115,17 +277,35 @@ def solve(
     decisions in CP-SAT; lots share a recipe and cannot exceed chosen furnace
     capacity. All other stage operations are optional machine intervals.
     """
+    orders = [order for order in orders if order.status.upper() not in {"COMPLETED", "QUALITY_HOLD"}]
     down = down_resource_ids or set()
     available = [
         resource for resource in resources
         if resource.status == "ACTIVE" and resource.id not in down
     ]
+    if len(orders) >= 300:
+        return _solve_scale_fallback(
+            orders, available, parts_by_id, time_limit_seconds=time_limit_seconds
+        )
     model = cp_model.CpModel()
     task_vars: dict[tuple[str, str], dict] = {}
     routes: dict[str, tuple[str, ...]] = {}
     order_map = {order.id: order for order in orders}
     resource_map = {resource.id: resource for resource in resources}
     intervals_by_resource: dict[str, list] = {resource.id: [] for resource in available}
+    intervals_by_tool: dict[str, list] = {}
+    resource_lock_hours: dict[str, float] = {}
+    for order in orders:
+        if order.locked_resource_id and order.locked_until_hour > 0:
+            resource_lock_hours[order.locked_resource_id] = max(
+                resource_lock_hours.get(order.locked_resource_id, 0.0), order.locked_until_hour
+            )
+    for resource_id, locked_until in resource_lock_hours.items():
+        if resource_id in intervals_by_resource:
+            lock_end = hours_to_ticks(locked_until)
+            intervals_by_resource[resource_id].append(
+                model.NewIntervalVar(0, lock_end, lock_end, f"lock_{_safe_name(resource_id)}")
+            )
 
     # Create a start/end pair for each operation before linking precedence.
     for order in orders:
@@ -157,8 +337,17 @@ def solve(
                 continue
             task = task_vars[(order.id, stage)]
             candidates = eligible_resources(available, part, stage)
+            if stage == order.current_stage and order.locked_resource_id:
+                candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
+                task["locked_until_tick"] = hours_to_ticks(order.locked_until_hour)
+                model.Add(task["start"] >= task["locked_until_tick"])
             if not candidates:
-                raise SchedulingError(f"No active compatible resource for {order.wo_number} at {stage}")
+                reason = (
+                    f"locked resource {order.locked_resource_id} is unavailable"
+                    if stage == order.current_stage and order.locked_resource_id
+                    else "No active compatible resource"
+                )
+                raise SchedulingError(f"{reason} for {order.wo_number} at {stage}")
             choices = []
             for resource in candidates:
                 use = model.NewBoolVar(f"use_{order.id}_{_safe_name(resource.id)}")
@@ -169,8 +358,14 @@ def solve(
                 task["assign"][resource.id] = use
                 task["intervals"][resource.id] = interval
                 intervals_by_resource[resource.id].append(interval)
+                _add_blackout_constraints(model, task["start"], task["end"], resource, use, order.id)
+                if stage == "Molding" and part.tool_id:
+                    intervals_by_tool.setdefault(part.tool_id, []).append(interval)
                 choices.append(use)
             model.AddExactlyOne(choices)
+
+    for tool_id, tool_intervals in intervals_by_tool.items():
+        model.AddNoOverlap(tool_intervals)
 
     # Consolidate recipe-compatible orders into capacity-safe batch groups.
     # The model still chooses the furnace and start time for every group; the
@@ -232,6 +427,10 @@ def solve(
                     f"batch_iv_{safe_recipe}_{slot}_{_safe_name(resource.id)}",
                 )
                 intervals_by_resource[resource.id].append(interval)
+                _add_blackout_constraints(
+                    model, start, end, resource, use,
+                    f"batch_{safe_recipe}_{slot}_{_safe_name(resource.id)}",
+                )
             model.AddExactlyOne(choices)
             batch_resource[key] = resource_choices
             batch_records[key] = {
@@ -249,56 +448,61 @@ def solve(
         for previous, following in zip(route, route[1:]):
             model.Add(task_vars[(order.id, following)]["start"] >= task_vars[(order.id, previous)]["end"])
 
-    # Resource exclusivity. CNC uses a circuit per machine so each assigned
-    # operation has one predecessor/successor and setup time is charged on
-    # actual transitions, without pairwise order booleans for every task pair.
-    cnc_circuits = {}
-    cnc_by_resource = {
-        resource.id: [order.id for order in orders
-                      if (order.id, "CNC Machining") in task_vars
-                      and resource.id in task_vars[(order.id, "CNC Machining")]["assign"]]
-        for resource in available if resource.stage == "CNC Machining"
-    }
+    # Resource exclusivity and transition setup. Circuits encode immediate
+    # predecessor/successor setup gaps on each discrete press, CNC, or finisher.
+    setup_circuits = {}
+    sequence_stages = {"Molding", "CNC Machining", "Finishing"}
     for resource_id, intervals in intervals_by_resource.items():
         resource = resource_map[resource_id]
-        if intervals and resource.stage != "CNC Machining":
+        if intervals:
             model.AddNoOverlap(intervals)
-        if resource.stage != "CNC Machining":
+        if resource.stage not in sequence_stages:
             continue
-        cnc_orders = cnc_by_resource.get(resource_id, [])
-        empty = model.NewBoolVar(f"cnc_empty_{_safe_name(resource_id)}")
-        cnc_uses = [task_vars[(order_id, "CNC Machining")]["assign"][resource_id] for order_id in cnc_orders]
-        model.Add(sum(cnc_uses) == 0).OnlyEnforceIf(empty)
-        model.Add(sum(cnc_uses) >= 1).OnlyEnforceIf(empty.Not())
+        stage = resource.stage
+        sequence_orders = [
+            order.id for order in orders
+            if (order.id, stage) in task_vars
+            and resource_id in task_vars[(order.id, stage)]["assign"]
+        ]
+        if not sequence_orders:
+            continue
+        empty = model.NewBoolVar(f"seq_empty_{_safe_name(resource_id)}")
+        sequence_uses = [task_vars[(order_id, stage)]["assign"][resource_id] for order_id in sequence_orders]
+        model.Add(sum(sequence_uses) == 0).OnlyEnforceIf(empty)
+        model.Add(sum(sequence_uses) >= 1).OnlyEnforceIf(empty.Not())
         arcs = [(0, 0, empty)]
         arc_vars = {}
-        node_by_order = {order_id: index + 1 for index, order_id in enumerate(cnc_orders)}
-        for order_id in cnc_orders:
+        node_by_order = {order_id: index + 1 for index, order_id in enumerate(sequence_orders)}
+        for order_id in sequence_orders:
             node = node_by_order[order_id]
-            use = task_vars[(order_id, "CNC Machining")]["assign"][resource_id]
+            use = task_vars[(order_id, stage)]["assign"][resource_id]
             arcs.append((node, node, use.Not()))
-            start_arc = model.NewBoolVar(f"cnc_start_{resource_id}_{order_id}")
-            end_arc = model.NewBoolVar(f"cnc_end_{resource_id}_{order_id}")
+            start_arc = model.NewBoolVar(f"seq_start_{resource_id}_{order_id}")
+            end_arc = model.NewBoolVar(f"seq_end_{resource_id}_{order_id}")
             arcs.extend([(0, node, start_arc), (node, 0, end_arc)])
             arc_vars[(0, order_id)] = start_arc
             arc_vars[(order_id, 0)] = end_arc
-        for first_id in cnc_orders:
-            for second_id in cnc_orders:
+        for first_id in sequence_orders:
+            for second_id in sequence_orders:
                 if first_id == second_id:
                     continue
-                arc = model.NewBoolVar(f"cnc_next_{resource_id}_{first_id}_{second_id}")
+                arc = model.NewBoolVar(f"seq_next_{resource_id}_{first_id}_{second_id}")
                 arcs.append((node_by_order[first_id], node_by_order[second_id], arc))
                 arc_vars[(first_id, second_id)] = arc
-                first = task_vars[(first_id, "CNC Machining")]
-                second = task_vars[(second_id, "CNC Machining")]
+                first = task_vars[(first_id, stage)]
+                second = task_vars[(second_id, stage)]
                 first_part = parts_by_id[order_map[first_id].part_id]
                 second_part = parts_by_id[order_map[second_id].part_id]
-                setup_ticks = 0 if first_part.sku_code == second_part.sku_code else math.ceil(resource.setup_changeover_mins / 15)
+                setup_ticks = (
+                    0 if first_part.id == second_part.id
+                    else math.ceil(resource.setup_changeover_mins / 15)
+                )
                 model.Add(second["start"] >= first["end"] + setup_ticks).OnlyEnforceIf(arc)
         model.AddCircuit(arcs)
-        cnc_circuits[resource_id] = {
+        setup_circuits[resource_id] = {
             "empty": empty,
-            "orders": cnc_orders,
+            "orders": sequence_orders,
+            "stage": stage,
             "arc_vars": arc_vars,
         }
 
@@ -312,8 +516,8 @@ def solve(
         if not route:
             continue
         completion = task_vars[(order.id, route[-1])]["end"]
-        late = model.NewIntVar(0, MAX_TIME_TICKS, f"late_{order.id}")
         due_ticks = math.ceil(order.due_date_hours * 4 - 1e-9)
+        late = model.NewIntVar(0, MAX_TIME_TICKS + max(0, -due_ticks), f"late_{order.id}")
         model.AddMaxEquality(late, [completion - due_ticks, model.NewConstant(0)])
         late_vars.append(late)
         end_vars.append(completion)
@@ -343,11 +547,12 @@ def solve(
         model.AddHint(batch["end"], end)
         for resource_id, use in batch_resource[key].items():
             model.AddHint(use, int(resource_id == chosen_resource))
-    for resource_id, circuit in cnc_circuits.items():
+    for resource_id, circuit in setup_circuits.items():
+        stage = circuit["stage"]
         sequence = sorted(
             (order_id for order_id in circuit["orders"]
-             if hint_times[hint_order_nodes[(order_id, "CNC Machining")]][2] == resource_id),
-            key=lambda order_id: hint_times[hint_order_nodes[(order_id, "CNC Machining")]][0],
+             if hint_times[hint_order_nodes[(order_id, stage)]][2] == resource_id),
+            key=lambda order_id: hint_times[hint_order_nodes[(order_id, stage)]][0],
         )
         selected_arcs = set()
         if sequence:

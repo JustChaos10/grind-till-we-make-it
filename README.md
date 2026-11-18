@@ -33,6 +33,7 @@ curl.exe -X POST http://127.0.0.1:8000/api/seed
 - `GET /api/flow-board` returns current WIP queues.
 - `POST /api/schedule/optimize` compares baseline and optimized schedules and persists both runs.
 - `POST /api/schedule/simulate` evaluates a downtime, rush-order, or demand scenario without persisting it.
+- `POST /api/import/erp-csv` imports valid work orders from a `text/csv` request body and reports rejected rows with row numbers and reasons.
 
 Example local request:
 
@@ -43,6 +44,8 @@ curl.exe -X POST http://127.0.0.1:8000/api/schedule/optimize `
 ```
 
 The simulation endpoint accepts `down_resource_ids`, `rush_order_ids`, `demand_spike_pct`, and `time_limit_seconds`. Use IDs returned by the API.
+
+Production CSV imports use the administrator bearer token. Missing recipe IDs are inferred from the normalized alloy family; invalid rows are logged and isolated from valid rows. Supported CSV columns include `wo_number`, `sku_code`, `part_name`, `segment`, `alloy_family`, `sintering_recipe_id`, `quantity`, `due_date_hours`, `priority`, `current_stage`, `wip_age_hours`, `requires_machining`, and `tool_id`.
 
 ## Tests and lint
 
@@ -83,5 +86,9 @@ Do not commit `.env` files, database credentials, or API tokens.
 - Solver time uses 15-minute ticks; Gantt values are decimal hours from simulation hour zero.
 - Molding, CNC, and finishing cycle times are per-part. Debinding and sintering times are per-lot.
 - Furnace loads are packed by compatible recipe and capacity. The model enforces stage precedence, resource non-overlap, and sequence-dependent CNC setup times.
+- `Part.tool_id` represents a shared physical mold. `Resource.blackout_windows` contains absolute offline intervals in hours from the planning origin; expand recurring shifts and maintenance calendars into these windows before scheduling. Locked WIP uses `WorkOrder.locked_resource_id` and `locked_until_hour`. `COMPLETED` and `QUALITY_HOLD` orders are excluded from scheduling.
 - A deterministic feasible schedule is used as a fallback if CP-SAT reaches its time limit without finding an incumbent. Check the returned solver status and validate results on plant data; a fallback schedule is not a guarantee of globally optimal production performance.
+- At 300 or more active orders, IndoFlow skips the quadratic CP-SAT sequencing model and uses a deterministic due-date, priority, and remaining-work dispatch heuristic. This path is designed to return a feasible schedule quickly; it does not claim mathematical optimality.
 - Optimization persists `ScheduleVersion` and `ScheduledOperation` records only. It leaves source work orders unchanged.
+
+`validator.py` independently checks raw persisted operation rows against orders, parts, and resources. It validates remaining route order, non-overlap, shared mold contention, setup gaps, furnace recipe/capacity, active-resource use, and blackout windows without reading solver status flags or summary metrics.

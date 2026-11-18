@@ -21,6 +21,9 @@ class OrderSpec:
     priority: int
     current_stage: str
     wip_age_hours: float
+    status: str = "QUEUED"
+    locked_resource_id: str | None = None
+    locked_until_hour: float = 0.0
 
 
 @dataclass
