@@ -102,6 +102,10 @@ def validate_schedule_rows(
             )
         if part.alloy_family not in (resource.alloy_compatibility or []):
             raise ScheduleValidationError(f"{resource.id} cannot process alloy {part.alloy_family}")
+        if op.stage == "Debinding" and order.quantity > resource.capacity_units:
+            raise ScheduleValidationError(
+                f"Debinding load {order.quantity} exceeds vessel {resource.id} capacity {resource.capacity_units}"
+            )
         if op.stage != "Sintering":
             cycle_mins = (part.cycle_times_mins or {}).get(op.stage)
             try:

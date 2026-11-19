@@ -11,6 +11,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from domain import ALLOYS, STAGES, OrderSpec
+from factory_validation import FactoryDataError, validate_factory_data
 from main import app
 from seed import RECIPES, make_parts, make_resources
 from solver import solve
@@ -23,12 +24,12 @@ def _parts_and_resources():
     return {part.id: part for part in parts}, make_resources()
 
 
-def _order(part, index: int, *, stage="Molding", status="QUEUED", due=160, lock=None, lock_until=0, plant=None):
+def _order(part, index: int, *, stage="Molding", status="QUEUED", due=160, lock=None, lock_until=0, plant=None, quantity=10):
     return OrderSpec(
         id=f"chaos-{index:04d}",
         wo_number=f"CHAOS-WO-{index:04d}",
         part_id=part.id,
-        quantity=10,
+        quantity=quantity,
         due_date_hours=float(due),
         priority=(index % 5) + 1,
         current_stage=stage,
@@ -130,6 +131,16 @@ def test_order_plant_prevents_cross_plant_stage_assignments():
     plants = {next(resource for resource in resources if resource.id == op.resource_id).plant for op in result.operations}
     assert plants == {"Hoskote"}
     _assert_independently_feasible(result, [order], parts, resources)
+
+
+def test_oversized_lot_is_rejected_before_debinding_capacity_is_violated():
+    parts, resources = _parts_and_resources()
+    for resource in resources:
+        resource.blackout_windows = []
+    part = next(part for part in parts.values() if part.alloy_family == "MIM-17-4PH")
+    order = _order(part, 703, due=500, plant="Hoskote", quantity=500)
+    with pytest.raises(FactoryDataError, match="exceeds the largest compatible debinding vessel"):
+        validate_factory_data(resources, list(parts.values()), [order])
 
 
 def test_independent_validator_rejects_tampered_schedule_rows():

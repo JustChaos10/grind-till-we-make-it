@@ -202,10 +202,20 @@ def _solve_scale_fallback(orders, available, parts_by_id, *, time_limit_seconds:
         part = parts_by_id[order.part_id]
         ready = 0
         for stage in routes[order.id]:
-            candidates = eligible_resources(available, part, stage, plant=order.plant)
+            candidates = eligible_resources(
+                available, part, stage, plant=order.plant, quantity=order.quantity
+            )
             if stage == order.current_stage and order.locked_resource_id:
                 candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
             if not candidates:
+                compatible_but_undersized = (
+                    stage == "Debinding"
+                    and eligible_resources(available, part, stage, plant=order.plant)
+                )
+                if compatible_but_undersized:
+                    raise SchedulingError(
+                        f"No compatible debinding vessel can hold {order.quantity} units for {order.wo_number}"
+                    )
                 raise SchedulingError(f"No active compatible resource for {order.wo_number} at {stage}")
             duration = duration_ticks(order, part, stage)
             choices = []
@@ -336,15 +346,23 @@ def solve(
             if stage == "Sintering":
                 continue
             task = task_vars[(order.id, stage)]
-            candidates = eligible_resources(available, part, stage, plant=order.plant)
+            candidates = eligible_resources(
+                available, part, stage, plant=order.plant, quantity=order.quantity
+            )
             if stage == order.current_stage and order.locked_resource_id:
                 candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
                 task["locked_until_tick"] = hours_to_ticks(order.locked_until_hour)
                 model.Add(task["start"] >= task["locked_until_tick"])
             if not candidates:
+                compatible_but_undersized = (
+                    stage == "Debinding"
+                    and eligible_resources(available, part, stage, plant=order.plant)
+                )
                 reason = (
                     f"locked resource {order.locked_resource_id} is unavailable"
                     if stage == order.current_stage and order.locked_resource_id
+                    else f"No compatible debinding vessel can hold {order.quantity} units"
+                    if compatible_but_undersized
                     else "No active compatible resource"
                 )
                 raise SchedulingError(f"{reason} for {order.wo_number} at {stage}")

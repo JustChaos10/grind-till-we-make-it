@@ -91,9 +91,18 @@ def validate_factory_data(resources, parts, work_orders) -> None:
             cycle_value = _finite(cycle, f"Part {part.sku_code} {stage} cycle time")
             if cycle_value <= 0:
                 raise FactoryDataError(f"Part {part.sku_code} {stage} cycle time must be positive")
-            if not eligible_resources(resources, part, stage, plant=order.plant):
+            candidates = eligible_resources(resources, part, stage, plant=order.plant)
+            if not candidates:
                 raise FactoryDataError(
                     f"No active compatible {stage} resource at {order.plant} for {order.wo_number}"
+                )
+            if stage in {"Debinding", "Sintering"} and max(
+                resource.capacity_units for resource in candidates
+            ) < order.quantity:
+                resource_kind = "debinding vessel" if stage == "Debinding" else "sintering furnace"
+                raise FactoryDataError(
+                    f"{order.wo_number} quantity {order.quantity} exceeds the largest compatible {resource_kind} "
+                    f"at {order.plant}; split this work order into smaller lots"
                 )
 
 

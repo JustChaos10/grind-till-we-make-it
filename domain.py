@@ -87,7 +87,15 @@ def duration_ticks(order: OrderSpec, part, stage: str) -> int:
     return max(1, math.ceil(cycle_mins / 15.0 - 1e-9))
 
 
-def eligible_resources(resources, part, stage: str, *, plant: str | None = None, active_only: bool = True):
+def eligible_resources(
+    resources,
+    part,
+    stage: str,
+    *,
+    plant: str | None = None,
+    quantity: int | None = None,
+    active_only: bool = True,
+):
     compatible = []
     for resource in resources:
         if resource.stage != stage:
@@ -102,5 +110,7 @@ def eligible_resources(resources, part, stage: str, *, plant: str | None = None,
             recipes = resource.recipe_compatibility or []
             if recipes and part.sintering_recipe_id not in recipes:
                 continue
+        if stage == "Debinding" and quantity is not None and resource.capacity_units < quantity:
+            continue
         compatible.append(resource)
     return compatible
