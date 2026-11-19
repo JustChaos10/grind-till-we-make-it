@@ -65,6 +65,8 @@ From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/brow
 
 Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 
+The final responsive pass checked all three populated screens at 320, 390, 768, and 1440 px. The optimizer comparison cards stack on narrow phones, and the timeline scrolls inside its panel. All four widths fit the document without horizontal overflow.
+
 ## Screenshots
 
 - `screenshots/baseline-board.png` records the board before the current design pass.
