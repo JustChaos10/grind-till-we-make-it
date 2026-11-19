@@ -5,7 +5,7 @@
 - Branch: `feat/frontend-experience`.
 - Scope: React frontend and frontend documentation only. No backend logic was changed and nothing was pushed.
 - The frontend has a clear Flow Board, Schedule Optimizer, and Scenario Lab, with synthetic/demo and read-only messaging.
-- Scenario controls submit only supported API inputs. The result view reports API values and compares them with the current optimizer result; it does not present modeled deltas as realized savings.
+- Scenario controls submit only supported API inputs. The result view reports API values and compares them with the reference metrics returned by the same scenario request; it does not present modeled deltas as realized savings.
 - The Gantt view shows returned operations with proportional durations, resource labels, baseline/optimized selection, and operation details.
 - Seed controls require API readiness and user confirmation. The README uses a dedicated `indoflow-demo.db` SQLite database.
 - `DESIGN.md` records the design workflow and the use of focused patterns from Taste, Unslop, UI UX Pro Max, Awesome Design MD, and Ant Design references. Ant Design itself was not added as a dependency.
