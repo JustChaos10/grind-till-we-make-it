@@ -25,9 +25,22 @@ def test_configured_api_token_and_seed_admin_token(client, monkeypatch):
     monkeypatch.setenv("INDOFLOW_ADMIN_TOKEN", "test-admin-token")
     assert client.get("/api/flow-board").status_code == 401
     assert client.get("/api/flow-board", headers={"Authorization": "Bearer test-api-token"}).status_code == 200
+    assert client.get("/api/flow-board", headers={"Authorization": "Bearer test-admin-token"}).status_code == 401
+    assert client.post("/api/schedule/optimize", json={"time_limit_seconds": 0.1},
+                       headers={"Authorization": "Bearer test-admin-token"}).status_code == 401
     assert client.post("/api/seed", headers={"Authorization": "Bearer test-api-token"}).status_code == 403
     assert client.post("/api/seed", headers={"Authorization": "Bearer test-admin-token"}).status_code == 200
     monkeypatch.delenv("INDOFLOW_API_TOKEN")
+    monkeypatch.delenv("INDOFLOW_ADMIN_TOKEN")
+
+
+def test_admin_token_does_not_open_or_authorize_normal_api(client, monkeypatch):
+    monkeypatch.delenv("INDOFLOW_API_TOKEN", raising=False)
+    monkeypatch.setenv("INDOFLOW_ADMIN_TOKEN", "test-admin-token")
+    assert client.get("/api/flow-board").status_code == 401
+    assert client.get(
+        "/api/flow-board", headers={"Authorization": "Bearer test-admin-token"}
+    ).status_code == 401
     monkeypatch.delenv("INDOFLOW_ADMIN_TOKEN")
 
 

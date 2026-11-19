@@ -1,10 +1,10 @@
 # IndoFlow
 
-IndoFlow is a read-only scheduling and WIP bottleneck API for a five-stage Metal Injection Molding flow:
+IndoFlow is a read-only scheduling and WIP bottleneck API for a configurable Metal Injection Molding flow. Its supported stage set is:
 
 `Molding → Debinding → Sintering → CNC Machining → Finishing`
 
-It compares a FIFO baseline with an OR-Tools CP-SAT schedule and saves schedule runs. Optimization does not change work-order state, quantities, due dates, or current stages.
+Each part can use an ordered subset of those stages; records without a route retain the legacy route controlled by `requires_machining`. It compares a FIFO baseline with an OR-Tools CP-SAT schedule and saves schedule runs. Optimization does not change work-order state, quantities, due dates, or current stages.
 
 ## Local development
 
@@ -71,7 +71,7 @@ curl.exe -X POST http://127.0.0.1:8000/api/schedule/optimize `
 
 The simulation endpoint accepts `down_resource_ids`, `rush_order_ids`, `demand_spike_pct`, and `time_limit_seconds`. Use IDs returned by the API.
 
-Production CSV imports use the administrator bearer token. Missing recipe IDs are inferred from the normalized alloy family; invalid rows are logged and isolated from valid rows. Supported CSV columns include `wo_number`, `sku_code`, `part_name`, `segment`, `alloy_family`, `sintering_recipe_id`, `quantity`, `due_date_hours`, `priority`, `current_stage`, `wip_age_hours`, `requires_machining`, and `tool_id`.
+Production CSV imports use the administrator bearer token. Missing recipe IDs are inferred from the normalized alloy family; invalid rows are logged and isolated from valid rows. Files must have unique headers and explicit `segment` values, and are limited to 5 MiB and 10,000 rows. Supported columns include `wo_number`, `sku_code`, `part_name`, `segment`, `alloy_family`, `sintering_recipe_id`, `quantity`, `due_date_hours`, `priority`, `current_stage`, `process_route`, `wip_age_hours`, `requires_machining`, and `tool_id`. `process_route` is optional and uses `>` between ordered stage names, such as `Molding > Debinding > Sintering > Finishing`.
 
 ## Tests and lint
 
@@ -111,10 +111,12 @@ Do not commit `.env` files, database credentials, or API tokens.
 
 - Solver time uses 15-minute ticks; Gantt values are decimal hours from simulation hour zero.
 - Molding, CNC, and finishing cycle times are per-part. Debinding and sintering times are per-lot.
-- Furnace loads are packed by compatible recipe and capacity. The model enforces stage precedence, resource non-overlap, and sequence-dependent CNC setup times.
+- Furnace loads are packed by compatible recipe and capacity. The model enforces part-specific stage precedence, resource non-overlap, and sequence-dependent setup times on discrete machines. Explicit routes can omit unsupported/unneeded stages from the current supported stage set.
 - `Part.tool_id` represents a shared physical mold. `Resource.blackout_windows` contains absolute offline intervals in hours from the planning origin; expand recurring shifts and maintenance calendars into these windows before scheduling. Locked WIP uses `WorkOrder.locked_resource_id` and `locked_until_hour`. `COMPLETED` and `QUALITY_HOLD` orders are excluded from scheduling.
 - A deterministic feasible schedule is used as a fallback if CP-SAT reaches its time limit without finding an incumbent. Check the returned solver status and validate results on plant data; a fallback schedule is not a guarantee of globally optimal production performance.
 - At 300 or more active orders, IndoFlow skips the quadratic CP-SAT sequencing model and uses a deterministic due-date, priority, and remaining-work dispatch heuristic. This path is designed to return a feasible schedule quickly; it does not claim mathematical optimality.
 - Optimization persists `ScheduleVersion` and `ScheduledOperation` records only. It leaves source work orders unchanged.
 
-`validator.py` independently checks raw persisted operation rows against orders, parts, and resources. It validates remaining route order, non-overlap, shared mold contention, setup gaps, furnace recipe/capacity, active-resource use, and blackout windows without reading solver status flags or summary metrics.
+`validator.py` independently checks raw persisted operation rows against orders, parts, and resources. It validates remaining route order, cycle-time duration, non-overlap, shared mold contention, setup gaps, furnace recipe/capacity, active-resource use, and blackout windows without reading solver status flags or summary metrics.
+
+This backend is a scheduling prototype, not a validated Indo-MIM production execution system. Public Indo-MIM materials describe additional operations and both batch and continuous furnace technologies; this version models only the stages/resources present in its master data. Validate actual routing, process parameters, calendars, quality release rules, and resource qualifications with plant engineering before using a schedule operationally.

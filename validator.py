@@ -8,6 +8,7 @@ All schedule hours are measured from the planning origin (hour zero).
 from __future__ import annotations
 
 from collections import defaultdict
+import math
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +19,13 @@ from models import Part, Resource, ScheduledOperation, ScheduleVersion, WorkOrde
 
 class ScheduleValidationError(AssertionError):
     """A persisted schedule violates a physical production constraint."""
+
+
+def _route_for(order, part) -> tuple[str, ...]:
+    try:
+        return route_for(order, part.requires_machining, getattr(part, "process_route", None))
+    except (TypeError, ValueError) as exc:
+        raise ScheduleValidationError(f"Work order {order.id} has invalid process route: {exc}") from exc
 
 
 def _overlaps(start_a: float, end_a: float, start_b: float, end_b: float) -> bool:
@@ -71,12 +79,27 @@ def validate_schedule_rows(
             )
         if resource.status != "ACTIVE":
             raise ScheduleValidationError(f"Operation {op.id} uses inactive resource {resource.id}")
-        if op.stage not in route_for(order, part.requires_machining):
+        if op.stage not in _route_for(order, part):
             raise ScheduleValidationError(
                 f"Operation {op.id} schedules {op.stage} before/currently outside {order.current_stage} route"
             )
         if part.alloy_family not in (resource.alloy_compatibility or []):
             raise ScheduleValidationError(f"{resource.id} cannot process alloy {part.alloy_family}")
+        if op.stage != "Sintering":
+            cycle_mins = (part.cycle_times_mins or {}).get(op.stage)
+            try:
+                cycle_mins = float(cycle_mins)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ScheduleValidationError(f"Part {part.id} has invalid {op.stage} cycle time") from exc
+            if not math.isfinite(cycle_mins) or cycle_mins <= 0:
+                raise ScheduleValidationError(f"Part {part.id} has invalid {op.stage} cycle time")
+            if op.stage in {"Molding", "CNC Machining", "Finishing"}:
+                cycle_mins *= order.quantity
+            expected_hours = max(1, math.ceil(float(cycle_mins) / 15.0 - 1e-9)) / 4.0
+            if abs((op.end_hour - op.start_hour) - expected_hours) > 1e-6:
+                raise ScheduleValidationError(
+                    f"Operation {op.id} duration does not match the part cycle time and quantity"
+                )
 
         for blackout_start, blackout_end in getattr(resource, "blackout_windows", None) or []:
             if _overlaps(op.start_hour, op.end_hour, float(blackout_start), float(blackout_end)):
@@ -100,7 +123,7 @@ def validate_schedule_rows(
                 raise ScheduleValidationError(f"Excluded work order {order.id} has scheduled operations")
             continue
         part = part_by_id[order.part_id]
-        expected_route = list(route_for(order, part.requires_machining))
+        expected_route = list(_route_for(order, part))
         ordered = sorted(scheduled, key=lambda op: STAGES.index(op.stage))
         actual_route = [op.stage for op in ordered]
         if actual_route != expected_route:
@@ -167,6 +190,20 @@ def validate_schedule_rows(
         windows = {(op.start_hour, op.end_hour) for op in batch}
         if len(windows) != 1:
             raise ScheduleValidationError(f"Furnace batch {batch_id} is split across different run intervals")
+        try:
+            cycle_times = [
+                float(part.cycle_times_mins["Sintering"])
+                for part in member_parts
+                if (part.cycle_times_mins or {}).get("Sintering") is not None
+            ]
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ScheduleValidationError(f"Furnace batch {batch_id} has an invalid sintering cycle time") from exc
+        if len(cycle_times) != len(member_parts) or any(not math.isfinite(value) or value <= 0 for value in cycle_times):
+            raise ScheduleValidationError(f"Furnace batch {batch_id} has an invalid sintering cycle time")
+        expected_hours = max(1, math.ceil(max(cycle_times) / 15.0 - 1e-9)) / 4.0
+        start_hour, end_hour = next(iter(windows))
+        if abs((end_hour - start_hour) - expected_hours) > 1e-6:
+            raise ScheduleValidationError(f"Furnace batch {batch_id} duration does not match its recipe cycle")
 
     by_furnace_runs: dict[str, list] = defaultdict(list)
     for (resource_id, _batch_id), batch in furnace_batches.items():

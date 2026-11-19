@@ -184,7 +184,7 @@ def _solve_scale_fallback(orders, available, parts_by_id, *, time_limit_seconds:
 
     def route_and_work(order):
         part = parts_by_id[order.part_id]
-        route = route_for(order, part.requires_machining)
+        route = route_for(order, part.requires_machining, getattr(part, "process_route", None))
         work = sum(duration_ticks(order, part, stage) for stage in route)
         return route, work
 
@@ -310,7 +310,7 @@ def solve(
     # Create a start/end pair for each operation before linking precedence.
     for order in orders:
         part = parts_by_id[order.part_id]
-        route = route_for(order, part.requires_machining)
+        route = route_for(order, part.requires_machining, getattr(part, "process_route", None))
         routes[order.id] = route
         for stage in route:
             start = model.NewIntVar(0, MAX_TIME_TICKS, f"s_{order.id}_{_safe_name(stage)}")

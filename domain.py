@@ -45,11 +45,25 @@ def stage_index(stage: str) -> int:
         raise ValueError(f"Unknown manufacturing stage: {stage}") from exc
 
 
-def route_for(order: OrderSpec, requires_machining: bool) -> tuple[str, ...]:
-    route = STAGES[stage_index(order.current_stage):]
-    if not requires_machining:
-        route = tuple(stage for stage in route if stage != "CNC Machining")
-    return tuple(route)
+def route_for(order: OrderSpec, requires_machining: bool, process_route=None) -> tuple[str, ...]:
+    """Resolve a part's ordered route and return the remaining stages.
+
+    An explicit route supports application-specific operations. Existing
+    records retain the legacy route implied by ``requires_machining``.
+    """
+    if process_route is None:
+        route = tuple(stage for stage in STAGES if requires_machining or stage != "CNC Machining")
+    else:
+        route = tuple(process_route)
+        if not route or any(stage not in STAGES for stage in route):
+            raise ValueError("process_route must contain known manufacturing stages")
+        if tuple(sorted(route, key=STAGES.index)) != route or len(set(route)) != len(route):
+            raise ValueError("process_route stages must be unique and in manufacturing order")
+    if order.current_stage not in route:
+        raise ValueError(
+            f"Current stage {order.current_stage} is not present in the part's process route"
+        )
+    return route[route.index(order.current_stage):]
 
 
 def hours_to_ticks(hours: float) -> int:

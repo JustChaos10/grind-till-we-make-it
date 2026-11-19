@@ -71,7 +71,11 @@ def test_brownfield_wip_resumes_locked_orders_and_excludes_quality_hold():
     for index in range(45, 55):
         orders.append(_order(source[index % len(source)], index, stage="Molding", status="QUALITY_HOLD"))
     for index in range(55, 100):
-        orders.append(_order(source[index % len(source)], index, stage=STAGES[index % len(STAGES)]))
+        part = source[index % len(source)]
+        stage = STAGES[index % len(STAGES)]
+        if stage == "CNC Machining" and not part.requires_machining:
+            stage = "Finishing"
+        orders.append(_order(part, index, stage=stage))
 
     result = solve(orders, resources, parts, time_limit_seconds=1.0)
     scheduled_ids = {op.work_order_id for op in result.operations}
@@ -100,6 +104,20 @@ def test_shared_physical_mold_cannot_run_in_two_presses():
     _assert_independently_feasible(result, orders, parts, resources)
 
 
+def test_part_specific_route_skips_unneeded_machining_and_validates():
+    parts, resources = _parts_and_resources()
+    part = list(parts.values())[0]
+    part.process_route = ["Molding", "Debinding", "Sintering", "Finishing"]
+    order = _order(part, 701, due=500)
+
+    result = solve([order], resources, parts, time_limit_seconds=1.0)
+
+    assert [op.stage for op in sorted(result.operations, key=lambda op: op.start_hour)] == [
+        "Molding", "Debinding", "Sintering", "Finishing",
+    ]
+    _assert_independently_feasible(result, [order], parts, resources)
+
+
 def test_independent_validator_rejects_tampered_schedule_rows():
     parts, resources = _parts_and_resources()
     source = list(parts.values())[:4]
@@ -115,7 +133,9 @@ def test_independent_validator_rejects_tampered_schedule_rows():
     assert len(molding_rows) >= 2
     # Deliberately lie in the schedule's non-authoritative solver flag fields;
     # the validator must still detect a physical tool collision from raw rows.
-    molding_rows[1].start_hour = molding_rows[0].start_hour
+    shift = molding_rows[0].start_hour - molding_rows[1].start_hour
+    molding_rows[1].start_hour += shift
+    molding_rows[1].end_hour += shift
     molding_rows[1].is_late = False
     with pytest.raises(ScheduleValidationError, match="physical mold MOLD-TOOL-RAW-CHECK"):
         validate_schedule_rows(raw_rows, orders, list(parts.values()), resources)
@@ -189,11 +209,12 @@ async def test_dirty_erp_csv_import_sanitizes_rows_and_optimization_continues(cs
     writer = csv.writer(output)
     writer.writerow([
         "wo_number", "sku_code", "part_name", "segment", "alloy_family",
-        "sintering_recipe_id", "quantity", "due_date_hours", "priority", "current_stage",
+        "sintering_recipe_id", "quantity", "due_date_hours", "priority", "current_stage", "process_route",
     ])
     writer.writerow([
         "ERP-CHAOS-001", " dirty-sku-01 ", "Imported part", "aerospace",
         " mim-17-4ph ", "", "5", "-24", "5", "Molding",
+        "Molding > Debinding > Sintering > Finishing",
     ])
     writer.writerow([
         "ERP-CHAOS-001", "DIRTY-SKU-02", "Duplicate", "Aerospace",
@@ -232,6 +253,30 @@ async def test_dirty_erp_csv_import_sanitizes_rows_and_optimization_continues(cs
 
     async with SessionLocal() as session:
         await validate_schedule(session, schedule_version_id)
+
+
+async def test_erp_csv_requires_explicit_classification_and_unique_headers(csv_import_client):
+    missing_segment = (
+        "wo_number,sku_code,alloy_family,quantity,due_date_hours,current_stage\n"
+        "ERP-CHAOS-004,NO-SEGMENT,MIM-17-4PH,1,24,Molding\n"
+    )
+    response = await csv_import_client.post(
+        "/api/import/erp-csv", content=missing_segment,
+        headers={"Content-Type": "text/csv"},
+    )
+    assert response.status_code == 422
+    assert "segment" in response.json()["detail"]
+
+    duplicate_header = (
+        "wo_number,sku_code,segment,alloy_family,quantity,due_date_hours,current_stage,SKU_CODE\n"
+        "ERP-CHAOS-005,DUP-HEADER,Aerospace,MIM-17-4PH,1,24,Molding,DUP-HEADER\n"
+    )
+    response = await csv_import_client.post(
+        "/api/import/erp-csv", content=duplicate_header,
+        headers={"Content-Type": "text/csv"},
+    )
+    assert response.status_code == 422
+    assert "unique" in response.json()["detail"]
 
 
 def test_thousand_order_45_machine_scale_is_feasible_and_improves_both_kpis():

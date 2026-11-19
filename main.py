@@ -27,6 +27,8 @@ from seed import RECIPES, seed_database
 from solver import SchedulingError, solve as run_solver
 
 logger = logging.getLogger("indoflow.import")
+MAX_ERP_CSV_BYTES = 5 * 1024 * 1024
+MAX_ERP_CSV_ROWS = 10_000
 
 
 @asynccontextmanager
@@ -109,14 +111,13 @@ async def require_api_access(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> None:
     api_token = os.getenv("INDOFLOW_API_TOKEN", "")
-    admin_token = os.getenv("INDOFLOW_ADMIN_TOKEN", "")
-    if os.getenv("APP_ENV", "development").lower() != "production" and not api_token and not admin_token:
+    if (
+        os.getenv("APP_ENV", "development").lower() != "production"
+        and not api_token and not os.getenv("INDOFLOW_ADMIN_TOKEN", "")
+    ):
         return
     token = credentials.credentials if credentials and credentials.scheme.lower() == "bearer" else ""
-    if token and (
-        _matches_configured_token(token, "INDOFLOW_API_TOKEN")
-        or _matches_configured_token(token, "INDOFLOW_ADMIN_TOKEN")
-    ):
+    if token and _matches_configured_token(token, "INDOFLOW_API_TOKEN"):
         return
     raise HTTPException(status_code=401, detail="Valid IndoFlow bearer token required", headers={"WWW-Authenticate": "Bearer"})
 
@@ -167,7 +168,21 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
     Invalid rows are isolated and returned with row numbers and actionable
     reasons; valid rows in the same file are committed.
     """
-    body = await request.body()
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_ERP_CSV_BYTES:
+                raise HTTPException(status_code=413, detail="CSV exceeds the 5 MiB import limit")
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid Content-Length header") from None
+    body_parts = []
+    total_bytes = 0
+    async for chunk in request.stream():
+        total_bytes += len(chunk)
+        if total_bytes > MAX_ERP_CSV_BYTES:
+            raise HTTPException(status_code=413, detail="CSV exceeds the 5 MiB import limit")
+        body_parts.append(chunk)
+    body = b"".join(body_parts)
     try:
         text_body = body.decode("utf-8-sig")
         reader = csv.DictReader(io.StringIO(text_body))
@@ -175,6 +190,13 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
         raise HTTPException(status_code=400, detail=f"Invalid UTF-8 CSV: {exc}") from exc
     if not reader.fieldnames:
         raise HTTPException(status_code=422, detail="CSV must include a header row")
+    normalized_headers = [name.strip().casefold() for name in reader.fieldnames if name is not None]
+    if len(normalized_headers) != len(reader.fieldnames) or len(set(normalized_headers)) != len(normalized_headers):
+        raise HTTPException(status_code=422, detail="CSV headers must be non-empty and unique")
+    required_headers = {"wo_number", "sku_code", "segment", "alloy_family", "quantity", "due_date_hours", "current_stage"}
+    missing_headers = sorted(required_headers - set(normalized_headers))
+    if missing_headers:
+        raise HTTPException(status_code=422, detail=f"CSV is missing required columns: {', '.join(missing_headers)}")
 
     def canonical(value: str | None, values: tuple[str, ...]) -> str | None:
         key = (value or "").strip().casefold().replace("_", "-")
@@ -194,13 +216,17 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
     imported = 0
     rejected = []
     for row_number, raw in enumerate(reader, start=2):
+        if row_number > MAX_ERP_CSV_ROWS + 1:
+            raise HTTPException(status_code=413, detail="CSV exceeds the 10000 row import limit")
         row = {
             key.strip().casefold(): str(value or "").strip()
             for key, value in raw.items() if key is not None
         }
         errors: list[str] = []
-        if None in raw or len(row) != len(raw):
+        if None in raw:
             errors.append("row has more values than the CSV header")
+        if any(value is None for value in raw.values()):
+            errors.append("row has fewer values than the CSV header")
         wo_number = row.get("wo_number", "")
         sku_code = row.get("sku_code", "").upper()
         if not wo_number:
@@ -230,7 +256,31 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
         stage = next((item for item in STAGES if item.casefold() == stage_input), None)
         if not stage:
             errors.append(f"current_stage must be one of: {', '.join(STAGES)}")
-        segment = canonical(row.get("segment"), SEGMENTS) or "Automotive"
+        route_input = row.get("process_route", "")
+        process_route = None
+        if route_input:
+            process_route = []
+            for value in route_input.split(">"):
+                normalized_stage = value.strip().casefold().replace("_", " ")
+                matched_stage = next(
+                    (item for item in STAGES if item.casefold() == normalized_stage), None
+                )
+                process_route.append(matched_stage or value.strip())
+            invalid_route = (
+                any(item not in STAGES for item in process_route)
+                or len(set(process_route)) != len(process_route)
+                or process_route != sorted(
+                    process_route,
+                    key=lambda item: STAGES.index(item) if item in STAGES else len(STAGES),
+                )
+            )
+            if invalid_route:
+                errors.append("process_route must list unique known stages in order, separated by '>'")
+            elif stage and stage not in process_route:
+                errors.append(f"current_stage '{stage}' must be present in process_route")
+        segment = canonical(row.get("segment"), SEGMENTS)
+        if not segment:
+            errors.append(f"unknown or missing segment '{row.get('segment', '')}'; choose one of: {', '.join(SEGMENTS)}")
         try:
             due = float(row.get("due_date_hours", ""))
             if not math.isfinite(due):
@@ -284,6 +334,7 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
                     "Finishing": 1.2,
                 },
                 requires_machining=machining_value in {"1", "true", "yes", "y"},
+                process_route=process_route,
                 tool_id=row.get("tool_id") or None,
             )
             session.add(part)

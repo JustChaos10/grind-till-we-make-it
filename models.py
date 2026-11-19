@@ -45,6 +45,8 @@ class Part(Base):
     sintering_recipe_id: Mapped[str] = mapped_column(String(64), index=True)
     cycle_times_mins: Mapped[dict[str, float]] = mapped_column(JSON)
     requires_machining: Mapped[bool] = mapped_column(Boolean, default=True)
+    # NULL preserves the legacy default route for existing parts.
+    process_route: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     tool_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
 
 
