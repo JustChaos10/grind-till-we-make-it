@@ -93,10 +93,10 @@
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); behavior under an OS reduced-motion setting still needs browser verification.
-- [ ] Tested keyboard-only navigation across all three screens. Browser smoke checks cover navigation activation and selected Gantt and scenario actions. Full Tab traversal and focus order remain to be reviewed.
+- [ ] Tested keyboard-only navigation across all three screens. Browser Tab and Enter checks reached all three screens. The fixture smoke also covers Gantt details, focus restoration, and scenario inputs. Full Tab traversal and focus order remain to be reviewed.
 - [ ] Form controls have accessible names/help/error association.
 - [ ] Dialogs have appropriate focus and escape behavior. Seed confirmation and Gantt Escape/focus restoration have targeted coverage. A full focus review is open.
-- [ ] Color contrast and no color-only status indicators checked (targeted muted/status text swatches were measured, but the full UI and all states remain unaudited).
+- [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; coverage of all states remains open).
 
 ## 6. Engineering and tests
 
@@ -107,7 +107,7 @@
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, and scenario behavior; no filter UI exists.
-- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. Repeatable scripts are in `scripts/browser_flow.py` and `scripts/browser_real_api.py`.
+- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. The fixture smoke passed. Repeatable scripts are in `scripts/browser_flow.py` and `scripts/browser_real_api.py`.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.

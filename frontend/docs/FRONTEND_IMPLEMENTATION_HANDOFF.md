@@ -19,7 +19,7 @@
 - Backend regression suite: `.venv\Scripts\python.exe -m pytest -q` — 23 passed. `.venv\Scripts\python.exe -m ruff check .` — passed. Backend source was not changed. Global Python 3.13 lacks `aiosqlite`; use the repository `.venv` (Python 3.12).
 - Local API health returned `ready`. The read-only Flow Board response and rendered UI showed 150 synthetic work orders, a 31.53h average WIP age, stage queues 56/25/26/24/19, and two API-returned alerts. The startup command used `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db`, `APP_ENV=development`, and refused to start if that DB file already existed. No seed request was made in this continuation.
 - Local browser review exercised the Flow Board with 150 synthetic work orders, the optimizer with 524 returned operations, and a CNC-1 downtime scenario. The Flow Board was visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844; screenshots are `screenshots/flow-desktop-1920.png`, `flow-laptop-1280.png`, `flow-tablet-768.png`, and `flow-mobile-390.png`. At all four CSS viewport widths the document had no horizontal overflow; tablet and phone client widths are 753 px and 375 px after the vertical scrollbar. Dense Gantt content stays in its own scroll region. Browser review also covered the optimizer and Scenario Lab; the scenario request completed after about 20 seconds in this local run, which should be reviewed with the backend owner.
-- Browser keyboard activation with Enter was checked for Flow Board, Schedule Optimizer, and Scenario Lab. This verifies activation of each destination, not complete keyboard-only traversal, focus order, or screen-reader behavior.
+- Browser Tab and Enter checks reached all three planning screens. A 1440 px browser check found no sampled text below 4.5:1 on the fixture board or optimizer and scenario results. Full state contrast and assistive-technology review remain open.
 
 ## Final implementation update
 
@@ -58,7 +58,7 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 
 ## Repeatable browser verification
 
-From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It exercises optimization, keyboard Gantt details and scenario inputs.
+From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed optimization, opening Gantt details by keyboard, Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 2.38 seconds with reduced motion emulated.
 
 Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and exercises retry, explicit seed confirmation, optimization, timeline selection and two simulation requests. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 
