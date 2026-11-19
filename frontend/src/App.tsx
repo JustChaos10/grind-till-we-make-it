@@ -40,7 +40,7 @@ type WorkOrder = {
   due_date_hours: number
   priority: number
 }
-type Operation = {
+export type Operation = {
   work_order_id: string
   wo_number: string
   sku_code: string
@@ -151,7 +151,7 @@ function App() {
   const [error, setError] = useState('')
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
-  const [demand, setDemand] = useState(20)
+  const [demand, setDemand] = useState(0)
   const [scheduleTab, setScheduleTab] = useState<'optimized' | 'baseline'>('optimized')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
@@ -182,15 +182,11 @@ function App() {
     null,
   )
   const downResource = resources.find((resource) => resource.id === downId)
-  const optimizedOperations = optimization?.gantt.optimized ?? []
-  const maxHour = Math.max(24, ...optimizedOperations.map((item) => item.end_hour))
   const shownOperations = useMemo(
-    () =>
-      [...(optimization?.gantt[scheduleTab] ?? [])]
-        .sort((a, b) => a.start_hour - b.start_hour)
-        .slice(0, 90),
+    () => [...(optimization?.gantt[scheduleTab] ?? [])].sort((a, b) => a.start_hour - b.start_hour),
     [optimization, scheduleTab],
   )
+  const maxHour = Math.max(24, ...shownOperations.map((item) => item.end_hour))
 
   async function seedDemo() {
     if (
@@ -279,6 +275,7 @@ function App() {
         <nav className="nav-list">
           <button
             className={page === 'board' ? 'nav-item selected' : 'nav-item'}
+            aria-current={page === 'board' ? 'page' : undefined}
             onClick={() => setPage('board')}
           >
             <Layers3 size={17} />
@@ -287,6 +284,7 @@ function App() {
           </button>
           <button
             className={page === 'optimizer' ? 'nav-item selected' : 'nav-item'}
+            aria-current={page === 'optimizer' ? 'page' : undefined}
             onClick={() => setPage('optimizer')}
           >
             <GitCompareArrows size={17} />
@@ -294,6 +292,7 @@ function App() {
           </button>
           <button
             className={page === 'scenario' ? 'nav-item selected' : 'nav-item'}
+            aria-current={page === 'scenario' ? 'page' : undefined}
             onClick={() => setPage('scenario')}
           >
             <Sparkles size={17} />
@@ -351,7 +350,7 @@ function App() {
         </header>
         <div className="page-content">
           {error && (
-            <div className="error-banner">
+            <div className="error-banner" role="alert">
               <AlertTriangle size={17} />
               <div>
                 <b>Something needs attention</b>
@@ -372,18 +371,25 @@ function App() {
               <div className="welcome-icon">
                 <Activity size={24} />
               </div>
-              <p className="eyebrow">INDOFLOW CONTROL ROOM</p>
+              <p className="eyebrow">SYNTHETIC OPERATIONS DEMO</p>
               <h1>
-                Factory intelligence,
+                See work in flow,
                 <br />
-                <em>at a glance.</em>
+                <em>from order to finish.</em>
               </h1>
               <p className="welcome-copy">
                 Connect to the IndoFlow API and load a synthetic factory dataset to explore live
                 WIP, optimized schedules, and operational what-if scenarios.
               </p>
               <div className="welcome-actions">
-                <button className="primary-button" onClick={seedDemo} disabled={busy !== null}>
+                <button
+                  className="primary-button"
+                  onClick={seedDemo}
+                  disabled={busy !== null || !lastUpdated}
+                  title={
+                    !lastUpdated ? 'Connect to the API before loading demo records.' : undefined
+                  }
+                >
                   <Play size={16} fill="currentColor" />
                   {busy === 'seed' ? 'Loading demo data…' : 'Load synthetic demo data'}
                 </button>
@@ -403,13 +409,13 @@ function App() {
               <div className="page-heading">
                 <div>
                   <p className="eyebrow">
-                    OPERATIONS OVERVIEW <span>·</span> HOSKOTE + DODDABALLAPURA
+                    OPERATIONS OVERVIEW <span>·</span> SYNTHETIC DEMO DATA
                   </p>
                   <h1>
                     Your factory, in flow <span>✳</span>
                   </h1>
                   <p className="heading-sub">
-                    Here’s what’s happening across your production flow today.
+                    A planning view of the work orders and resources in the current API snapshot.
                   </p>
                 </div>
                 <button className="primary-button" onClick={optimize} disabled={busy !== null}>
@@ -428,132 +434,160 @@ function App() {
                 />
                 <StatCard
                   label="Average WIP age"
-                  value={`${fmt(board.avg_wip_age_hours)}h`}
+                  value={board.total_wip_orders ? `${fmt(board.avg_wip_age_hours)}h` : '—'}
                   icon={<Clock3 size={18} />}
                   foot="Time in the production system"
                   tone="amber"
                 />
                 <StatCard
                   label="Largest queue"
-                  value={bottleneckQueue?.stage ?? '—'}
+                  value={board.total_wip_orders ? (bottleneckQueue?.stage ?? '—') : '—'}
                   icon={<Gauge size={18} />}
-                  foot={`${bottleneckQueue?.queue_depth ?? 0} orders waiting`}
+                  foot={
+                    board.total_wip_orders
+                      ? `${bottleneckQueue?.queue_depth ?? 0} orders waiting`
+                      : 'No queued work orders'
+                  }
                   tone="violet"
                   compact
                 />
                 <StatCard
-                  label="Machines available"
+                  label="Configured resources"
                   value={`${activeResources.length} / ${resources.length}`}
                   icon={<Activity size={18} />}
-                  foot="Across 5 process stages"
+                  foot="Marked active in the resource catalog"
                   tone="green"
                 />
               </div>
-              <div className="content-grid board-grid">
-                <section className="panel flow-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Production flow</h2>
-                      <p>Work in progress by current stage</p>
-                    </div>
-                    <span className="neutral-pill">
-                      <span className="pulse" /> LIVE QUEUE
-                    </span>
-                  </div>
-                  <div className="flow-track">
-                    {stages.map((stage, index) => {
-                      const queue = board.queues.find((item) => item.stage === stage)
-                      const count = queue?.queue_depth ?? 0
-                      return (
-                        <div className="stage-column" key={stage}>
-                          <div className="stage-top">
-                            <span className="stage-index">{stageGlyph[stage]}</span>
-                            {index < stages.length - 1 && (
-                              <span className="stage-connector">
-                                <ArrowRight size={13} />
-                              </span>
-                            )}
-                          </div>
-                          <div className="stage-count">{count.toLocaleString()}</div>
-                          <div className="stage-name">{stageShort[stage]}</div>
-                          <div className="stage-bar">
-                            <span
-                              style={{
-                                width: `${Math.max(count ? 5 : 0, (count / stageMax) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                          <div className="stage-meta">{fmt(queue?.avg_wip_age_hours)}h avg age</div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="flow-foot">
-                    <span>
-                      <i className="legend-dot" /> Open orders at each operation’s current stage
-                    </span>
-                    <button className="link-button" onClick={optimize}>
-                      View schedule <ArrowRight size={14} />
-                    </button>
-                  </div>
-                </section>
-                <section className="panel alerts-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <h2>Needs attention</h2>
-                      <p>Signals from your production floor</p>
-                    </div>
-                    <span className="alert-count">{board.active_bottleneck_alerts.length}</span>
-                  </div>
-                  {board.active_bottleneck_alerts.length ? (
-                    <div className="alert-list">
-                      {board.active_bottleneck_alerts.map((alert, index) => (
-                        <div className="alert-row" key={alert}>
-                          <span className="alert-symbol">
-                            <AlertTriangle size={15} />
-                          </span>
-                          <div>
-                            <b>{index === 0 ? 'Bottleneck signal' : 'Capacity alert'}</b>
-                            <span>{alert}</span>
-                          </div>
-                          <ArrowRight size={15} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="empty-alert">
-                      <span>
-                        <Check size={18} />
-                      </span>
-                      <div>
-                        <b>Clear for now</b>
-                        <small>No active bottlenecks or downtime alerts.</small>
-                      </div>
-                    </div>
-                  )}
-                  <button className="scenario-shortcut" onClick={() => setPage('scenario')}>
-                    <span className="shortcut-icon">
-                      <Sparkles size={16} />
-                    </span>
-                    <span>
-                      <b>Plan for a disruption</b>
-                      <small>Try a machine outage or rush order</small>
-                    </span>
-                    <ArrowRight size={15} />
+              {board.total_wip_orders === 0 ? (
+                <section className="panel empty-board">
+                  <span className="placeholder-orbit">
+                    <Boxes size={22} />
+                  </span>
+                  <p className="eyebrow">SYNTHETIC DEMO DATA</p>
+                  <h2>No work orders in this database</h2>
+                  <p>
+                    Load the documented synthetic dataset to explore the flow board, schedule, and
+                    scenario controls.
+                  </p>
+                  <button
+                    className="primary-button"
+                    onClick={seedDemo}
+                    disabled={busy !== null || !lastUpdated}
+                  >
+                    <Sparkles size={16} />{' '}
+                    {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
                   </button>
                 </section>
-              </div>
+              ) : (
+                <div className="content-grid board-grid">
+                  <section className="panel flow-panel">
+                    <div className="panel-heading">
+                      <div>
+                        <h2>Production flow</h2>
+                        <p>Work in progress by current stage</p>
+                      </div>
+                      <span className="neutral-pill">
+                        <span className="pulse" /> API SNAPSHOT
+                      </span>
+                    </div>
+                    <div className="flow-track">
+                      {stages.map((stage, index) => {
+                        const queue = board.queues.find((item) => item.stage === stage)
+                        const count = queue?.queue_depth ?? 0
+                        return (
+                          <div className="stage-column" key={stage}>
+                            <div className="stage-top">
+                              <span className="stage-index">{stageGlyph[stage]}</span>
+                              {index < stages.length - 1 && (
+                                <span className="stage-connector">
+                                  <ArrowRight size={13} />
+                                </span>
+                              )}
+                            </div>
+                            <div className="stage-count">{count.toLocaleString()}</div>
+                            <div className="stage-name">{stageShort[stage]}</div>
+                            <div className="stage-bar">
+                              <span
+                                style={{
+                                  width: `${Math.max(count ? 5 : 0, (count / stageMax) * 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="stage-meta">
+                              {fmt(queue?.avg_wip_age_hours)}h avg age
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="flow-foot">
+                      <span>
+                        <i className="legend-dot" /> Open orders at each operation’s current stage
+                      </span>
+                      <button className="link-button" onClick={optimize}>
+                        View schedule <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  </section>
+                  <section className="panel alerts-panel">
+                    <div className="panel-heading">
+                      <div>
+                        <h2>Needs attention</h2>
+                        <p>Signals returned for this data snapshot</p>
+                      </div>
+                      <span className="alert-count">{board.active_bottleneck_alerts.length}</span>
+                    </div>
+                    {board.active_bottleneck_alerts.length ? (
+                      <div className="alert-list">
+                        {board.active_bottleneck_alerts.map((alert, index) => (
+                          <div className="alert-row" key={alert}>
+                            <span className="alert-symbol">
+                              <AlertTriangle size={15} />
+                            </span>
+                            <div>
+                              <b>{index === 0 ? 'Bottleneck signal' : 'Capacity alert'}</b>
+                              <span>{alert}</span>
+                            </div>
+                            <ArrowRight size={15} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-alert">
+                        <span>
+                          <Check size={18} />
+                        </span>
+                        <div>
+                          <b>Clear for now</b>
+                          <small>No active bottlenecks or downtime alerts.</small>
+                        </div>
+                      </div>
+                    )}
+                    <button className="scenario-shortcut" onClick={() => setPage('scenario')}>
+                      <span className="shortcut-icon">
+                        <Sparkles size={16} />
+                      </span>
+                      <span>
+                        <b>Plan for a disruption</b>
+                        <small>Try a machine outage or rush order</small>
+                      </span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </section>
+                </div>
+              )}
               <div className="bottom-grid">
                 <section className="panel capability-panel">
                   <div className="capability-icon">
                     <GitCompareArrows size={19} />
                   </div>
                   <div>
-                    <p className="eyebrow">BETTER DECISIONS, FASTER</p>
+                    <p className="eyebrow">SCHEDULE PLANNING</p>
                     <h2>See what an optimized plan can change.</h2>
                     <p>
-                      Compare the current dispatch baseline with a constraint-aware schedule built
-                      around your plant’s real resources.
+                      Compare an illustrative FIFO baseline with a proposed schedule based on the
+                      resource constraints supplied by this demo API.
                     </p>
                   </div>
                   <button className="secondary-button" onClick={optimize} disabled={busy !== null}>
@@ -581,7 +615,7 @@ function App() {
                   </p>
                   <h1>Schedule optimizer</h1>
                   <p className="heading-sub">
-                    Compare the current dispatch plan with a constraint-aware production schedule.
+                    Compare the illustrative FIFO baseline with the schedule returned by the API.
                   </p>
                 </div>
                 <button className="primary-button" onClick={optimize} disabled={busy !== null}>
@@ -613,10 +647,10 @@ function App() {
                     <div>
                       <b>Optimized schedule ready</b>
                       <small>
-                        Based on current WIP, machine capacity, tooling, and furnace constraints.
+                        Based on the work orders and resource constraints returned by this API.
                       </small>
                     </div>
-                    <span className="result-time">JUST NOW</span>
+                    <span className="result-time">API RESULT</span>
                   </div>
                   <div className="comparison-grid">
                     <CompareCard
@@ -656,24 +690,26 @@ function App() {
                     <div className="panel-heading schedule-heading">
                       <div>
                         <h2>Production timeline</h2>
-                        <p>First 90 operations · planned hours from now</p>
+                        <p>All returned operations · planned hours from now</p>
                       </div>
-                      <div className="segmented">
+                      <div className="segmented" role="group" aria-label="Schedule view">
                         <button
                           className={scheduleTab === 'optimized' ? 'active' : ''}
+                          aria-pressed={scheduleTab === 'optimized'}
                           onClick={() => setScheduleTab('optimized')}
                         >
                           Optimized
                         </button>
                         <button
                           className={scheduleTab === 'baseline' ? 'active' : ''}
+                          aria-pressed={scheduleTab === 'baseline'}
                           onClick={() => setScheduleTab('baseline')}
                         >
                           Baseline
                         </button>
                       </div>
                     </div>
-                    <Gantt operations={shownOperations} maxHour={Math.min(maxHour, 96)} />
+                    <Gantt operations={shownOperations} maxHour={maxHour} />
                   </section>
                   <section className="panel late-panel">
                     <div className="panel-heading">
@@ -694,7 +730,7 @@ function App() {
                           <span>DELAY</span>
                           <span>CAPACITY EXPLANATION</span>
                         </div>
-                        {optimization.why_late.optimized.slice(0, 8).map((order) => (
+                        {optimization.why_late.optimized.map((order) => (
                           <div className="late-row" key={order.work_order_id}>
                             <b>{order.wo_number}</b>
                             <span className="delay-tag">+{fmt(order.delay_hours)}h</span>
@@ -754,8 +790,12 @@ function App() {
                     <Wrench size={16} />
                     <select
                       id="machine-down"
+                      aria-describedby="machine-down-help"
                       value={downId}
-                      onChange={(e) => setDownId(e.target.value)}
+                      onChange={(e) => {
+                        setDownId(e.target.value)
+                        setSimulation(null)
+                      }}
                     >
                       <option value="">No machine outage</option>
                       {activeResources.map((resource) => (
@@ -767,8 +807,8 @@ function App() {
                     </select>
                     <ChevronDown size={15} />
                   </div>
-                  <p className="field-help">
-                    The selected resource is removed from the scenario schedule.
+                  <p className="field-help" id="machine-down-help">
+                    If selected, this resource is removed from the scenario schedule.
                   </p>
                   <label className="field-label" htmlFor="rush-order">
                     Priority rush order
@@ -777,8 +817,12 @@ function App() {
                     <Truck size={16} />
                     <select
                       id="rush-order"
+                      aria-describedby="rush-order-help"
                       value={rushId}
-                      onChange={(e) => setRushId(e.target.value)}
+                      onChange={(e) => {
+                        setRushId(e.target.value)
+                        setSimulation(null)
+                      }}
                     >
                       <option value="">No rush order</option>
                       {orders.map((order) => (
@@ -789,8 +833,9 @@ function App() {
                     </select>
                     <ChevronDown size={15} />
                   </div>
-                  <p className="field-help">
-                    The selected order gets priority and an accelerated due target.
+                  <p className="field-help" id="rush-order-help">
+                    Selected orders use priority 5 and a due time capped at 24 hours in the
+                    simulation.
                   </p>
                   <div className="slider-head">
                     <label className="field-label" htmlFor="demand-spike">
@@ -800,18 +845,23 @@ function App() {
                   </div>
                   <input
                     id="demand-spike"
+                    aria-describedby="demand-spike-help"
+                    aria-valuetext={`${demand}% demand increase`}
                     className="range-input"
                     type="range"
                     min="0"
-                    max="100"
-                    step="10"
+                    max="300"
+                    step="1"
                     value={demand}
-                    onChange={(e) => setDemand(Number(e.target.value))}
+                    onChange={(e) => {
+                      setDemand(Number(e.target.value))
+                      setSimulation(null)
+                    }}
                   />
                   <div className="range-scale">
                     <span>0%</span>
-                    <span>50%</span>
-                    <span>100%</span>
+                    <span>150%</span>
+                    <span>300%</span>
                   </div>
                   <div className="scenario-preview">
                     <span>
@@ -830,10 +880,20 @@ function App() {
                       </small>
                     </div>
                   </div>
+                  <p className="field-help" id="demand-spike-help">
+                    Demand scales scenario quantities by 1 + the selected percentage. It does not
+                    add forecast orders.
+                  </p>
+                  {orders.length === 0 && (
+                    <div className="scenario-no-data" role="status">
+                      <b>No schedulable work orders are available.</b>
+                      <span>Load the synthetic example from the Flow board before simulating.</span>
+                    </div>
+                  )}
                   <button
                     className="primary-button run-scenario"
                     onClick={runScenario}
-                    disabled={busy !== null}
+                    disabled={busy !== null || orders.length === 0}
                   >
                     <Zap size={15} fill="currentColor" />
                     {busy === 'simulate' ? 'Simulating scenario…' : 'Run scenario'}
@@ -845,10 +905,9 @@ function App() {
                     <>
                       <div className="scenario-result-top">
                         <div>
-                          <p className="eyebrow">SCENARIO RESULTS</p>
+                          <p className="eyebrow">API SIMULATION RESULT</p>
                           <h2>Here’s the impact.</h2>
                         </div>
-                        <span className="result-time">JUST NOW</span>
                       </div>
                       <div className="scenario-kpis">
                         <ImpactCard
@@ -885,7 +944,7 @@ function App() {
                         </div>
                         {simulation.due_date_impact.length ? (
                           <div className="impact-list">
-                            {simulation.due_date_impact.slice(0, 9).map((row) => (
+                            {simulation.due_date_impact.map((row) => (
                               <div className="impact-row" key={row.work_order_id}>
                                 <span
                                   className={
@@ -925,8 +984,10 @@ function App() {
                         <div>
                           <b>How to read this</b>
                           <small>
-                            The simulation re-routes around the unavailable machine when capacity
-                            allows. Source work orders and the saved plan remain unchanged.
+                            {downId
+                              ? 'The selected resource is excluded from the scenario schedule. '
+                              : 'No resource outage is applied. '}
+                            The simulation does not update source work orders.
                           </small>
                         </div>
                       </section>
@@ -937,20 +998,20 @@ function App() {
                         <Sparkles size={23} />
                       </span>
                       <p className="eyebrow">YOUR DECISION SANDBOX</p>
-                      <h2>Explore the ripple effect.</h2>
+                      <h2>Choose a disruption to model</h2>
                       <p>
-                        Choose an outage, a rush order, or a demand spike. IndoFlow will show the
-                        resulting changes in late orders, WIP, and throughput.
+                        Select an outage, rush order, or demand change, then run the API simulation
+                        to review its modeled effect on late orders, WIP, and throughput.
                       </p>
                       <div className="placeholder-steps">
                         <span>
-                          <b>01</b> Model a disruption
+                          <b>01</b> Set scenario inputs
                         </span>
                         <span>
-                          <b>02</b> Compare the impact
+                          <b>02</b> Run the simulation
                         </span>
                         <span>
-                          <b>03</b> Decide with context
+                          <b>03</b> Review modeled changes
                         </span>
                       </div>
                     </div>
@@ -1099,65 +1160,108 @@ function ImpactCard({
   )
 }
 
-function Gantt({ operations, maxHour }: { operations: Operation[]; maxHour: number }) {
+export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHour: number }) {
+  const [selected, setSelected] = useState<Operation | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
     operations.forEach((operation) => {
-      const key = operation.resource_name
+      const key = operation.resource_id
       grouped.set(key, [...(grouped.get(key) ?? []), operation])
     })
     return [...grouped.entries()]
   }, [operations])
+  const selectedOperation = selected && operations.includes(selected) ? selected : null
   if (!operations.length)
     return <div className="gantt-empty">No operations are available for this schedule.</div>
   return (
-    <div className="gantt">
-      <div className="gantt-axis">
-        <span>RESOURCE / MACHINE</span>
-        <div>
-          {[0, 0.25, 0.5, 0.75, 1].map((point) => (
-            <span key={point}>{fmt(maxHour * point, 0)}h</span>
+    <>
+      <div className="gantt-summary" aria-live="polite">
+        {operations.length.toLocaleString()} operations across {rows.length} resources · Timeline:
+        0–{fmt(maxHour, 0)}h
+      </div>
+      <div
+        className="gantt"
+        role="region"
+        aria-label="Schedule timeline. Use the scroll area to review all resources and hours."
+      >
+        <div className="gantt-canvas">
+          <div className="gantt-axis">
+            <span>RESOURCE / MACHINE</span>
+            <div>
+              {[0, 0.25, 0.5, 0.75, 1].map((point) => (
+                <span key={point}>{fmt(maxHour * point, 0)}h</span>
+              ))}
+            </div>
+          </div>
+          {rows.map(([resourceId, items]) => (
+            <div className="gantt-row" key={resourceId}>
+              <div className="gantt-resource">
+                <span className="machine-icon">
+                  <Wrench size={13} />
+                </span>
+                <span>
+                  {items[0].resource_name}
+                  <small>{items[0].plant}</small>
+                </span>
+              </div>
+              <div className="gantt-lane">
+                {items.map((item, index) => {
+                  const left = Math.max(0, (item.start_hour / maxHour) * 100)
+                  const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
+                  const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours${item.is_late ? ', late' : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
+                  return (
+                    <button
+                      type="button"
+                      className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
+                      key={`${item.work_order_id}-${item.stage}-${index}`}
+                      style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
+                      aria-label={accessibleName}
+                      title={accessibleName}
+                      onClick={() => setSelected(item)}
+                    >
+                      <span>{item.wo_number}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
           ))}
-        </div>
-      </div>
-      {rows.map(([resource, items]) => (
-        <div className="gantt-row" key={resource}>
-          <div className="gantt-resource">
-            <span className="machine-icon">
-              <Wrench size={13} />
-            </span>
+          <div className="gantt-legend">
+            {stages.map((stage, index) => (
+              <span key={stage}>
+                <i className={`legend-stage stage-${index + 1}`} />
+                {stage}
+              </span>
+            ))}
             <span>
-              {resource}
-              <small>{items[0].plant}</small>
+              <i className="legend-late" />
+              Late at scheduled completion
             </span>
           </div>
-          <div className="gantt-lane">
-            {items.slice(0, 24).map((item, index) => {
-              const left = Math.max(0, (item.start_hour / maxHour) * 100)
-              const width = Math.max(1.4, ((item.end_hour - item.start_hour) / maxHour) * 100)
-              return (
-                <div
-                  className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}`}
-                  key={`${item.work_order_id}-${item.stage}-${index}`}
-                  style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
-                  title={`${item.wo_number} · ${item.stage} · ${fmt(item.start_hour)}–${fmt(item.end_hour)}h`}
-                >
-                  <span>{item.wo_number}</span>
-                </div>
-              )
-            })}
-          </div>
         </div>
-      ))}
-      <div className="gantt-legend">
-        {stages.map((stage, index) => (
-          <span key={stage}>
-            <i className={`legend-stage stage-${index + 1}`} />
-            {stage}
-          </span>
-        ))}
       </div>
-    </div>
+      {selectedOperation && (
+        <div className="gantt-detail" role="status">
+          <strong>{selectedOperation.wo_number}</strong>
+          <span>{selectedOperation.sku_code}</span>
+          <span>{selectedOperation.stage}</span>
+          <span>
+            {selectedOperation.resource_name} · {selectedOperation.plant}
+          </span>
+          <span>
+            {fmt(selectedOperation.start_hour)}–{fmt(selectedOperation.end_hour)}h
+          </span>
+          {selectedOperation.is_late && (
+            <span className="delay-tag">
+              Late{selectedOperation.delay_reason ? ` · ${selectedOperation.delay_reason}` : ''}
+            </span>
+          )}
+          <button type="button" className="link-button" onClick={() => setSelected(null)}>
+            Clear selection
+          </button>
+        </div>
+      )}
+    </>
   )
 }
 
