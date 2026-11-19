@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -8,7 +8,6 @@ import {
   Boxes,
   Check,
   ChevronDown,
-  CircleHelp,
   Clock3,
   Factory,
   Gauge,
@@ -228,7 +227,6 @@ function App() {
           </span>
           <span className="brand-name">
             indo<span>flow</span>
-            <small>PLANT INTELLIGENCE</small>
           </span>
         </a>
         <div className="side-label">WORKSPACE</div>
@@ -257,7 +255,6 @@ function App() {
           >
             <GitBranch size={17} />
             <span>Scenario lab</span>
-            <span className="beta">WHAT IF</span>
           </button>
         </nav>
         <div className="sidebar-bottom">
@@ -269,7 +266,6 @@ function App() {
               <b>Synthetic factory</b>
               <small>Example resources</small>
             </div>
-            <ChevronDown size={14} />
           </div>
           <div className="side-user">
             <div className="avatar">IF</div>
@@ -277,7 +273,6 @@ function App() {
               <b>IndoFlow demo</b>
               <small>Operations workspace</small>
             </div>
-            <CircleHelp size={17} />
           </div>
         </div>
       </aside>
@@ -367,7 +362,6 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">Synthetic demo data</p>
                   <h1>Production flow overview</h1>
                   <p className="heading-sub">
                     Work orders and resource queues from the latest API snapshot.
@@ -1207,6 +1201,7 @@ function ImpactCard({
 
 export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHour: number }) {
   const [selected, setSelected] = useState<Operation | null>(null)
+  const detailId = useId()
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const detailClose = useRef<HTMLButtonElement | null>(null)
   const rows = useMemo(() => {
@@ -1246,6 +1241,7 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
       <div
         className="gantt"
         role="region"
+        tabIndex={0}
         aria-label="Schedule timeline. Use the scroll area to review all resources and hours."
       >
         <div className="gantt-canvas">
@@ -1280,6 +1276,8 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
                       key={`${item.work_order_id}-${item.stage}-${index}`}
                       style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
                       aria-label={accessibleName}
+                      aria-expanded={selectedOperation === item}
+                      aria-controls={selectedOperation === item ? detailId : undefined}
                       title={accessibleName}
                       onClick={(event) => {
                         selectedBar.current = event.currentTarget
@@ -1308,7 +1306,12 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
         </div>
       </div>
       {selectedOperation && (
-        <div className="gantt-detail" role="status">
+        <div
+          className="gantt-detail"
+          id={detailId}
+          role="region"
+          aria-label="Selected operation details"
+        >
           <strong>{selectedOperation.wo_number}</strong>
           <span>{selectedOperation.sku_code}</span>
           <span>{selectedOperation.stage}</span>

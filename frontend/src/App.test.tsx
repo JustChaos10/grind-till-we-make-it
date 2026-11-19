@@ -305,7 +305,16 @@ describe('frontend data states', () => {
     const operation = { ...makeOperations(1)[0], batch_id: 'B-42', is_late: false }
     render(<Gantt operations={[operation]} maxHour={24} />)
     const bar = screen.getByRole('button', { name: /on time.*batch B-42/i })
+    expect(screen.getByRole('region', { name: /schedule timeline/i })).toHaveAttribute(
+      'tabindex',
+      '0',
+    )
+    expect(bar).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(bar)
+    const details = screen.getByRole('region', { name: /selected operation details/i })
+    expect(bar).toHaveAttribute('aria-expanded', 'true')
+    expect(bar).toHaveAttribute('aria-controls', details.id)
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toHaveFocus()
     expect(screen.getByText('Batch B-42')).toBeTruthy()
     expect(screen.getByText('On time at scheduled completion')).toBeTruthy()
     fireEvent.keyDown(window, { key: 'Escape' })
