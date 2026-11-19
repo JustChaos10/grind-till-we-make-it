@@ -21,3 +21,10 @@
 - The large-order scheduling path uses a fast dispatch heuristic. The timeline and metrics are a planning aid, not a proof of a globally optimal schedule.
 - Optimization and what-if requests do not update source work orders. A human planner remains responsible for accepting any plan.
 - The browser app is local-only. Do not expose it with production API tokens or connect it to a live production database.
+
+## Live walkthrough cues
+
+- **First minute** — Open Flow board. Read the active work-order count and largest stage queue from the current run. Focus a stage to explain what its queue contains.
+- **Minutes two and three** — Open Schedule optimizer and run the comparison. Read one returned metric and its unit. Switch between the FIFO reference and the proposed timeline. Select a work order from the late-order table, open an operation, and press Escape to return. Clear the timeline filters to show the full schedule again.
+- **Minute four** — Open Scenario lab. Select an available resource from the catalog and run the scenario. Read the submitted resource ID and one returned due-date impact. If the modeled result stays the same, report that result.
+- **Final minute** — Change the draft input to show which result belongs to the previous submission. Close by identifying one real plant constraint that needs validation before this model can support a planning decision.
