@@ -31,3 +31,16 @@ If the API supports it, add paginated work-order detail, process routes, stage q
 ## Production access boundary
 
 The current browser client is for local demonstration. Before any public frontend, provide user-level authentication or a trusted server-side proxy. Do not expose shared admin or API tokens to browser JavaScript.
+
+## Contract details for backend review
+
+These are proposed additions. The current frontend does not consume them. Preserve existing response fields for older clients.
+
+| Request | Proposed contract example | Frontend behavior until available |
+| --- | --- | --- |
+| Identify a safe demo dataset | Add metadata to `GET /api/catalog`, for example `{"dataset_type":"synthetic","is_synthetic":true,"seed_safe":true}`. Derive safety on the server. | Restrict seed controls to an explicitly enabled local demo and ask before resetting records. |
+| Identify a solve method | Add optional per-run metadata to the optimization and simulation responses, for example `{"solver_mode":"HEURISTIC","solve_elapsed_ms":320}`. Report the actual method and elapsed time. | Label schedules as model outputs. Leave optimality and solve duration unspecified. |
+| Preserve scenario locks | Keep the simulation response shape. Carry each original lock through scenario reconstruction and test the no-change case with a locked fixture. | Treat scenario output as advisory and disclose the model limit. |
+| Explain metric definitions | Add an optional `metric_definition_version` alongside returned metrics. Document units, horizon and included order population for each version. | Display the returned values and explain the known reference and horizon. |
+| Identify the input snapshot | Return an optional opaque `input_snapshot_id` with schedule versions. Specify whether IDs change after a factory edit or a reseed. | Keep comparisons tied to their returned result in this browser session. |
+| Support order drill-down | Propose a paginated route with stable order IDs, route stages, and queue timestamps with units and origin. Agree on the included statuses before implementation. | Use the available catalog and operation fields only. |

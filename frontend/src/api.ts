@@ -16,6 +16,10 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     } catch {
       /* keep status */
     }
+    if (response.status === 401 || response.status === 403) {
+      const reason = response.status === 401 ? 'Authentication required' : 'Access denied'
+      throw new Error(`${reason}. Ask the administrator to check access through the API proxy.`)
+    }
     throw new Error(message)
   }
   return response.json() as Promise<T>
