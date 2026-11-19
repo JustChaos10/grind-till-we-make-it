@@ -127,4 +127,3 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
                 subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True, check=False)
             process.wait(timeout=10)
         log.close()
-
