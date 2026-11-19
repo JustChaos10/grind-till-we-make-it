@@ -60,7 +60,7 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 
 From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed optimization, opening Gantt details by keyboard, Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 2.38 seconds with reduced motion emulated.
 
-Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and exercises retry, explicit seed confirmation, optimization, timeline selection and two simulation requests. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
+Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 
 ## Screenshots
 

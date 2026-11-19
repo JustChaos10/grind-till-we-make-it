@@ -107,7 +107,7 @@
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, scenario behavior, and timeline filters.
-- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. The fixture smoke passed. Repeatable scripts are in `scripts/browser_flow.py` and `scripts/browser_real_api.py`.
+- [x] Repeatable browser smoke passed with synthetic fixtures and an isolated real API and temporary SQLite DB. `scripts/browser_real_api.py` covers outage/retry, empty onboarding, explicit seed, optimization, timeline interactions, and two scenario runs.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
