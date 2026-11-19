@@ -12,11 +12,13 @@ Return supported provenance fields such as `solver_mode` (`CP_SAT`, `HEURISTIC`,
 
 ## Priority 1: Scenario lock preservation
 
-Please verify that scenario request mapping preserves `locked_resource_id` and `locked_until_hour` from source orders, and add a backend regression test. Please also verify that a scenario with no changes preserves the baseline order inputs and explain any intentional transformations in the contract.
+Source review on 2026-11-19 found that `_order_specs()` copies `locked_resource_id` and `locked_until_hour` into `OrderSpec` (`main.py`), but the scenario reconstruction in `simulate_schedule()` creates new `OrderSpec` values without either field (`main.py`, scenario mapping). Please preserve both fields when constructing scenario specs and add a backend regression test for locked orders. Also verify that a scenario with no changes preserves baseline order inputs and document intentional transformations in the contract. This finding is source-confirmed; no backend request was made to reproduce it.
 
 ## Priority 2: Metric definitions and comparison provenance
 
 Document or expose the formula/version for late-order count, average WIP age, throughput, and furnace batch fill. Include baseline provenance and the time origin used by the comparison. This will let the frontend explain each comparison without implying unsupported business outcomes.
+
+Please also characterize expected latency and timeout behavior for schedule optimization and scenario simulation. One local CNC-1 downtime + rush-order simulation took about 20 seconds to return; this is a single observation, not a performance benchmark. Return solve duration/progress or a documented timeout budget where the backend can support it so the UI can communicate long-running work accurately.
 
 ## Priority 2: Stable schedule provenance and history
 

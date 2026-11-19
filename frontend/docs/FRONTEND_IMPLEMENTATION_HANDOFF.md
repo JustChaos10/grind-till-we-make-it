@@ -12,13 +12,13 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --reporter=dot` — 9 tests passed.
+- Frontend unit tests: `npm test -- --reporter=dot` — 16 tests passed.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
 - Backend regression suite: `.venv\Scripts\python.exe -m pytest -q` — 23 passed. `.venv\Scripts\python.exe -m ruff check .` — passed. Backend source was not changed. Global Python 3.13 lacks `aiosqlite`; use the repository `.venv` (Python 3.12).
 - Local API health returned `ready`. The read-only Flow Board response and rendered UI showed 150 synthetic work orders, a 31.53h average WIP age, stage queues 56/25/26/24/19, and two API-returned alerts. The startup command used `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db`, `APP_ENV=development`, and refused to start if that DB file already existed. No seed request was made in this continuation.
-- Previous local browser smoke review exercised optimization (524 returned operations) and a CNC-1 downtime scenario. Review notes from that session cover 1440×900, 1024×768, and 390×844; see `FRONTEND_AUDIT.md` for what was and was not verified.
+- Local browser review exercised the Flow Board with 150 synthetic work orders, the optimizer with 524 returned operations, and a CNC-1 downtime scenario. This continuation reviewed the Flow Board, optimizer timeline, and Scenario Lab at desktop (requested 1440×900), tablet (768×1024), and phone (390×844) settings. Effective widths were 1309, 698, and 355 CSS px. Additional 1920×1080 and 1280×800 settings were clamped to 1745×982 and 1164×727. No document-level horizontal overflow appeared. At phone width, scenario KPI cards use two columns with the third card across the full row. Dense Gantt content stays in its timeline scroll region. The scenario request completed after about 20 seconds in this local run; latency should be reviewed with the backend owner. See `FRONTEND_AUDIT.md` for remaining limits.
 - Screenshot `screenshots/flow-desktop.png` was opened and visually inspected in this continuation. It is a desktop Flow Board capture. It does not prove tablet/mobile behavior or every screen.
 
 ## Current changes in final verification
@@ -30,8 +30,8 @@
 ## Final Git record
 
 - Feature branch: `feat/frontend-experience`.
-- Branch base: `6bd4c7e80dff7a2449a71f67fdc2ab290b239e34` (`main` at task setup).
-- No changes were pushed; `main` and backend source were not edited. Record the final commit SHA and status in `FRONTEND_AUDIT.md` after the final commit.
+- Branch base: `6bd4c7e80dff7a2449a71f67fdc2ab290b239e34` (`main` at task setup); this final update started from `2213c0e`.
+- No changes were pushed; `main` and backend source were not edited. The final commit SHA and working-tree status are reported in the handoff message.
 
 ## Local run commands (PowerShell)
 
@@ -46,7 +46,7 @@ Use a second terminal for the frontend:
 
 ```powershell
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -57,5 +57,6 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 - Backend contract requests are listed in `BACKEND_REQUESTS.md`.
 - Validate the UI against representative customer data before using it for shop-floor decisions.
 - Production use requires a trusted authentication/proxy design; the browser must not hold shared API credentials.
-- `UI_ACCEPTANCE_CHECKLIST.md` remains the acceptance ledger. Do not treat unchecked visual, keyboard, or founder-demo items as complete based only on this handoff.
-- Desktop/tablet/mobile review was performed in the local browser. Screenshots were inspected during review; persistent image files were not exported in this handoff.
+- `UI_ACCEPTANCE_CHECKLIST.md` remains the acceptance ledger. It separates verified work from checks that still need assistive-technology review or a scripted full browser flow.
+- The committed screenshot `screenshots/flow-desktop.png` is a desktop Flow Board image. Browser screenshots of the other reviewed screens were inspected but not exported as files.
+- Exact 1920×1080 and 1280×800 visual checks, keyboard-only flow, screen-reader review, measured contrast, reduced-motion interaction, repeatable browser automation, and a timed founder walkthrough remain open. The source contains a reduced-motion media rule, but behavior has not been exercised.

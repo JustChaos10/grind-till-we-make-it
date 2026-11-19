@@ -10,10 +10,10 @@
 
 ## Five-minute narrative
 
-1. **Flow board:** “IndoFlow makes the current flow visible across Molding, Debinding, Sintering, CNC, and Finishing. We can see where WIP is accumulating and which plant signals need attention.”
-2. **Schedule optimizer:** “Here we compare the FIFO baseline with a capacity-aware plan. The view calls out late orders, average WIP age, throughput, furnace fill, and the first part of the machine timeline.”
-3. **Scenario lab:** “Before reacting to a breakdown or demand change, we can model it. This run removes one machine from the available capacity and shows which due-date outcomes move.”
-4. **Close:** “The current value is operational visibility and faster planning. The next step is to validate with actual plant routings, calendars, ERP data, and planner feedback before making shop-floor commitments.”
+1. **Flow board:** “This synthetic example shows work orders across Molding, Debinding, Sintering, CNC, and Finishing. Queue depth is a planning signal, not proof of a bottleneck.”
+2. **Schedule optimizer:** “This compares an illustrative FIFO reference with a proposed model schedule. The metrics and timeline are model outputs; throughput counts orders completed inside the modeled 168-hour horizon, and furnace batch fill is not utilization or OEE.”
+3. **Scenario lab:** “This what-if run removes a selected resource from modeled availability and shows returned schedule and due-date changes. It does not change source work orders or control equipment.”
+4. **Close:** “This demo shows visibility and modeled planning tradeoffs. The next step is to validate routings, calendars, ERP inputs, and constraints with plant experts before any operational use.”
 
 ## Be precise about what is demonstrated
 

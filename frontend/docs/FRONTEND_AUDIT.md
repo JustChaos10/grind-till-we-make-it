@@ -27,17 +27,19 @@ Branch: `feat/frontend-experience`
 
 | Check | Result |
 | --- | --- |
-| `cd frontend; npm test -- --reporter=dot` | Passed: 9 tests |
+| `cd frontend; npm test -- --reporter=dot` | Passed: 16 tests, including empty-state onboarding, seed confirmation, long Gantt schedules, scenario snapshots, stale-response ordering, and API error parsing |
 | `cd frontend; npm run build` | Passed |
 | `cd frontend; npm run lint` | Passed (Oxlint and Prettier) |
 | `.venv\Scripts\python.exe -m pytest -q` | Passed: 23 tests; one Starlette/httpx deprecation warning |
 | `.venv\Scripts\python.exe -m ruff check .` | Passed |
 | `git diff --check` | Passed; Git reported line-ending conversion notices only |
+| Targeted frontend secret scan | No matching API-key/password/token patterns found in `frontend/src`; this is a narrow scan, not a repository security audit |
 | `GET http://127.0.0.1:8000/health` | Passed: `ready` |
 | `GET http://127.0.0.1:8000/api/flow-board` | Passed: 150 synthetic WIP orders, 31.53h average age, stage counts 56/25/26/24/19, two alerts |
 | Vite at `http://127.0.0.1:5173` | Loaded Flow Board and rendered the same synthetic snapshot |
-| Previous local API/browser smoke review | Optimization returned 524 operations; a CNC-1 downtime scenario returned results |
-| Desktop screenshot inspection | Inspected `frontend/docs/screenshots/flow-desktop.png` in this continuation |
+| Local API/browser smoke review | Flow Board returned 150 synthetic work orders; optimization returned 524 operations; the CNC-1 downtime + rush-order scenario returned results after about 20 seconds in this one local run |
+| Desktop screenshot inspection | Tracked screenshot `frontend/docs/screenshots/flow-desktop.png` inspected during this task |
+| Responsive browser review | Flow Board, optimizer, and Scenario Lab reviewed at viewport settings 1440×900, 768×1024, and 390×844. Effective content widths were 1309, 698, and 355 CSS px. Additional requested settings 1920×1080 and 1280×800 were clamped by the embedded browser to 1745×982 and 1164×727. No document-level horizontal overflow was measured at the effective widths. Dense timeline content stayed within its own scroll region. At phone width, a live DOM measurement and screenshot confirmed two columns plus a full-width third scenario card. |
 
 The API process command line showed `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db` and `APP_ENV=development`. Its startup guard refused to reuse an existing file. This continuation used read-only API requests and did not call `/api/seed`.
 
@@ -45,7 +47,7 @@ Global Python 3.13 did not have `aiosqlite`, so its initial pytest run failed du
 
 ## Visual and acceptance limits
 
-The prior browser review recorded 1440×900, 1024×768, and 390×844 checks. The desktop screenshot was inspected in this continuation. The required 1920×1080, 1280×800, and ~768×1024 viewports were not verified here. Keyboard-only navigation across every screen, reduced-motion behavior, contrast measurements, browser automation of every demo path, and a full five-minute founder walkthrough remain incomplete. The checklist leaves these unchecked. Do not describe this branch as fully acceptance-complete until those checks are done.
+The browser review recorded 1440×900, 768×1024, and 390×844 settings; the embedded browser limited their effective widths to 1309, 698, and 355 CSS px. Requests for 1920×1080 and 1280×800 were clamped to 1745×982 and 1164×727. Keyboard-only navigation across every screen, screen-reader review, measured color contrast, scripted end-to-end browser coverage, a full five-minute founder walkthrough, and exact requested-size viewport review remain incomplete. Source review confirmed a `prefers-reduced-motion` rule in `src/styles.css`, but its behavior was not exercised, so that acceptance item remains open. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
 
 The current browser/API smoke is against local synthetic demo data only. It is not evidence of production ERP integration, validated plant constraints, solver optimality, realized savings, or production readiness.
 
@@ -68,7 +70,7 @@ In a second terminal:
 ```powershell
 cd frontend
 $env:VITE_ENABLE_DEMO_SEED = "true"
-npm install
+npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
@@ -76,10 +78,10 @@ Only enable the seed control after confirming the API uses the dedicated local d
 
 ## Next work
 
-1. Complete the remaining viewport, keyboard, screen-reader, reduced-motion, and contrast checks, then update `UI_ACCEPTANCE_CHECKLIST.md` with evidence.
-2. Run a repeatable browser smoke flow covering empty state, confirmed seed, optimization, operation details, and scenario simulation against the local demo API.
+1. Review exact 1920×1080 and 1280×800 sizes in a browser that supports them, then complete keyboard, screen-reader, reduced-motion, and measured contrast checks; update `UI_ACCEPTANCE_CHECKLIST.md` with evidence.
+2. Add a repeatable browser smoke flow for empty state, confirmed seed, optimization, operation details, and scenario simulation against the local demo API. Do not run seed except against the dedicated demo DB after confirming its target.
 3. Review `BACKEND_REQUESTS.md` with the backend owner before stronger solver or metric claims are made.
 
 ## Final commit record
 
-Starting branch head: `e12e03f`. Frontend implementation commit: `f17195b`. The final documentation commit and clean working-tree status are recorded in the task handoff.
+The branch was at `2213c0e` before this final implementation and verification update. The final commit SHA and working-tree status are reported in the handoff message; verify the current values with `git rev-parse HEAD` and `git status --short`.

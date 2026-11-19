@@ -18,82 +18,81 @@
 
 ## 1. Truth and safety
 
-- [ ] Every screen identifies `Synthetic demo` clearly.
-- [ ] No live telemetry/actual ERP/verified Indo-MIM production claims.
-- [ ] Baseline named `Illustrative FIFO reference` or equivalent.
-- [ ] Scheduling result named `Proposed model schedule`, not guaranteed globally optimal.
-- [ ] Queue-depth indicator not declared proven system constraint.
-- [ ] `bottleneck_resource_id` not declared proven throughput bottleneck.
-- [ ] Furnace **batch fill** not confused with OEE or utilization.
-- [ ] Flow average current WIP age distinguished from schedule projection.
-- [ ] Throughput defined within a 168-hour modeled horizon.
-- [ ] No fabricated financial impact, customer identities, materials recipes or machine capacities.
-- [ ] No source-work-order mutations from scheduling or simulation UI.
+- [x] Every screen identifies `Synthetic demo` clearly (browser review and source inspection).
+- [x] No live telemetry/actual ERP/verified Indo-MIM production claims (copy/source review).
+- [x] Baseline named `Illustrative FIFO reference` or equivalent (source review).
+- [x] Scheduling result named `Proposed model schedule`, not guaranteed globally optimal (component test and source review).
+- [x] Queue-depth indicator not declared proven system constraint (component test).
+- [x] `bottleneck_resource_id` not declared proven throughput bottleneck (component test and copy review).
+- [x] Furnace **batch fill** not confused with OEE or utilization (component test and source review).
+- [x] Flow average current WIP age distinguished from schedule projection (copy/source review).
+- [x] Throughput defined within a 168-hour modeled horizon (component test and source review).
+- [x] No fabricated financial impact, customer identities, materials recipes or machine capacities (frontend source review).
+- [x] No source-work-order mutations from scheduling or simulation UI; only documented schedule/simulation endpoints are called (source and request tests).
 - [x] `/api/seed` never called automatically; user sees explicit deletion/reset warning.
-- [ ] No real data, `INDOFLOW_*_TOKEN`, password or secret in committed/browser code.
+- [x] No real data, `INDOFLOW_*_TOKEN`, password or secret found in frontend source by the final targeted scan (`FRONTEND_AUDIT.md`); this is not a whole-repository security audit.
 
 ## 2. Flow Board
 
-- [ ] API offline → informative error and retry, not a fake zero dashboard.
+- [x] API offline → informative error and retry, not a fake zero dashboard (component test).
 - [x] API online with no orders → clear onboarding/seed CTA (component test).
 - [x] Seed confirmation explains reset and requires deliberate action (component test).
-- [ ] Populated board shows correct totals and queues from API.
-- [ ] All five stages and optional CNC context presented correctly.
-- [ ] Stage labels/count/avg age readable on desktop and phone.
-- [ ] Alert panel treats warnings as planning signals.
-- [ ] Empty alerts doesn't imply real production is normal.
-- [ ] Navigation to optimizer and scenario works by click and keyboard.
-- [ ] Refresh works, updates time only on successful data fetch.
+- [x] Populated board shows correct totals and queues from API (API/browser smoke and component test).
+- [x] All five stages and optional CNC context presented correctly (API/browser review).
+- [x] Stage labels/count/avg age readable on desktop and phone (responsive review).
+- [x] Alert panel treats warnings as planning signals (component test and source review).
+- [x] Empty alerts doesn't imply real production is normal (copy/source review).
+- [ ] Navigation to optimizer and scenario works by click and keyboard (click exercised in component tests; keyboard-only navigation remains unverified).
+- [x] Refresh works, updates time only on successful data fetch (failure recovery and stale-response component tests).
 
 ## 3. Optimizer & Gantt
 
-- [ ] Clicking `Run comparison` calls `/api/schedule/optimize` once with supported body.
-- [ ] Comparison cards handle improved/worse/unchanged/missing data correctly.
-- [ ] Percent metric displays changes in percentage points.
-- [ ] Operations scheduled after 96 hours are inspectable.
+- [x] Clicking `Run comparison` calls `/api/schedule/optimize` once with supported body (component test).
+- [x] Comparison cards handle improved/worse/unchanged/missing data correctly (component test asserts all four states).
+- [x] Percent metric displays changes in percentage points (source review).
+- [x] Operations scheduled after 96 hours are inspectable (120-operation, 240-hour component test).
 - [x] More than 90 operations overall are discoverable in the Gantt component (120-operation test); >24 per resource was not separately tested.
-- [ ] Gantt uses consistent relative-hour axis and correct start/end bar geometry.
-- [ ] Baseline and proposed selections show the corresponding real response dataset.
-- [ ] Resource rows grouped by stable resource IDs, labels include plant.
-- [ ] Horizontal and vertical scroll behave correctly at dense data sizes.
-- [ ] Stage legend readable and status not dependent on color alone.
-- [ ] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason.
+- [x] Gantt uses consistent relative-hour axis and correct start/end bar geometry (component test and source review).
+- [x] Baseline and proposed selections show the corresponding API response dataset (component test and source review).
+- [x] Resource rows grouped by stable resource IDs, labels include plant (source review and browser smoke).
+- [x] Horizontal and vertical scroll behave at reviewed dense data sizes (browser review; not a stress test).
+- [x] Stage legend readable and status not dependent on color alone (source review).
+- [x] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason (component test and source review).
 - [x] Operation details are keyboard-focusable and Escape restores focus (component test); full screen keyboard traversal remains unverified.
-- [ ] Filters (if implemented) have clear reset and correct results count.
-- [ ] Filtered timeline doesn't silently change global unfiltered KPI figures.
-- [ ] Late orders beyond first eight accessible via scroll/pagination.
-- [ ] No unsupported optimality or scheduling-feasibility claim.
-- [ ] No fabricated wall-clock times or apparent real machine dispatch instructions.
+- [x] Filters are not implemented; no filter controls are exposed, so these conditional checks are not applicable.
+- [x] Late orders beyond first eight accessible via a labeled, keyboard-focusable scroll region (10-row component regression test includes WO-010).
+- [x] No unsupported optimality or scheduling-feasibility claim (copy/source review).
+- [x] No fabricated wall-clock times or apparent real machine dispatch instructions (copy/source review).
 
 ## 4. Scenario Lab
 
-- [ ] Default scenario has no machine outage/rush and 0% quantity increase.
-- [ ] Select options derive from `/api/catalog` IDs.
-- [ ] Range/labels agree with backend validation (0–300%).
-- [ ] Form clearly explains how rush orders and quantity increases are modeled.
-- [ ] Only valid inputs submitted; no duplicate requests on repeated clicks.
-- [ ] Scenario summary displays exact submitted (not merely current draft) inputs.
+- [x] Default scenario has no machine outage/rush and 0% quantity increase (component test and source review).
+- [x] Select options derive from `/api/catalog` IDs (component test and source review).
+- [x] Range/labels agree with backend validation (0–300%) (component test).
+- [x] Form clearly explains how rush orders and quantity increases are modeled (source and browser review).
+- [x] Inputs are validated before submission and a synchronous guard prevents duplicate requests on repeated clicks (component regression test).
+- [x] Scenario summary displays exact submitted (not merely current draft) inputs (component test).
 - [x] Results tie to last submitted input and later edits mark them stale (component test).
-- [ ] Scenario comparison shows real results, including regressions/no change.
-- [ ] Due-date impact list has accessible details and correctly displayed signs/status.
-- [ ] Scenario Gantt uses actual response, not a reused optimization timeline.
-- [ ] Reset works and doesn't silently mutate factory data.
-- [ ] No-change scenario potential backend lock-state issue investigated/documented if reproduced.
+- [x] Scenario comparison shows returned results, including no change; regression display reviewed in API-derived UI code (component test and source review).
+- [x] Due-date impact list is a labeled, keyboard-focusable region; regression test covers earlier/later/unchanged values, signed hours and late-state text.
+- [x] Scenario Gantt uses actual scenario response, not a reused optimization timeline (component test and source review).
+- [x] Reset works and doesn't silently mutate factory data (source review; local smoke did not invoke a seed/reset).
+- [x] Scenario lock-state mapping reviewed; source omission is documented for backend follow-up in `BACKEND_REQUESTS.md` (not changed or run against backend).
 
 ## 5. Design and responsiveness
 
-- [ ] Consistent tokens for color, spacing, typography, borders and status semantics.
-- [ ] Body text comfortably legible; no unnecessary 7–10px labels.
+- [ ] Consistent tokens for color, spacing, typography, borders and status semantics (source review is partial; a full token/contrast audit is open).
+- [ ] Body text comfortably legible; no unnecessary 7–10px labels (small table and impact labels were raised to 10–11px; a whole-screen typography review is still open).
 - [ ] Desktop 1920×1080 reviewed.
-- [ ] Desktop 1440×900 reviewed.
+- [x] Desktop 1440×900 reviewed.
 - [ ] Laptop 1280×800 reviewed.
-- [ ] Tablet ~768×1024 reviewed.
-- [ ] Mobile ~390×844 reviewed.
-- [ ] No unintended horizontal page overflow, clipped cards or hidden buttons.
-- [ ] Dense chart and tables have intentional scroll rather than illegible compression.
+- [x] Tablet ~768×1024 reviewed.
+- [x] Mobile ~390×844 reviewed, including a recheck of the scenario KPI layout.
+- [x] No unintended horizontal page overflow at reviewed viewport sizes (DOM width measurements).
+- [x] Dense chart and tables use intentional scroll in reviewed browser views.
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
-- [ ] Respects prefers-reduced-motion.
+- [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); behavior under an OS reduced-motion setting still needs browser verification.
 - [ ] Tested keyboard-only navigation across all three screens.
 - [ ] Form controls have accessible names/help/error association.
 - [ ] Dialogs have appropriate focus and escape behavior.
@@ -101,33 +100,33 @@
 
 ## 6. Engineering and tests
 
-- [ ] Shared typed API client and types reflect current backend response exactly.
-- [ ] `App.tsx` responsibly refactored rather than blindly replaced.
-- [ ] `styles.css` improved with consistent tokens/component boundaries.
+- [x] Shared typed API client and types reflect current backend response contract (contract and source review).
+- [x] `App.tsx` responsibly refactored rather than blindly replaced (diff review).
+- [x] `styles.css` improved with consistent tokens/component boundaries (source review).
 - [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test).
-- [x] Pydantic array `detail` renders field locations and messages (unit test); object detail path is not separately covered.
-- [ ] Canceled/stale async requests don't overwrite newer results incorrectly.
-- [x] Frontend component/unit tests added for missing metrics, Gantt, error parsing, seed confirmation, and scenario behavior; filters/delta/dialog coverage remains incomplete.
-- [ ] Browser smoke test covers full demo using real local API or explicitly documented test fixtures. (Partial manual smoke is recorded in `FRONTEND_AUDIT.md`.)
+- [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
+- [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
+- [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, and scenario behavior; no filter UI exists.
+- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. It is not yet a repeatable browser automation flow.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
 - [x] Python backend pytest/ruff regression results documented (without backend edits).
 - [x] Desktop screenshot captured and **actually inspected**, not just created. (Responsive visual coverage is incomplete.)
-- [ ] No production deploy, public secret or paid infrastructure action.
+- [x] No production deploy, public secret or paid infrastructure action was taken.
 
 ## 7. Git handoff and founder demo
 
-- [ ] Source branch contains only intended frontend/documentation changes.
-- [ ] Changes grouped into meaningful commits.
-- [ ] No history rewrite or force push.
-- [ ] No direct merge/push to main.
+- [x] Source branch contains only intended frontend/documentation changes (final status review).
+- [x] Changes grouped into meaningful commits.
+- [x] No history rewrite or force push.
+- [x] No direct merge/push to main.
 - [x] Final `git status` and commit SHA recorded in the task handoff; implementation SHA is in `FRONTEND_AUDIT.md`.
-- [ ] Frontend setup/run instructions verified in PowerShell.
-- [ ] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md` if needed.
+- [x] Frontend setup/run instructions verified in PowerShell; exact commands are in `FRONTEND_AUDIT.md`.
+- [x] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md`.
 - [ ] Five-minute founder walkthrough rehearsed against actual UI.
-- [ ] Demo communicates: *synthetic -> compare -> stress-test -> request plant expert validation*.
-- [ ] All incomplete items explicitly listed with specific next steps.
+- [x] `CEO_DEMO.md` and the reviewed UI communicate: *synthetic → compare → stress-test → request plant expert validation*.
+- [x] All incomplete items explicitly listed with specific next steps below and in `FRONTEND_AUDIT.md`.
 
 ## Founder presentation five-minute test
 

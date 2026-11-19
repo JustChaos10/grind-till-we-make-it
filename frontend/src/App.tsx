@@ -23,87 +23,20 @@ import {
   Zap,
 } from 'lucide-react'
 import { api, fmt } from './api'
+import type {
+  Board,
+  CatalogResponse,
+  OptimizeResponse,
+  Queue,
+  Resource,
+  ScenarioResponse,
+  ScheduledOperation,
+  WorkOrder,
+} from './types'
 
-type Queue = { stage: string; queue_depth: number; avg_wip_age_hours: number }
-type Board = {
-  total_wip_orders: number
-  avg_wip_age_hours: number
-  queues: Queue[]
-  active_bottleneck_alerts: string[]
-}
-type Resource = { id: string; name: string; plant: string; stage: string; status: string }
-type WorkOrder = {
-  id: string
-  wo_number: string
-  sku_code: string
-  stage: string
-  status: string
-  due_date_hours: number
-  priority: number
-}
-export type Operation = {
-  work_order_id: string
-  wo_number: string
-  sku_code: string
-  resource_id: string
-  resource_name: string
-  plant: string
-  stage: string
-  batch_id?: string | null
-  start_hour: number
-  end_hour: number
-  is_late: boolean
-  delay_reason: string | null
-}
-type Metrics = {
-  late_orders: number | null
-  avg_wip_age_hours: number | null
-  throughput: number | null
-  furnace_batch_efficiency_pct?: number | null
-  bottleneck_resource_id?: string | null
-}
-type Optimization = {
-  comparison: {
-    baseline: Metrics
-    optimized: Metrics
-    delta: {
-      late_orders: number
-      avg_wip_age_hours: number
-      throughput: number
-      furnace_batch_efficiency_pct: number
-    }
-  }
-  gantt: { baseline: Operation[]; optimized: Operation[] }
-  why_late: { baseline: LateOrder[]; optimized: LateOrder[] }
-}
-type LateOrder = {
-  work_order_id: string
-  wo_number: string
-  delay_hours: number
-  explanation: string
-  due_date_hours?: number
-}
-type Simulation = {
-  reference_metrics: Metrics
-  scenario_metrics: Metrics
-  delta: {
-    late_orders: number
-    avg_wip_age_hours: number
-    throughput: number
-    bottleneck_before: string | null
-    bottleneck_after: string | null
-  }
-  due_date_impact: {
-    work_order_id: string
-    wo_number: string
-    completion_delta_hours: number
-    delay_delta_hours: number
-    late_before: boolean
-    late_scenario: boolean
-  }[]
-  gantt: Operation[]
-  why_late: LateOrder[]
-}
+export type Operation = ScheduledOperation
+type Optimization = OptimizeResponse
+type Simulation = ScenarioResponse
 type ScenarioInputs = { downId: string; rushId: string; demand: number }
 type ScenarioRun = { inputs: ScenarioInputs; result: Simulation }
 type Page = 'board' | 'optimizer' | 'scenario'
@@ -124,6 +57,8 @@ const stageGlyph: Record<string, string> = {
   Finishing: '05',
 }
 const canSeedDemo = () => import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
+const formatPlanningAlert = (alert: string) =>
+  alert.replace(/active bottleneck/gi, 'modeled busy-hours signal')
 
 function App() {
   const [page, setPage] = useState<Page>('board')
@@ -141,6 +76,7 @@ function App() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
+  const scheduleRequestInFlight = useRef(false)
   const simulation = scenarioRun?.result ?? null
   const scenarioInputs = { downId, rushId, demand }
   const scenarioIsStale = Boolean(
@@ -158,9 +94,7 @@ function App() {
     try {
       const [b, catalog] = await Promise.all([
         api<Board>('/api/flow-board', { signal: controller.signal }),
-        api<{ resources: Resource[]; work_orders: WorkOrder[] }>('/api/catalog', {
-          signal: controller.signal,
-        }),
+        api<CatalogResponse>('/api/catalog', { signal: controller.signal }),
       ])
       if (sequence !== refreshSequence.current) return
       setBoard(b)
@@ -224,7 +158,8 @@ function App() {
   }
 
   async function optimize() {
-    if (busy) return
+    if (scheduleRequestInFlight.current) return
+    scheduleRequestInFlight.current = true
     setBusy('optimize')
     setError('')
     try {
@@ -238,12 +173,14 @@ function App() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Schedule optimization failed.')
     } finally {
+      scheduleRequestInFlight.current = false
       setBusy(null)
     }
   }
 
   async function runScenario() {
-    if (busy) return
+    if (scheduleRequestInFlight.current) return
+    scheduleRequestInFlight.current = true
     const submittedInputs = { ...scenarioInputs }
     setBusy('simulate')
     setError('')
@@ -262,8 +199,15 @@ function App() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Scenario simulation failed.')
     } finally {
+      scheduleRequestInFlight.current = false
       setBusy(null)
     }
+  }
+
+  function resetScenarioInputs() {
+    setDownId('')
+    setRushId('')
+    setDemand(0)
   }
 
   const activePageLabel =
@@ -322,8 +266,8 @@ function App() {
               <Factory size={16} />
             </span>
             <div>
-              <b>India operations</b>
-              <small>2 plants · MIM network</small>
+              <b>Synthetic factory</b>
+              <small>Example resources</small>
             </div>
             <ChevronDown size={14} />
           </div>
@@ -345,7 +289,7 @@ function App() {
           </div>
           <div className="top-actions">
             <span className="live-indicator">
-              <i /> Demo environment
+              <i /> Synthetic demo · no live ERP
             </span>
             <span className="top-divider" />
             <span className="updated">
@@ -454,16 +398,16 @@ function App() {
                   label="Average WIP age"
                   value={board.total_wip_orders ? `${fmt(board.avg_wip_age_hours)}h` : '—'}
                   icon={<Clock3 size={18} />}
-                  foot="Time in the production system"
+                  foot="Average age of open orders in this snapshot"
                   tone="amber"
                 />
                 <StatCard
-                  label="Largest queue"
+                  label="Largest stage queue"
                   value={board.total_wip_orders ? (bottleneckQueue?.stage ?? '—') : '—'}
                   icon={<Gauge size={18} />}
                   foot={
                     board.total_wip_orders
-                      ? `${bottleneckQueue?.queue_depth ?? 0} orders waiting`
+                      ? `${bottleneckQueue?.queue_depth ?? 0} open work orders in this API snapshot`
                       : 'No queued work orders'
                   }
                   tone="violet"
@@ -557,7 +501,9 @@ function App() {
                     <div className="panel-heading">
                       <div>
                         <h2>Needs attention</h2>
-                        <p>Signals returned for this data snapshot</p>
+                        <p>
+                          Model signals from this data snapshot; validate constraints with a planner
+                        </p>
                       </div>
                       <span className="alert-count">{board.active_bottleneck_alerts.length}</span>
                     </div>
@@ -569,8 +515,8 @@ function App() {
                               <AlertTriangle size={15} />
                             </span>
                             <div>
-                              <b>{index === 0 ? 'Bottleneck signal' : 'Capacity alert'}</b>
-                              <span>{alert}</span>
+                              <b>{index === 0 ? 'Modeled busy-hours signal' : 'Capacity signal'}</b>
+                              <span>{formatPlanningAlert(alert)}</span>
                             </div>
                             <ArrowRight size={15} />
                           </div>
@@ -583,7 +529,7 @@ function App() {
                         </span>
                         <div>
                           <b>Clear for now</b>
-                          <small>No active bottlenecks or downtime alerts.</small>
+                          <small>No planning alerts in this API snapshot.</small>
                         </div>
                       </div>
                     )}
@@ -638,7 +584,7 @@ function App() {
                   </p>
                   <h1>Schedule optimizer</h1>
                   <p className="heading-sub">
-                    Compare the illustrative FIFO baseline with the schedule returned by the API.
+                    Compare an illustrative FIFO reference with a proposed model schedule.
                   </p>
                 </div>
                 <button className="primary-button" onClick={optimize} disabled={busy !== null}>
@@ -653,8 +599,8 @@ function App() {
                   </div>
                   <h2>Put the plan to work</h2>
                   <p>
-                    Run the optimizer to compare late orders, WIP age, and flow time against the
-                    current baseline.
+                    Run the model to compare late orders, WIP age, and flow time against an
+                    illustrative FIFO reference.
                   </p>
                   <button className="primary-button" onClick={optimize} disabled={busy !== null}>
                     <Play size={15} fill="currentColor" />
@@ -668,7 +614,7 @@ function App() {
                       <Sparkles size={18} />
                     </span>
                     <div>
-                      <b>Optimized schedule ready</b>
+                      <b>Proposed model schedule ready</b>
                       <small>
                         Based on the work orders and resource constraints returned by this API.
                       </small>
@@ -709,6 +655,11 @@ function App() {
                       goodDown={false}
                     />
                   </div>
+                  <p className="metric-caption">
+                    Throughput counts modeled work orders completed within 168 hours. Furnace batch
+                    fill is a modeled load ratio; it is not utilization or OEE. Deltas show proposed
+                    minus reference, in percentage points for batch fill.
+                  </p>
                   <section className="panel schedule-panel">
                     <div className="panel-heading schedule-heading">
                       <div>
@@ -747,7 +698,12 @@ function App() {
                       </span>
                     </div>
                     {optimization.why_late.optimized.length ? (
-                      <div className="late-table">
+                      <div
+                        className="late-table"
+                        role="region"
+                        aria-label="Late order explanations"
+                        tabIndex={0}
+                      >
                         <div className="table-head">
                           <span>WORK ORDER</span>
                           <span>DELAY</span>
@@ -904,15 +860,24 @@ function App() {
                       <span>Load the synthetic example from the Flow board before simulating.</span>
                     </div>
                   )}
-                  <button
-                    className="primary-button run-scenario"
-                    onClick={runScenario}
-                    disabled={busy !== null || orders.length === 0}
-                  >
-                    <Zap size={15} fill="currentColor" />
-                    {busy === 'simulate' ? 'Simulating scenario…' : 'Run scenario'}
-                    <ArrowRight size={15} />
-                  </button>
+                  <div className="scenario-actions">
+                    <button
+                      className="secondary-button"
+                      onClick={resetScenarioInputs}
+                      disabled={busy !== null || (!downId && !rushId && demand === 0)}
+                    >
+                      Reset inputs
+                    </button>
+                    <button
+                      className="primary-button run-scenario"
+                      onClick={runScenario}
+                      disabled={busy !== null || orders.length === 0}
+                    >
+                      <Zap size={15} fill="currentColor" />
+                      {busy === 'simulate' ? 'Simulating scenario…' : 'Run scenario'}
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
                 </section>
                 <section className="scenario-results">
                   {simulation ? (
@@ -977,6 +942,11 @@ function App() {
                           goodDown={false}
                         />
                       </div>
+                      <p className="metric-caption">
+                        Throughput is modeled work orders completed within 168 hours. WIP age here
+                        is model-derived through completion, not the current age shown on the Flow
+                        Board.
+                      </p>
                       <section className="panel impact-panel">
                         <div className="panel-heading">
                           <div>
@@ -985,20 +955,39 @@ function App() {
                           </div>
                         </div>
                         {simulation.due_date_impact.length ? (
-                          <div className="impact-list">
+                          <div
+                            className="impact-list"
+                            role="region"
+                            aria-label="Due-date impact by work order"
+                            tabIndex={0}
+                          >
                             {simulation.due_date_impact.map((row) => (
                               <div className="impact-row" key={row.work_order_id}>
                                 <span
                                   className={
                                     row.late_scenario ? 'impact-dot late' : 'impact-dot ok'
                                   }
+                                  aria-hidden="true"
                                 />{' '}
                                 <b>{row.wo_number}</b>
                                 <span>
                                   {row.late_before ? 'Late' : 'On track'} <ArrowRight size={12} />{' '}
                                   {row.late_scenario ? 'Late' : 'On track'}
                                 </span>
-                                <small>
+                                <small
+                                  className={
+                                    row.completion_delta_hours > 0
+                                      ? 'impact-time later'
+                                      : row.completion_delta_hours < 0
+                                        ? 'impact-time earlier'
+                                        : 'impact-time unchanged'
+                                  }
+                                >
+                                  {row.completion_delta_hours > 0
+                                    ? 'Later · '
+                                    : row.completion_delta_hours < 0
+                                      ? 'Earlier · '
+                                      : 'Unchanged · '}
                                   {row.completion_delta_hours > 0 ? '+' : ''}
                                   {fmt(row.completion_delta_hours)}h completion
                                 </small>
@@ -1142,23 +1131,31 @@ function CompareCard({
 }) {
   const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
   const hasDelta = delta != null && Number.isFinite(delta)
+  const worsened = hasDelta && delta !== 0 && !improved
+  const status = !hasDelta
+    ? 'Unavailable'
+    : delta === 0
+      ? 'Unchanged'
+      : improved
+        ? 'Improved'
+        : 'Worsened'
   return (
     <article className="compare-card">
       <div className="compare-title">
         {title}
-        <span
-          className={
-            improved ? 'delta-chip good' : hasDelta && delta !== 0 ? 'delta-chip bad' : 'delta-chip'
-          }
-        >
-          {hasDelta && (improved ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />)}
+        <span className={improved ? 'delta-chip good' : worsened ? 'delta-chip bad' : 'delta-chip'}>
+          {hasDelta &&
+            delta !== 0 &&
+            (delta < 0 ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />)}
+          <span>{status}</span>
+          {hasDelta && <> · </>}
           {hasDelta && delta > 0 ? '+' : ''}
-          {fmt(delta)} {unit}
+          {hasDelta ? `${fmt(delta)} ${unit}` : ''}
         </span>
       </div>
       <div className="compare-numbers">
         <div>
-          <small>BASELINE</small>
+          <small>REFERENCE</small>
           <b>
             {fmt(before)}
             <i>{before == null ? '' : unit}</i>
@@ -1166,7 +1163,7 @@ function CompareCard({
         </div>
         <ArrowRight size={15} />
         <div>
-          <small>OPTIMIZED</small>
+          <small>PROPOSED</small>
           <b className={improved ? 'better-number' : ''}>
             {fmt(after)}
             <i>{after == null ? '' : unit}</i>
@@ -1200,6 +1197,14 @@ function ImpactCard({
   goodDown: boolean
 }) {
   const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
+  const hasDelta = delta != null && Number.isFinite(delta)
+  const status = !hasDelta
+    ? 'Unavailable'
+    : delta === 0
+      ? 'Unchanged'
+      : improved
+        ? 'Improved'
+        : 'Worsened'
   return (
     <article className="impact-kpi">
       <small>{label}</small>
@@ -1217,8 +1222,9 @@ function ImpactCard({
                 : 'impact-change bad'
           }
         >
+          <span className="sr-only">{status}: </span>
           {delta != null && delta > 0 ? '+' : ''}
-          {fmt(delta)} {unit}
+          {hasDelta ? `${fmt(delta)} ${unit}` : '—'}
         </span>
       </div>
       <span className="impact-baseline">

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App, { Gantt, type Operation } from './App'
 import { api, fmt } from './api'
@@ -49,7 +49,20 @@ function makeCatalog() {
   }
 }
 
-function makeSimulation() {
+function makeSimulation(
+  dueDateImpact: Array<{
+    work_order_id: string
+    wo_number: string
+    due_date_before_hours: number
+    due_date_scenario_hours: number
+    completion_before_hours: number
+    completion_scenario_hours: number
+    completion_delta_hours: number
+    late_before: boolean
+    late_scenario: boolean
+    delay_delta_hours: number
+  }> = [],
+) {
   const operation = makeOperations(1)[0]
   return {
     reference_metrics: { late_orders: 1, avg_wip_age_hours: 12, throughput: 2 },
@@ -61,7 +74,7 @@ function makeSimulation() {
       bottleneck_before: null,
       bottleneck_after: null,
     },
-    due_date_impact: [],
+    due_date_impact: dueDateImpact,
     why_late: [],
     gantt: [{ ...operation, batch_id: 'BATCH-1' }],
   }
@@ -76,6 +89,7 @@ function makeOperations(count: number): Operation[] {
     resource_name: 'Molding Cell 1',
     plant: 'Synthetic plant',
     stage: 'Molding',
+    batch_id: null,
     start_hour: index * 2,
     end_hour: index * 2 + 1,
     is_late: index === count - 1,
@@ -122,6 +136,19 @@ describe('frontend data states', () => {
     )
   })
 
+  it('does not seed when the user cancels the confirmation', async () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'true')
+    const fetchMock = mockApi()
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'No work orders in this database' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load synthetic example' }))
+
+    expect(window.confirm).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/seed'))).toBe(false)
+  })
+
   it('keeps the demand control within the documented API range', async () => {
     mockApi()
     render(<App />)
@@ -148,6 +175,116 @@ describe('frontend data states', () => {
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/simulate')),
     ).toBe(false)
+  })
+
+  it('shows API failures and recovers on a user refresh without inventing zeros', async () => {
+    let failed = true
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      if (failed && path.endsWith('/api/flow-board')) {
+        return {
+          ok: false,
+          status: 503,
+          statusText: 'Service Unavailable',
+          json: async () => ({ detail: 'Planning API is unavailable' }),
+        } as Response
+      }
+      const body = path.endsWith('/api/flow-board')
+        ? emptyBoard
+        : { resources: [], work_orders: [] }
+      return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Planning API is unavailable')
+    expect(screen.queryByRole('heading', { name: 'Production flow overview' })).toBeNull()
+    failed = false
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(
+      await screen.findByRole('heading', { name: 'No work orders in this database' }),
+    ).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('does not let an older refresh replace a newer API snapshot', async () => {
+    let resolveFirst: ((response: Response) => void) | undefined
+    let flowRequests = 0
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.endsWith('/api/flow-board')) {
+        flowRequests += 1
+        if (flowRequests === 1) {
+          return await new Promise<Response>((resolve) => {
+            resolveFirst = resolve
+          })
+        }
+        return {
+          ok: true,
+          status: 200,
+          statusText: 'OK',
+          json: async () => ({
+            ...emptyBoard,
+            total_wip_orders: 7,
+            queues: [{ stage: 'Molding', queue_depth: 7, avg_wip_age_hours: 4 }],
+          }),
+        } as Response
+      }
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({ resources: [], work_orders: [] }),
+      } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    await waitFor(() => expect(resolveFirst).toBeTypeOf('function'))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByText('7 open work orders in this API snapshot')).toBeTruthy()
+
+    await act(async () => {
+      resolveFirst?.({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => emptyBoard,
+      } as Response)
+    })
+
+    expect(screen.getByText('7 open work orders in this API snapshot')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'No work orders in this database' })).toBeNull()
+  })
+
+  it('shows populated queue signals as snapshot counts, not proven bottlenecks', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      const body = path.endsWith('/api/flow-board')
+        ? {
+            total_wip_orders: 4,
+            avg_wip_age_hours: 9.5,
+            queues: [
+              { stage: 'Molding', queue_depth: 2, avg_wip_age_hours: 7 },
+              { stage: 'Sintering', queue_depth: 4, avg_wip_age_hours: 9.5 },
+            ],
+            active_bottleneck_alerts: ['Latest schedule identifies D-3 as the active bottleneck'],
+          }
+        : { resources: [], work_orders: [] }
+      return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    expect(screen.getByText('Largest stage queue')).toBeTruthy()
+    expect(screen.getByText('4 open work orders in this API snapshot')).toBeTruthy()
+    expect(
+      screen.getByText('Latest schedule identifies D-3 as the modeled busy-hours signal'),
+    ).toBeTruthy()
+    expect(screen.getByText('Modeled busy-hours signal')).toBeTruthy()
+    expect(screen.getByText(/validate constraints with a planner/i)).toBeTruthy()
+    expect(screen.getByText('Synthetic demo · no live ERP')).toBeTruthy()
   })
 
   it('renders and exposes every operation, including a long horizon', () => {
@@ -214,6 +351,207 @@ describe('frontend data states', () => {
       demand_spike_pct: 25,
       time_limit_seconds: 3,
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Reset inputs' }))
+    expect(screen.getByLabelText('Machine unavailable')).toHaveValue('')
+    expect(screen.getByLabelText('Priority rush order')).toHaveValue('')
+    expect(screen.getByRole('slider', { name: 'Demand increase' })).toHaveValue('0')
+    expect(screen.getByRole('status')).toHaveTextContent('Inputs changed since this run')
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/simulate')),
+    ).toHaveLength(1)
+  })
+
+  it('posts one optimizer request and labels the API result as a proposed schedule', async () => {
+    let finishOptimize: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.endsWith('/api/schedule/optimize')) {
+        return await new Promise<Response>((resolve) => {
+          finishOptimize = resolve
+        })
+      }
+      const body = path.endsWith('/api/flow-board')
+        ? { ...emptyBoard, total_wip_orders: 1 }
+        : path.endsWith('/api/catalog')
+          ? makeCatalog()
+          : { message: 'ok' }
+      return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }))
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/optimize')),
+      ).toHaveLength(1),
+    )
+    const optimizeButton = screen.getByRole('button', { name: /working/i })
+    expect(optimizeButton).toBeDisabled()
+
+    const metrics = {
+      late_orders: 1,
+      avg_wip_age_hours: 12,
+      throughput: 2,
+      throughput_horizon_hours: 168,
+      furnace_batch_efficiency_pct: 72,
+      makespan_hours: 42,
+      bottleneck_resource_id: 'res-1',
+      resource_busy_hours: { 'res-1': 18 },
+      weighted_tardiness_hours: 4,
+    }
+    const operations = makeOperations(1)
+    finishOptimize?.({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({
+        comparison: {
+          baseline: {
+            ...metrics,
+            late_orders: 2,
+            avg_wip_age_hours: 12,
+            schedule_version_id: 'baseline-1',
+          },
+          optimized: {
+            ...metrics,
+            late_orders: 1,
+            avg_wip_age_hours: 13,
+            throughput: 2,
+            furnace_batch_efficiency_pct: null,
+            schedule_version_id: 'proposed-1',
+          },
+          delta: {
+            late_orders: -1,
+            avg_wip_age_hours: 1,
+            throughput: 0,
+            furnace_batch_efficiency_pct: null,
+          },
+        },
+        gantt: { baseline: operations, optimized: operations },
+        why_late: {
+          baseline: [],
+          optimized: Array.from({ length: 10 }, (_, index) => ({
+            work_order_id: `wo-${index + 1}`,
+            wo_number: `WO-${String(index + 1).padStart(3, '0')}`,
+            due_date_hours: 24,
+            completion_hours: 30,
+            delay_hours: 6,
+            priority: 2,
+            explanation: 'Capacity constraint',
+          })),
+        },
+      }),
+    } as Response)
+
+    expect(await screen.findByText('Proposed model schedule ready')).toBeTruthy()
+    expect(screen.getByText(/completed within 168 hours/)).toBeTruthy()
+    expect(screen.getByText(/not utilization or OEE/)).toBeTruthy()
+    const deltaLabels = Array.from(document.querySelectorAll('.delta-chip')).map((chip) =>
+      chip.textContent?.replace(/\s+/g, ' ').trim(),
+    )
+    expect(deltaLabels).toEqual([
+      'Improved · -1 orders',
+      'Worsened · +1 hours',
+      'Unchanged · 0 orders',
+      'Unavailable',
+    ])
+    const lateOrders = screen.getByRole('region', { name: 'Late order explanations' })
+    expect(lateOrders).toHaveAttribute('tabindex', '0')
+    expect(within(lateOrders).getByText('WO-010')).toBeTruthy()
+    const request = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith('/api/schedule/optimize'),
+    )
+    expect(request?.[1]?.method).toBe('POST')
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({ time_limit_seconds: 3 })
+  })
+
+  it('sends only one scenario request when Run is clicked repeatedly while pending', async () => {
+    let finishSimulation: ((response: Response) => void) | undefined
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.endsWith('/api/schedule/simulate')) {
+        return await new Promise<Response>((resolve) => {
+          finishSimulation = resolve
+        })
+      }
+      const body = path.endsWith('/api/flow-board')
+        ? { ...emptyBoard, total_wip_orders: 1 }
+        : path.endsWith('/api/catalog')
+          ? makeCatalog()
+          : { message: 'ok' }
+      return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    const run = screen.getByRole('button', { name: /run scenario/i })
+
+    fireEvent.click(run)
+    fireEvent.click(run)
+
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/simulate')),
+    ).toHaveLength(1)
+    finishSimulation?.({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () =>
+        makeSimulation([
+          {
+            work_order_id: 'impact-1',
+            wo_number: 'WO-EARLIER',
+            due_date_before_hours: 24,
+            due_date_scenario_hours: 24,
+            completion_before_hours: 30,
+            completion_scenario_hours: 28,
+            completion_delta_hours: -2,
+            late_before: true,
+            late_scenario: true,
+            delay_delta_hours: -2,
+          },
+          {
+            work_order_id: 'impact-2',
+            wo_number: 'WO-LATER',
+            due_date_before_hours: 24,
+            due_date_scenario_hours: 24,
+            completion_before_hours: 22,
+            completion_scenario_hours: 25,
+            completion_delta_hours: 3,
+            late_before: false,
+            late_scenario: true,
+            delay_delta_hours: 1,
+          },
+          {
+            work_order_id: 'impact-3',
+            wo_number: 'WO-UNCHANGED',
+            due_date_before_hours: 24,
+            due_date_scenario_hours: 24,
+            completion_before_hours: 22,
+            completion_scenario_hours: 22,
+            completion_delta_hours: 0,
+            late_before: false,
+            late_scenario: false,
+            delay_delta_hours: 0,
+          },
+        ]),
+    } as Response)
+    expect(await screen.findByRole('heading', { name: 'Scenario schedule' })).toBeTruthy()
+    const impact = screen.getByRole('region', { name: 'Due-date impact by work order' })
+    expect(impact).toHaveAttribute('tabindex', '0')
+    const impactCopy = impact.textContent?.replace(/\s+/g, ' ')
+    expect(impactCopy).toContain('Late Late')
+    expect(impactCopy).toContain('On track Late')
+    const impactTimes = Array.from(impact.querySelectorAll('.impact-time')).map((item) =>
+      item.textContent?.replace(/\s+/g, ' ').trim(),
+    )
+    expect(impactTimes).toEqual([
+      'Earlier · -2h completion',
+      'Later · +3h completion',
+      'Unchanged · 0h completion',
+    ])
   })
 })
 
@@ -247,5 +585,21 @@ describe('API and metric formatting', () => {
     await expect(api('/api/schedule/simulate')).rejects.toThrow(
       'body → demand_spike_pct: Input should be less than or equal to 300',
     )
+  })
+
+  it('renders object-shaped API error details', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          ({
+            ok: false,
+            status: 409,
+            statusText: 'Conflict',
+            json: async () => ({ detail: { message: 'No schedulable work orders' } }),
+          }) as Response,
+      ),
+    )
+    await expect(api('/api/schedule/optimize')).rejects.toThrow('No schedulable work orders')
   })
 })
