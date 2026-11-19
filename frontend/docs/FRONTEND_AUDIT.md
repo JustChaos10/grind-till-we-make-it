@@ -39,7 +39,7 @@ Branch: `feat/frontend-experience`
 | Vite at `http://127.0.0.1:5173` | Loaded Flow Board and rendered the same synthetic snapshot |
 | Local API/browser smoke review | Flow Board returned 150 synthetic work orders; optimization returned 524 operations; the CNC-1 downtime + rush-order scenario returned results after about 20 seconds in this one local run |
 | Desktop screenshot inspection | Tracked screenshot `frontend/docs/screenshots/flow-desktop.png` inspected during this task |
-| Responsive browser review | Flow Board, optimizer, and Scenario Lab reviewed at viewport settings 1440×900, 768×1024, and 390×844. Effective content widths were 1309, 698, and 355 CSS px. Additional requested settings 1920×1080 and 1280×800 were clamped by the embedded browser to 1745×982 and 1164×727. No document-level horizontal overflow was measured at the effective widths. Dense timeline content stayed within its own scroll region. At phone width, a live DOM measurement and screenshot confirmed two columns plus a full-width third scenario card. |
+| Responsive browser review | Exact Edge screenshots were captured after the final CSS adjustment at 1920×1080, 1280×800, 768×1024, and 390×844. All four were visually reviewed; see `docs/screenshots/flow-desktop-1920.png`, `flow-laptop-1280.png`, `flow-tablet-768.png`, and `flow-mobile-390.png`. At each size, the document scroll width matched its client width, with no horizontal page overflow. The tablet and phone client widths exclude the 15 px vertical scrollbar. Dense timeline content stays within its own scroll region. |
 
 The API process command line showed `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db` and `APP_ENV=development`. Its startup guard refused to reuse an existing file. This continuation used read-only API requests and did not call `/api/seed`.
 
@@ -47,7 +47,7 @@ Global Python 3.13 did not have `aiosqlite`, so its initial pytest run failed du
 
 ## Visual and acceptance limits
 
-The browser review recorded 1440×900, 768×1024, and 390×844 settings; the embedded browser limited their effective widths to 1309, 698, and 355 CSS px. Requests for 1920×1080 and 1280×800 were clamped to 1745×982 and 1164×727. Keyboard-only navigation across every screen, screen-reader review, measured color contrast, scripted end-to-end browser coverage, a full five-minute founder walkthrough, and exact requested-size viewport review remain incomplete. Source review confirmed a `prefers-reduced-motion` rule in `src/styles.css`, but its behavior was not exercised, so that acceptance item remains open. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
+The final responsive captures were made with browser device metrics set to each CSS viewport, then visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844. At all four widths, `document.documentElement.scrollWidth` matched `clientWidth` (1920, 1280, 753, and 375 respectively; the smaller client widths at tablet and phone exclude the vertical scrollbar), so there is no horizontal page overflow. The mobile view uses a two-column KPI and stage layout and a bottom navigation bar. Screenshots are in `docs/screenshots/flow-{desktop-1920,laptop-1280,tablet-768,mobile-390}.png`. Keyboard-only navigation across every screen, screen-reader review, full measured contrast, scripted end-to-end browser coverage, and a full five-minute founder walkthrough remain incomplete. Source review confirmed a `prefers-reduced-motion` rule in `src/styles.css`, but its behavior was not exercised, so that acceptance item remains open. Targeted text/status color swatches were measured after the CSS changes; this is not a full contrast audit. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
 
 The current browser/API smoke is against local synthetic demo data only. It is not evidence of production ERP integration, validated plant constraints, solver optimality, realized savings, or production readiness.
 
@@ -78,10 +78,10 @@ Only enable the seed control after confirming the API uses the dedicated local d
 
 ## Next work
 
-1. Review exact 1920×1080 and 1280×800 sizes in a browser that supports them, then complete keyboard, screen-reader, reduced-motion, and measured contrast checks; update `UI_ACCEPTANCE_CHECKLIST.md` with evidence.
+1. Complete keyboard-only, screen-reader, reduced-motion, and full contrast checks; add evidence to `UI_ACCEPTANCE_CHECKLIST.md`.
 2. Add a repeatable browser smoke flow for empty state, confirmed seed, optimization, operation details, and scenario simulation against the local demo API. Do not run seed except against the dedicated demo DB after confirming its target.
 3. Review `BACKEND_REQUESTS.md` with the backend owner before stronger solver or metric claims are made.
 
 ## Final commit record
 
-Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`. The final documentation commit SHA and working-tree status are reported in the handoff message; verify the current values with `git rev-parse HEAD` and `git status --short`.
+Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`. The last documentation checkpoint was `778394f`; final changes in this continuation are recorded in the handoff commit. Check `git rev-parse HEAD` and `git status --short` for the final state.

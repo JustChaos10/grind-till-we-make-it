@@ -16,7 +16,7 @@
   font-optical-sizing: auto;
   font-weight: 400;
   --ink: #17211d;
-  --muted: #7e8982;
+  --muted: #626e66;
   --line: #e9ece8;
   --green: #13834e;
   --green-dark: #0c6e3e;
@@ -32,6 +32,10 @@ body {
   margin: 0;
   min-width: 360px;
   min-height: 100vh;
+}
+#root {
+  width: 100%;
+  min-width: 320px;
 }
 button,
 select,
@@ -149,7 +153,7 @@ a {
 .beta {
   margin-left: auto;
   color: #668470;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 0.7px;
   font-weight: 700;
 }
@@ -219,6 +223,7 @@ a {
 }
 .main-area {
   margin-left: 248px;
+  min-width: 0;
   min-height: 100vh;
 }
 .topbar {
@@ -293,7 +298,9 @@ a {
   width: 28px;
 }
 .page-content {
+  width: 100%;
   max-width: 1380px;
+  min-width: 0;
   padding: 34px 40px 20px;
   margin: 0 auto;
 }
@@ -442,7 +449,7 @@ a {
   align-items: center;
   gap: 6px;
   font-size: 9px;
-  color: #8b968e;
+  color: var(--muted);
 }
 .tiny-status {
   width: 5px;
@@ -485,7 +492,7 @@ a {
   border-radius: 5px;
   padding: 5px 7px;
   color: #75837a;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.5px;
   display: inline-flex;
@@ -565,8 +572,8 @@ a {
   background: #d8a643;
 }
 .stage-meta {
-  font-size: 8px;
-  color: #9aa39c;
+  font-size: 9px;
+  color: var(--muted);
   margin-top: 6px;
 }
 .flow-foot {
@@ -581,8 +588,8 @@ a {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9aa39c;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .legend-dot {
   height: 5px;
@@ -700,11 +707,11 @@ a {
   color: #445249;
 }
 .scenario-shortcut small {
-  font-size: 8px;
+  font-size: 9px;
   color: #909a93;
 }
 .scenario-shortcut > svg {
-  color: #8b968e;
+  color: var(--muted);
 }
 .bottom-grid {
   margin-top: 14px;
@@ -734,7 +741,7 @@ a {
 }
 .capability-panel .eyebrow {
   margin: 0 0 5px;
-  font-size: 8px;
+  font-size: 9px;
 }
 .capability-panel h2 {
   font-size: 12px;
@@ -770,7 +777,7 @@ a {
   padding-top: 12px;
   border-top: 1px solid #e9ece8;
   color: #a1aaa3;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.8px;
 }
@@ -881,7 +888,7 @@ a {
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
-  color: #748078;
+  color: var(--muted);
   font-size: 9px;
   font-weight: 600;
   min-height: 24px;
@@ -893,17 +900,17 @@ a {
   padding: 3px 5px;
   border-radius: 5px;
   background: #f1f2f0;
-  color: #8a938d;
-  font-size: 8px;
+  color: #626e66;
+  font-size: 9px;
   white-space: nowrap;
 }
 .delta-chip.good {
   background: #e9f5eb;
-  color: #378452;
+  color: #236b3b;
 }
 .delta-chip.bad {
   background: #fbefed;
-  color: #b25a4f;
+  color: #96433a;
 }
 .compare-numbers {
   display: flex;
@@ -917,8 +924,8 @@ a {
   gap: 4px;
 }
 .compare-numbers small {
-  font-size: 7px;
-  color: #9aa39c;
+  font-size: 9px;
+  color: var(--muted);
   font-weight: 700;
   letter-spacing: 0.4px;
 }
@@ -933,7 +940,7 @@ a {
   font:
     500 9px 'DM Sans',
     sans-serif;
-  color: #9aa39c;
+  color: var(--muted);
   margin-left: 3px;
 }
 .compare-numbers svg {
@@ -984,10 +991,10 @@ a {
 }
 .result-banner small {
   font-size: 9px;
-  color: #829288;
+  color: var(--muted);
 }
 .result-time {
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
   color: #84958a;
   letter-spacing: 0.5px;
@@ -1032,7 +1039,7 @@ a {
 .gantt-axis {
   align-items: end;
   margin-bottom: 5px;
-  color: #a0aaa2;
+  color: var(--muted);
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -1175,7 +1182,7 @@ a {
 .table-head {
   padding: 0 0 7px;
   border-bottom: 1px solid #edf0ec;
-  color: #a0aaa2;
+  color: var(--muted);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.6px;
@@ -1192,7 +1199,7 @@ a {
 .delay-tag {
   width: max-content;
   background: #fcf1e4;
-  color: #a57025;
+  color: #785013;
   border-radius: 4px;
   padding: 3px 5px;
   font-size: 10px;
@@ -1211,13 +1218,13 @@ a {
   display: grid;
   place-items: center;
   background: #e8f4eb;
-  color: #398254;
+  color: #236b3b;
   border-radius: 12px;
 }
 .empty-run p {
   max-width: 345px;
   margin: 9px auto 18px;
-  color: #87928a;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.6;
 }
@@ -1272,7 +1279,7 @@ a {
 }
 .field-help {
   font-size: 10px;
-  color: #9aa39c;
+  color: var(--muted);
   margin: 7px 0 0;
   line-height: 1.5;
 }
@@ -1318,8 +1325,8 @@ a {
 .range-scale {
   display: flex;
   justify-content: space-between;
-  color: #a0aaa2;
-  font-size: 8px;
+  color: var(--muted);
+  font-size: 9px;
 }
 .scenario-preview {
   display: flex;
@@ -1349,8 +1356,8 @@ a {
   color: #4d5d51;
 }
 .scenario-preview small {
-  font-size: 8px;
-  color: #8b968e;
+  font-size: 9px;
+  color: var(--muted);
 }
 .run-scenario {
   width: 100%;
@@ -1406,8 +1413,8 @@ a {
   padding: 12px;
 }
 .impact-kpi > small {
-  font-size: 8px;
-  color: #879289;
+  font-size: 9px;
+  color: var(--muted);
 }
 .impact-kpi > div {
   display: flex;
@@ -1428,20 +1435,20 @@ a {
   padding: 3px 4px;
   background: #f1f3f0;
   color: #7d8980;
-  font-size: 8px;
+  font-size: 9px;
   white-space: nowrap;
 }
 .impact-change.good {
   background: #e9f5eb;
-  color: #388453;
+  color: #236b3b;
 }
 .impact-change.bad {
   background: #fbefed;
-  color: #ae5a4d;
+  color: #96433a;
 }
 .impact-baseline {
   font-size: 10px;
-  color: #a0aaa2;
+  color: var(--muted);
 }
 .impact-panel {
   margin-top: 11px;
@@ -1457,7 +1464,7 @@ a {
   padding: 9px 0;
   border-top: 1px solid #f0f2ef;
   font-size: 10px;
-  color: #8b968e;
+  color: var(--muted);
 }
 .impact-row > b {
   color: #536157;
@@ -1514,9 +1521,9 @@ a {
   color: #655482;
 }
 .scenario-insight small {
-  font-size: 8px;
+  font-size: 9px;
   line-height: 1.5;
-  color: #897da1;
+  color: #695a7f;
 }
 .scenario-placeholder {
   min-height: 420px;
@@ -1561,7 +1568,7 @@ a {
 }
 .placeholder-steps b {
   color: #8c79ac;
-  font-size: 8px;
+  font-size: 9px;
 }
 .read-only-tag {
   display: flex;
@@ -1620,10 +1627,10 @@ a {
     padding: 12px 10px;
   }
   .compare-title {
-    font-size: 8px;
+    font-size: 9px;
   }
   .delta-chip {
-    font-size: 7px;
+    font-size: 9px;
   }
 }
 @media (max-width: 900px) {
@@ -1723,6 +1730,8 @@ a {
     display: none;
   }
   .main-area {
+    width: 100%;
+    max-width: 100%;
     margin-left: 0;
     padding-bottom: 68px;
   }
@@ -1730,8 +1739,12 @@ a {
     height: 55px;
     padding: 0 14px;
   }
+  .crumb {
+    display: none;
+  }
   .top-actions {
     gap: 9px;
+    min-width: 0;
   }
   .updated,
   .top-divider {

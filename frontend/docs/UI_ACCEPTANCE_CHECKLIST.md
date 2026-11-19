@@ -83,12 +83,12 @@
 
 - [ ] Consistent tokens for color, spacing, typography, borders and status semantics (source review is partial; a full token/contrast audit is open).
 - [ ] Body text comfortably legible; no unnecessary 7–10px labels (small table and impact labels were raised to 10–11px; a whole-screen typography review is still open).
-- [ ] Desktop 1920×1080 reviewed.
+- [x] Desktop 1920×1080 reviewed (`docs/screenshots/flow-desktop-1920.png`).
 - [x] Desktop 1440×900 reviewed.
-- [ ] Laptop 1280×800 reviewed.
+- [x] Laptop 1280×800 reviewed (`docs/screenshots/flow-laptop-1280.png`).
 - [x] Tablet ~768×1024 reviewed.
-- [x] Mobile ~390×844 reviewed, including a recheck of the scenario KPI layout.
-- [x] No unintended horizontal page overflow at reviewed viewport sizes (DOM width measurements).
+- [x] Mobile ~390×844 reviewed after the CSS width adjustment (`docs/screenshots/flow-mobile-390.png`); KPI and stage cards use two columns and navigation moves to the bottom bar.
+- [x] No unintended horizontal page overflow at reviewed viewport sizes. Browser measurements showed `scrollWidth === clientWidth` at desktop 1920, laptop 1280, tablet 768 (753 px client area after vertical scrollbar), and mobile 390 (375 px client area after vertical scrollbar).
 - [x] Dense chart and tables use intentional scroll in reviewed browser views.
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
@@ -96,7 +96,7 @@
 - [ ] Tested keyboard-only navigation across all three screens.
 - [ ] Form controls have accessible names/help/error association.
 - [ ] Dialogs have appropriate focus and escape behavior.
-- [ ] Color contrast and no color-only status indicators checked.
+- [ ] Color contrast and no color-only status indicators checked (targeted muted/status text swatches were measured, but the full UI and all states remain unaudited).
 
 ## 6. Engineering and tests
 
