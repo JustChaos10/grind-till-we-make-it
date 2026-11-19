@@ -271,7 +271,10 @@ describe('frontend data states', () => {
               { stage: 'Molding', queue_depth: 2, avg_wip_age_hours: 7 },
               { stage: 'Sintering', queue_depth: 4, avg_wip_age_hours: 9.5 },
             ],
-            active_bottleneck_alerts: ['Latest schedule identifies D-3 as the active bottleneck'],
+            active_bottleneck_alerts: [
+              'Molding queue has 56 work orders',
+              'Latest schedule identifies D-3 as the active bottleneck',
+            ],
           }
         : { resources: [], work_orders: [] }
       return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
@@ -285,6 +288,7 @@ describe('frontend data states', () => {
     expect(
       screen.getByText('Latest schedule identifies D-3 as the modeled busy-hours signal'),
     ).toBeTruthy()
+    expect(screen.getByText('Stage queue')).toBeTruthy()
     expect(screen.getByText('Modeled busy-hours signal')).toBeTruthy()
     expect(screen.getByText(/validate constraints with a planner/i)).toBeTruthy()
     expect(screen.getByText('Synthetic demo · no live ERP')).toBeTruthy()

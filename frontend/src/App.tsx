@@ -53,6 +53,11 @@ const stageShort: Record<string, string> = {
   Finishing: 'Finishing',
 }
 const canSeedDemo = () => import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
+const planningAlertTitle = (message: string) => {
+  if (/active bottleneck/i.test(message)) return 'Modeled busy-hours signal'
+  if (/queue has/i.test(message)) return 'Stage queue'
+  return 'Planning signal'
+}
 const formatPlanningAlert = (alert: string) =>
   alert.replace(/active bottleneck/gi, 'modeled busy-hours signal')
 
@@ -463,16 +468,15 @@ function App() {
                     </div>
                     {board.active_bottleneck_alerts.length ? (
                       <div className="alert-list">
-                        {board.active_bottleneck_alerts.map((alert, index) => (
+                        {board.active_bottleneck_alerts.map((alert) => (
                           <div className="alert-row" key={alert}>
                             <span className="alert-symbol">
                               <AlertTriangle size={15} />
                             </span>
                             <div>
-                              <b>{index === 0 ? 'Modeled busy-hours signal' : 'Capacity signal'}</b>
+                              <b>{planningAlertTitle(alert)}</b>
                               <span>{formatPlanningAlert(alert)}</span>
                             </div>
-                            <ArrowRight size={15} />
                           </div>
                         ))}
                       </div>
