@@ -2,5 +2,9 @@
 __pycache__/
 *.py[cod]
 indoflow.db
+indoflow-demo.db
 .test_indoflow.db
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
 .env

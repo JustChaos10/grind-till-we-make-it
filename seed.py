@@ -29,8 +29,8 @@ def make_resources() -> list[Resource]:
         ("Doddaballapura", "Molding", [("M-3", all_alloys), ("M-4", all_alloys)]),
         ("Hoskote", "Debinding", [("D-1", all_alloys), ("D-2", all_alloys)]),
         ("Doddaballapura", "Debinding", [("D-3", all_alloys)]),
-        ("Hoskote", "Sintering", [("F-1", ["MIM-17-4PH"]), ("F-2", ["MIM-316L"])]),
-        ("Doddaballapura", "Sintering", [("F-3", ["MIM-4605"]), ("F-4", ["Ti-6Al-4V"])]),
+        ("Hoskote", "Sintering", [("F-1", ["MIM-17-4PH", "MIM-316L"]), ("F-2", ["MIM-17-4PH", "MIM-316L"])]),
+        ("Doddaballapura", "Sintering", [("F-3", ["MIM-4605", "Ti-6Al-4V"]), ("F-4", ["MIM-4605", "Ti-6Al-4V"])]),
         ("Hoskote", "CNC Machining", [("CNC-1", all_alloys), ("CNC-2", all_alloys)]),
         ("Doddaballapura", "CNC Machining", [("CNC-3", all_alloys), ("CNC-4", all_alloys)]),
         ("Hoskote", "Finishing", [("FIN-1", all_alloys), ("FIN-2", all_alloys)]),
@@ -39,9 +39,8 @@ def make_resources() -> list[Resource]:
     for plant, stage, entries in definitions:
         for name, alloys in entries:
             if stage == "Sintering":
-                alloy = alloys[0]
-                recipes = [RECIPES[alloy]]
-                capacity = {"F-1": 360, "F-2": 320, "F-3": 300, "F-4": 180}[name]
+                recipes = [RECIPES[item] for item in alloys]
+                capacity = 360 if plant == "Hoskote" else 300
                 setup = 0
             elif stage == "CNC Machining":
                 recipes = []

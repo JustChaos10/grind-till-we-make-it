@@ -349,6 +349,32 @@ async def flow_board(session: AsyncSession = Depends(get_session)) -> FlowBoardR
     )
 
 
+@app.get("/api/catalog", dependencies=[Depends(require_api_access)])
+async def catalog(session: AsyncSession = Depends(get_session)) -> dict:
+    """Return the public IDs and labels needed to configure what-if runs."""
+    resources = list((await session.scalars(select(Resource).order_by(Resource.stage, Resource.name))).all())
+    parts = {part.id: part for part in (await session.scalars(select(Part))).all()}
+    orders = list((await session.scalars(select(WorkOrder).order_by(WorkOrder.due_date_hours, WorkOrder.wo_number))).all())
+    return {
+        "resources": [{
+            "id": resource.id,
+            "name": resource.name,
+            "plant": resource.plant,
+            "stage": resource.stage,
+            "status": resource.status,
+        } for resource in resources],
+        "work_orders": [{
+            "id": order.id,
+            "wo_number": order.wo_number,
+            "sku_code": parts[order.part_id].sku_code,
+            "stage": order.current_stage,
+            "status": order.status,
+            "due_date_hours": order.due_date_hours,
+            "priority": order.priority,
+        } for order in orders if order.status not in ("COMPLETED", "QUALITY_HOLD")],
+    }
+
+
 async def _load_factory(session: AsyncSession):
     resources = list((await session.scalars(select(Resource).order_by(Resource.id))).all())
     parts = list((await session.scalars(select(Part).order_by(Part.sku_code))).all())

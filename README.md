@@ -19,6 +19,32 @@ python -m uvicorn main:app --reload
 
 The API is at `http://127.0.0.1:8000`; interactive docs are at `/docs`. SQLite is created automatically for local development.
 
+### Run the CEO demo locally
+
+Use a dedicated demo database so loading synthetic factory records cannot replace `indoflow.db`:
+
+1. In a PowerShell terminal at the repository root, start the API against a separate database:
+
+   ```powershell
+   $env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-demo.db"
+   python -m uvicorn main:app --reload
+   ```
+
+2. In a second terminal, start the browser app:
+
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+   The frontend requires Node.js 20.19+ or 22.12+.
+
+3. Open the Vite URL shown in the terminal (usually `http://localhost:5173`) and choose **Load synthetic demo data**. The app asks before seeding; that action resets data only in the API database configured in step 1.
+4. Walk through **Flow board**, **Schedule optimizer**, and **Scenario lab**. Try taking a furnace or CNC machine offline, then compare the impact.
+
+The local app uses the API's development mode and same-origin Vite proxy. Do not point it at a production database. The frontend is a local demo client; it does not store or expose a production API token.
+
 Load the deterministic demo data locally with:
 
 ```powershell
@@ -65,9 +91,9 @@ The repository includes a Render Blueprint (`render.yaml`), Dockerfile, PostgreS
 5. The container runs database migrations before starting the API. Render uses `/health` as the readiness check.
 6. The API starts with an empty database. Connect a trusted production data import before using it for scheduling; `/api/seed` is disabled in production. The included seed records are synthetic and are only for local development.
 
-Set `CORS_ORIGINS` to the exact deployed frontend origin after the frontend exists. Until then it allows only local development origins. A browser app cannot safely hold the shared API bearer token: put a trusted server-side proxy or proper user authentication in front of browser requests before exposing the API to a public frontend.
+The Render Blueprint starts with only local development CORS origins. Set `CORS_ORIGINS` to the exact trusted frontend or proxy origin when you deploy that layer. A browser app cannot safely hold the shared API bearer token: put a trusted server-side proxy or proper user authentication in front of browser requests before exposing the API to a public frontend.
 
-The current project supplies the API and deployment infrastructure. It does not yet include a production factory data connector/import pipeline, a deployed frontend, or user-level authentication. Production optimization quality must be validated against representative plant data and operational constraints before the schedules are used to make shop-floor decisions.
+The current project supplies the API, deployment infrastructure, and a local React demo client. The frontend is not deployed, has no user-level authentication, and is not configured to safely call a token-protected public API. Production requires a trusted server-side frontend/API proxy or user authentication, a factory data connector, and validation against representative plant data and operational constraints before schedules are used to make shop-floor decisions.
 
 ## Configuration
 
