@@ -62,7 +62,7 @@ From the repository root, start the API in one terminal:
 ```powershell
 $env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-demo.db"
 $env:APP_ENV = "development"
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 In a second terminal:
@@ -84,4 +84,4 @@ Only enable the seed control after confirming the API uses the dedicated local d
 
 ## Final commit record
 
-The branch was at `2213c0e` before this final implementation and verification update. The final commit SHA and working-tree status are reported in the handoff message; verify the current values with `git rev-parse HEAD` and `git status --short`.
+Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`. The final documentation commit SHA and working-tree status are reported in the handoff message; verify the current values with `git rev-parse HEAD` and `git status --short`.
