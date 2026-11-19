@@ -51,7 +51,7 @@
 - [x] Comparison cards handle improved/worse/unchanged/missing data correctly (component test asserts all four states).
 - [x] Percent metric displays changes in percentage points (source review).
 - [x] Operations scheduled after 96 hours are inspectable (120-operation, 240-hour component test).
-- [x] More than 90 operations overall are discoverable in the Gantt component (120-operation test); >24 per resource was not separately tested.
+- [x] Dense Gantt remains inspectable. A single-resource component test renders all 1,200 operations and opens the last operation.
 - [x] Gantt uses consistent relative-hour axis and correct start/end bar geometry (component test and source review).
 - [x] Baseline and proposed selections show the corresponding API response dataset (component test and source review).
 - [x] Resource rows grouped by stable resource IDs, labels include plant (source review and browser smoke).
@@ -59,7 +59,7 @@
 - [x] Stage legend readable and status not dependent on color alone (source review).
 - [x] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason (component test and source review).
 - [x] Operation details are keyboard-focusable and Escape restores focus (component test); full screen keyboard traversal remains unverified.
-- [x] Filters are not implemented; no filter controls are exposed, so these conditional checks are not applicable.
+- [x] Gantt filters use returned stage, plant, resource, work order, and late status values. Tests cover status and order filters, no matches, reset, consistent time scale, zoom, and work-order drill-down.
 - [x] Late orders beyond first eight accessible via a labeled, keyboard-focusable scroll region (10-row component regression test includes WO-010).
 - [x] No unsupported optimality or scheduling-feasibility claim (copy/source review).
 - [x] No fabricated wall-clock times or apparent real machine dispatch instructions (copy/source review).
@@ -106,7 +106,7 @@
 - [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test).
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
-- [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, and scenario behavior; no filter UI exists.
+- [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, scenario behavior, and timeline filters.
 - [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. The fixture smoke passed. Repeatable scripts are in `scripts/browser_flow.py` and `scripts/browser_real_api.py`.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.

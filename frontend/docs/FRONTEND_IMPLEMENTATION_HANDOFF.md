@@ -23,7 +23,7 @@
 
 ## Final implementation update
 
-- Reworked the stage flow, planning hierarchy, and responsive schedule layout. The Gantt keeps the timeline and resource labels together, with keyboard selection, focus restoration, and a text view of returned operation details.
+- Reworked the stage flow, planning hierarchy, and responsive schedule layout. The Gantt keeps the timeline and resource labels together, with keyboard selection, focus restoration, filters, zoom, and a text view of returned operation details. Queue and late-order actions connect the board, timeline, and Scenario Lab. A component test inspects the last operation in a schedule of 1,200 operations on one resource.
 - Added shared typed API response definitions in `src/types.ts` and hardened the Flow Board, optimizer, and scenario interactions around supported response data.
 - Expanded regression tests for empty-database onboarding, seed confirmation, demand bounds, disabled empty scenarios, dense/long-horizon Gantt operations, operation details and Escape focus restoration, submitted scenario snapshots, Pydantic error arrays, and unavailable metric formatting.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
