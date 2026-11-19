@@ -84,4 +84,4 @@ Only enable the seed control after confirming the API uses the dedicated local d
 
 ## Final commit record
 
-Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`. The last documentation checkpoint was `778394f`; final changes in this continuation are recorded in the handoff commit. Check `git rev-parse HEAD` and `git status --short` for the final state.
+Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`. Responsive screenshots and visual review are recorded in `frontend/docs/screenshots/` and the acceptance checklist. The final documentation checkpoint SHA is recorded in the task handoff after commit.

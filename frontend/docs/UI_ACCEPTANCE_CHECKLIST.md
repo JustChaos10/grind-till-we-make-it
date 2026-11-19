@@ -42,7 +42,7 @@
 - [x] Stage labels/count/avg age readable on desktop and phone (responsive review).
 - [x] Alert panel treats warnings as planning signals (component test and source review).
 - [x] Empty alerts doesn't imply real production is normal (copy/source review).
-- [ ] Navigation to optimizer and scenario works by click and keyboard (click exercised in component tests; keyboard-only navigation remains unverified).
+- [x] Navigation to optimizer and scenario works by click and keyboard activation (component tests cover click; browser Enter activation checked for all three screens). Full keyboard-only traversal remains unverified.
 - [x] Refresh works, updates time only on successful data fetch (failure recovery and stale-response component tests).
 
 ## 3. Optimizer & Gantt
@@ -112,7 +112,7 @@
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
 - [x] Python backend pytest/ruff regression results documented (without backend edits).
-- [x] Desktop screenshot captured and **actually inspected**, not just created. (Responsive visual coverage is incomplete.)
+- [x] Flow Board screenshots captured and **actually inspected**, not just created, at desktop 1920×1080, laptop 1280×800, tablet 768×1024, and phone 390×844 (`docs/screenshots/flow-*.png`). The optimizer and Scenario Lab were also visually reviewed in the browser; screenshot coverage for those screens is not saved.
 - [x] No production deploy, public secret or paid infrastructure action was taken.
 
 ## 7. Git handoff and founder demo
