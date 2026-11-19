@@ -132,3 +132,22 @@ def test_simulation_keeps_locked_wip_and_excludes_quality_hold(client, monkeypat
     )
     assert cnc["resource_id"] == "CNC-3"
     assert cnc["start_hour"] >= 12
+
+
+def test_incomplete_part_master_is_rejected_before_solver_runs(client, monkeypatch):
+    monkeypatch.delenv("INDOFLOW_API_TOKEN", raising=False)
+    monkeypatch.delenv("INDOFLOW_ADMIN_TOKEN", raising=False)
+    assert client.post("/api/seed").status_code == 200
+    database_path = client.app.state.database_path
+    with sqlite3.connect(database_path) as connection:
+        part_id = connection.execute(
+            """SELECT w.part_id FROM work_orders w
+               WHERE w.status NOT IN ('COMPLETED', 'QUALITY_HOLD') LIMIT 1"""
+        ).fetchone()[0]
+        connection.execute("UPDATE parts SET cycle_times_mins = '{}' WHERE id = ?", (part_id,))
+
+    response = client.post("/api/schedule/optimize", json={"time_limit_seconds": 0.1})
+    assert response.status_code == 409
+    assert "cycle time" in response.json()["detail"]
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute("SELECT COUNT(*) FROM schedule_versions").fetchone()[0] == 0

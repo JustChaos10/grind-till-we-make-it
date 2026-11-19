@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from baseline import schedule as run_baseline
 from database import get_session, init_db
 from domain import ALLOYS, SEGMENTS, OrderSpec, STAGES
+from factory_validation import FactoryDataError, validate_factory_data
 from models import Part, Resource, ScheduleVersion, ScheduledOperation, WorkOrder
 from seed import RECIPES, seed_database
 from solver import SchedulingError, solve as run_solver
@@ -473,6 +474,10 @@ async def _load_factory(session: AsyncSession):
     work_orders = list((await session.scalars(select(WorkOrder).order_by(WorkOrder.wo_number))).all())
     if not resources or not parts or not work_orders:
         raise HTTPException(status_code=409, detail="Factory data is empty. Call POST /api/seed first.")
+    try:
+        validate_factory_data(resources, parts, work_orders)
+    except FactoryDataError as exc:
+        raise HTTPException(status_code=409, detail=f"Factory data needs correction: {exc}") from exc
     return resources, parts, work_orders
 
 
