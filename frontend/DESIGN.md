@@ -2,6 +2,8 @@
 
 This file records the frontend's product-specific visual and interaction rules. It complements `AGENTS.md`; it does not replace the API contract or the acceptance checklist.
 
+The visual review also uses ideas from [Taste](https://github.com/Leonxlnx/taste-skill) and [Unslop](https://github.com/heydamir/unslop): clear hierarchy, readable density, and purposeful details. These are design references, not product specifications; IndoFlow's manufacturing contract, accessibility needs, and data truth take priority.
+
 ## Product direction
 
 - Product: planning workbench for small manufacturing teams.

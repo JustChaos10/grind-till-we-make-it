@@ -100,10 +100,10 @@ a {
 }
 .side-label,
 .eyebrow {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1.1px;
-  color: #8a958e;
+  letter-spacing: 0.04em;
+  color: #68756d;
 }
 .side-label {
   padding: 0 10px 11px;
@@ -1923,6 +1923,18 @@ a {
   border: 1px solid #53675b30;
   cursor: pointer;
   text-align: left;
+  container-type: inline-size;
+}
+.gantt-bar > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: clip;
+  visibility: hidden;
+}
+@container (min-width: 48px) {
+  .gantt-bar > span {
+    visibility: visible;
+  }
 }
 .gantt-bar.is-late {
   outline: 2px dashed #a33c34;

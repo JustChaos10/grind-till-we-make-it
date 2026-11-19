@@ -103,6 +103,7 @@ describe('frontend data states', () => {
     expect(bars).toHaveLength(120)
     const last = screen.getByRole('button', { name: /WO-120, SKU-120.*late.*Capacity constraint/ })
     expect(Number.parseFloat((last as HTMLButtonElement).style.width)).toBeCloseTo(0.4167, 3)
+    expect(last.querySelector('span')).toHaveAttribute('aria-hidden', 'true')
     fireEvent.click(last)
     expect(document.querySelector('.gantt-detail')?.textContent).toContain('Capacity constraint')
   })

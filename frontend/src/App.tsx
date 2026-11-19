@@ -411,9 +411,7 @@ function App() {
                   <p className="eyebrow">
                     OPERATIONS OVERVIEW <span>·</span> SYNTHETIC DEMO DATA
                   </p>
-                  <h1>
-                    Your factory, in flow <span>✳</span>
-                  </h1>
+                  <h1>Production flow overview</h1>
                   <p className="heading-sub">
                     A planning view of the work orders and resources in the current API snapshot.
                   </p>
@@ -1219,7 +1217,7 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
                       title={accessibleName}
                       onClick={() => setSelected(item)}
                     >
-                      <span>{item.wo_number}</span>
+                      <span aria-hidden="true">{item.wo_number}</span>
                     </button>
                   )
                 })}
