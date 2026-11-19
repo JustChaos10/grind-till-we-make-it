@@ -6,14 +6,14 @@
 
 ## 0. Startup / collaboration
 
-- [ ] Identified and reused/cloned `JustChaos10/grind-till-we-make-it`, not a new repo.
-- [ ] `git status`, current SHA, default branch, remote and uncommitted changes inspected.
-- [ ] Created an isolated frontend branch, not editing/pushing `main`.
-- [ ] Read current backend API endpoints and current frontend files.
-- [ ] Existing relevant `AGENTS.md` rules inspected and reconciled.
-- [ ] Local Windows Node/Python requirements verified.
-- [ ] API started on explicit local `indoflow-demo.db` DB; Vite app started successfully.
-- [ ] Initial `npm run build`, `npm run lint`, backend tests/lint run and results recorded.
+- [x] Identified and reused/cloned `JustChaos10/grind-till-we-make-it`, not a new repo.
+- [x] `git status`, current SHA, default branch, remote and uncommitted changes inspected.
+- [x] Created an isolated frontend branch, not editing/pushing `main`.
+- [x] Read current backend API endpoints and current frontend files.
+- [x] Existing relevant `AGENTS.md` rules inspected and reconciled.
+- [x] Local Windows Node/Python requirements verified.
+- [x] API started on explicit local `indoflow-demo.db` DB; Vite app started successfully.
+- [x] Frontend build/lint/tests and backend tests/lint run; results recorded in `FRONTEND_AUDIT.md`.
 - [ ] Baseline screenshots or visual observations recorded before redesign.
 
 ## 1. Truth and safety
@@ -29,14 +29,14 @@
 - [ ] Throughput defined within a 168-hour modeled horizon.
 - [ ] No fabricated financial impact, customer identities, materials recipes or machine capacities.
 - [ ] No source-work-order mutations from scheduling or simulation UI.
-- [ ] `/api/seed` never called automatically; user sees explicit deletion/reset warning.
+- [x] `/api/seed` never called automatically; user sees explicit deletion/reset warning.
 - [ ] No real data, `INDOFLOW_*_TOKEN`, password or secret in committed/browser code.
 
 ## 2. Flow Board
 
 - [ ] API offline → informative error and retry, not a fake zero dashboard.
-- [ ] API online with no orders → clear onboarding/seed CTA.
-- [ ] Seed confirmation explains reset and requires deliberate action.
+- [x] API online with no orders → clear onboarding/seed CTA (component test).
+- [x] Seed confirmation explains reset and requires deliberate action (component test).
 - [ ] Populated board shows correct totals and queues from API.
 - [ ] All five stages and optional CNC context presented correctly.
 - [ ] Stage labels/count/avg age readable on desktop and phone.
@@ -51,14 +51,14 @@
 - [ ] Comparison cards handle improved/worse/unchanged/missing data correctly.
 - [ ] Percent metric displays changes in percentage points.
 - [ ] Operations scheduled after 96 hours are inspectable.
-- [ ] More than 90 operations overall and more than 24 per resource are discoverable.
+- [x] More than 90 operations overall are discoverable in the Gantt component (120-operation test); >24 per resource was not separately tested.
 - [ ] Gantt uses consistent relative-hour axis and correct start/end bar geometry.
 - [ ] Baseline and proposed selections show the corresponding real response dataset.
 - [ ] Resource rows grouped by stable resource IDs, labels include plant.
 - [ ] Horizontal and vertical scroll behave correctly at dense data sizes.
 - [ ] Stage legend readable and status not dependent on color alone.
 - [ ] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason.
-- [ ] Operation details accessible by keyboard and dismissible with correct focus handling.
+- [x] Operation details are keyboard-focusable and Escape restores focus (component test); full screen keyboard traversal remains unverified.
 - [ ] Filters (if implemented) have clear reset and correct results count.
 - [ ] Filtered timeline doesn't silently change global unfiltered KPI figures.
 - [ ] Late orders beyond first eight accessible via scroll/pagination.
@@ -73,7 +73,7 @@
 - [ ] Form clearly explains how rush orders and quantity increases are modeled.
 - [ ] Only valid inputs submitted; no duplicate requests on repeated clicks.
 - [ ] Scenario summary displays exact submitted (not merely current draft) inputs.
-- [ ] Results tie to last submitted input; later edits visibly mark results stale.
+- [x] Results tie to last submitted input and later edits mark them stale (component test).
 - [ ] Scenario comparison shows real results, including regressions/no change.
 - [ ] Due-date impact list has accessible details and correctly displayed signs/status.
 - [ ] Scenario Gantt uses actual response, not a reused optimization timeline.
@@ -104,16 +104,16 @@
 - [ ] Shared typed API client and types reflect current backend response exactly.
 - [ ] `App.tsx` responsibly refactored rather than blindly replaced.
 - [ ] `styles.css` improved with consistent tokens/component boundaries.
-- [ ] Missing/null metric values not displayed as fabricated zeroes.
-- [ ] Errors from Pydantic `detail` objects/arrays render correctly.
+- [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test).
+- [x] Pydantic array `detail` renders field locations and messages (unit test); object detail path is not separately covered.
 - [ ] Canceled/stale async requests don't overwrite newer results incorrectly.
-- [ ] Frontend component/unit tests added for format/delta, Gantt, filters, dialog, errors and scenario.
-- [ ] Browser smoke test covers full demo using real local API or explicitly documented test fixtures.
-- [ ] `npm run build` passes.
-- [ ] `npm run lint` passes.
-- [ ] Frontend test suite passes.
-- [ ] Python backend pytest/ruff regression results documented (without backend edits).
-- [ ] Screenshots captured and **actually inspected**, not just created.
+- [x] Frontend component/unit tests added for missing metrics, Gantt, error parsing, seed confirmation, and scenario behavior; filters/delta/dialog coverage remains incomplete.
+- [ ] Browser smoke test covers full demo using real local API or explicitly documented test fixtures. (Partial manual smoke is recorded in `FRONTEND_AUDIT.md`.)
+- [x] `npm run build` passes.
+- [x] `npm run lint` passes.
+- [x] Frontend test suite passes.
+- [x] Python backend pytest/ruff regression results documented (without backend edits).
+- [x] Desktop screenshot captured and **actually inspected**, not just created. (Responsive visual coverage is incomplete.)
 - [ ] No production deploy, public secret or paid infrastructure action.
 
 ## 7. Git handoff and founder demo
@@ -122,7 +122,7 @@
 - [ ] Changes grouped into meaningful commits.
 - [ ] No history rewrite or force push.
 - [ ] No direct merge/push to main.
-- [ ] Final `git status` and commit SHA recorded.
+- [ ] Final `git status` and commit SHA recorded. (Update `FRONTEND_AUDIT.md` after final commit.)
 - [ ] Frontend setup/run instructions verified in PowerShell.
 - [ ] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md` if needed.
 - [ ] Five-minute founder walkthrough rehearsed against actual UI.

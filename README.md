@@ -35,17 +35,18 @@ Use a dedicated demo database so loading synthetic factory records cannot replac
    ```powershell
    cd frontend
    npm install
+   $env:VITE_ENABLE_DEMO_SEED = "true"
    npm run dev
    ```
 
    The frontend requires Node.js 20.19+ or 22.12+.
 
-3. Open the Vite URL shown in the terminal (usually `http://localhost:5173`) and choose **Load synthetic demo data**. The app asks before seeding; that action resets data only in the API database configured in step 1.
+3. Open the Vite URL shown in the terminal (usually `http://localhost:5173`) and choose **Load synthetic demo data**. The app asks before seeding. This deletes and recreates factory and saved schedule rows in the API database. Continue only after confirming the API in step 1 uses the dedicated `indoflow-demo.db` database.
 4. Walk through **Flow board**, **Schedule optimizer**, and **Scenario lab**. Try taking a furnace or CNC machine offline, then compare the impact.
 
 The local app uses the API's development mode and same-origin Vite proxy. Do not point it at a production database. The frontend is a local demo client; it does not store or expose a production API token.
 
-Load the deterministic demo data locally with:
+The frontend seeding button stays disabled unless `VITE_ENABLE_DEMO_SEED=true` is set before Vite starts. This flag only enables the demo button; it does not make an unsafe API database safe. The direct API request below bypasses the frontend confirmation, so use it only after the same database checks:
 
 ```powershell
 curl.exe -X POST http://127.0.0.1:8000/api/seed

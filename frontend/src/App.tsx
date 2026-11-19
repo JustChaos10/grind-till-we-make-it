@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -22,6 +22,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react'
+import { api, fmt } from './api'
 
 type Queue = { stage: string; queue_depth: number; avg_wip_age_hours: number }
 type Board = {
@@ -48,16 +49,17 @@ export type Operation = {
   resource_name: string
   plant: string
   stage: string
+  batch_id?: string | null
   start_hour: number
   end_hour: number
   is_late: boolean
   delay_reason: string | null
 }
 type Metrics = {
-  late_orders: number
-  avg_wip_age_hours: number
-  throughput: number
-  furnace_batch_efficiency_pct?: number
+  late_orders: number | null
+  avg_wip_age_hours: number | null
+  throughput: number | null
+  furnace_batch_efficiency_pct?: number | null
   bottleneck_resource_id?: string | null
 }
 type Optimization = {
@@ -102,6 +104,8 @@ type Simulation = {
   gantt: Operation[]
   why_late: LateOrder[]
 }
+type ScenarioInputs = { downId: string; rushId: string; demand: number }
+type ScenarioRun = { inputs: ScenarioInputs; result: Simulation }
 type Page = 'board' | 'optimizer' | 'scenario'
 
 const stages = ['Molding', 'Debinding', 'Sintering', 'CNC Machining', 'Finishing']
@@ -119,26 +123,7 @@ const stageGlyph: Record<string, string> = {
   'CNC Machining': '04',
   Finishing: '05',
 }
-const fmt = (value: number | undefined, digits = 1) =>
-  Number(value ?? 0).toLocaleString(undefined, { maximumFractionDigits: digits })
-
-async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  })
-  if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`
-    try {
-      const body = await response.json()
-      message = body.detail || message
-    } catch {
-      /* keep status */
-    }
-    throw new Error(message)
-  }
-  return response.json() as Promise<T>
-}
+const canSeedDemo = () => import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
 
 function App() {
   const [page, setPage] = useState<Page>('board')
@@ -146,7 +131,7 @@ function App() {
   const [resources, setResources] = useState<Resource[]>([])
   const [orders, setOrders] = useState<WorkOrder[]>([])
   const [optimization, setOptimization] = useState<Optimization | null>(null)
-  const [simulation, setSimulation] = useState<Simulation | null>(null)
+  const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
   const [busy, setBusy] = useState<'seed' | 'optimize' | 'simulate' | null>(null)
   const [error, setError] = useState('')
   const [downId, setDownId] = useState('')
@@ -154,25 +139,48 @@ function App() {
   const [demand, setDemand] = useState(0)
   const [scheduleTab, setScheduleTab] = useState<'optimized' | 'baseline'>('optimized')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  const refreshSequence = useRef(0)
+  const refreshController = useRef<AbortController | null>(null)
+  const simulation = scenarioRun?.result ?? null
+  const scenarioInputs = { downId, rushId, demand }
+  const scenarioIsStale = Boolean(
+    scenarioRun &&
+    (scenarioRun.inputs.downId !== downId ||
+      scenarioRun.inputs.rushId !== rushId ||
+      scenarioRun.inputs.demand !== demand),
+  )
 
   const refresh = useCallback(async () => {
+    const sequence = ++refreshSequence.current
+    refreshController.current?.abort()
+    const controller = new AbortController()
+    refreshController.current = controller
     try {
       const [b, catalog] = await Promise.all([
-        api<Board>('/api/flow-board'),
-        api<{ resources: Resource[]; work_orders: WorkOrder[] }>('/api/catalog'),
+        api<Board>('/api/flow-board', { signal: controller.signal }),
+        api<{ resources: Resource[]; work_orders: WorkOrder[] }>('/api/catalog', {
+          signal: controller.signal,
+        }),
       ])
+      if (sequence !== refreshSequence.current) return
       setBoard(b)
       setResources(catalog.resources)
       setOrders(catalog.work_orders)
       setLastUpdated(new Date())
       setError('')
     } catch (e) {
+      if (sequence !== refreshSequence.current || (e instanceof Error && e.name === 'AbortError'))
+        return
       setError(e instanceof Error ? e.message : 'Could not connect to the IndoFlow API.')
     }
   }, [])
 
   useEffect(() => {
     queueMicrotask(() => void refresh())
+    return () => {
+      refreshSequence.current += 1
+      refreshController.current?.abort()
+    }
   }, [refresh])
 
   const activeResources = resources.filter((resource) => resource.status === 'ACTIVE')
@@ -189,6 +197,12 @@ function App() {
   const maxHour = Math.max(24, ...shownOperations.map((item) => item.end_hour))
 
   async function seedDemo() {
+    if (!canSeedDemo()) {
+      setError(
+        'Demo seeding is disabled. Enable VITE_ENABLE_DEMO_SEED=true only for a dedicated local demo database.',
+      )
+      return
+    }
     if (
       !window.confirm(
         'Load the synthetic demo dataset? This resets factory rows in the database currently configured for the API.',
@@ -200,7 +214,7 @@ function App() {
     try {
       await api('/api/seed', { method: 'POST' })
       setOptimization(null)
-      setSimulation(null)
+      setScenarioRun(null)
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load demo data.')
@@ -210,6 +224,7 @@ function App() {
   }
 
   async function optimize() {
+    if (busy) return
     setBusy('optimize')
     setError('')
     try {
@@ -228,20 +243,21 @@ function App() {
   }
 
   async function runScenario() {
+    if (busy) return
+    const submittedInputs = { ...scenarioInputs }
     setBusy('simulate')
     setError('')
     try {
-      setSimulation(
-        await api<Simulation>('/api/schedule/simulate', {
-          method: 'POST',
-          body: JSON.stringify({
-            down_resource_ids: downId ? [downId] : [],
-            rush_order_ids: rushId ? [rushId] : [],
-            demand_spike_pct: demand,
-            time_limit_seconds: 3,
-          }),
+      const result = await api<Simulation>('/api/schedule/simulate', {
+        method: 'POST',
+        body: JSON.stringify({
+          down_resource_ids: submittedInputs.downId ? [submittedInputs.downId] : [],
+          rush_order_ids: submittedInputs.rushId ? [submittedInputs.rushId] : [],
+          demand_spike_pct: submittedInputs.demand,
+          time_limit_seconds: 3,
         }),
-      )
+      })
+      setScenarioRun({ inputs: submittedInputs, result })
       setPage('scenario')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Scenario simulation failed.')
@@ -385,9 +401,13 @@ function App() {
                 <button
                   className="primary-button"
                   onClick={seedDemo}
-                  disabled={busy !== null || !lastUpdated}
+                  disabled={busy !== null || !lastUpdated || !canSeedDemo()}
                   title={
-                    !lastUpdated ? 'Connect to the API before loading demo records.' : undefined
+                    !canSeedDemo()
+                      ? 'Seeding is off. Enable it only for a dedicated local demo database.'
+                      : !lastUpdated
+                        ? 'Connect to the API before loading demo records.'
+                        : undefined
                   }
                 >
                   <Play size={16} fill="currentColor" />
@@ -398,8 +418,8 @@ function App() {
                 </button>
               </div>
               <div className="welcome-note">
-                <ShieldCheck size={15} /> Demo records are synthetic. Loading data resets the
-                configured demo database.
+                <ShieldCheck size={15} /> Demo records are synthetic. Seeding is off unless
+                explicitly enabled for a dedicated local demo database.
               </div>
             </section>
           )}
@@ -471,7 +491,12 @@ function App() {
                   <button
                     className="primary-button"
                     onClick={seedDemo}
-                    disabled={busy !== null || !lastUpdated}
+                    disabled={busy !== null || !lastUpdated || !canSeedDemo()}
+                    title={
+                      !canSeedDemo()
+                        ? 'Enable seeding only for a dedicated local demo database.'
+                        : undefined
+                    }
                   >
                     <Sparkles size={16} />{' '}
                     {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
@@ -677,10 +702,10 @@ function App() {
                     />
                     <CompareCard
                       title="Furnace batch fill"
-                      before={optimization.comparison.baseline.furnace_batch_efficiency_pct ?? 0}
-                      after={optimization.comparison.optimized.furnace_batch_efficiency_pct ?? 0}
+                      before={optimization.comparison.baseline.furnace_batch_efficiency_pct}
+                      after={optimization.comparison.optimized.furnace_batch_efficiency_pct}
                       delta={optimization.comparison.delta.furnace_batch_efficiency_pct}
-                      unit="%"
+                      unit="pp"
                       goodDown={false}
                     />
                   </div>
@@ -790,10 +815,7 @@ function App() {
                       id="machine-down"
                       aria-describedby="machine-down-help"
                       value={downId}
-                      onChange={(e) => {
-                        setDownId(e.target.value)
-                        setSimulation(null)
-                      }}
+                      onChange={(e) => setDownId(e.target.value)}
                     >
                       <option value="">No machine outage</option>
                       {activeResources.map((resource) => (
@@ -817,10 +839,7 @@ function App() {
                       id="rush-order"
                       aria-describedby="rush-order-help"
                       value={rushId}
-                      onChange={(e) => {
-                        setRushId(e.target.value)
-                        setSimulation(null)
-                      }}
+                      onChange={(e) => setRushId(e.target.value)}
                     >
                       <option value="">No rush order</option>
                       {orders.map((order) => (
@@ -851,10 +870,7 @@ function App() {
                     max="300"
                     step="1"
                     value={demand}
-                    onChange={(e) => {
-                      setDemand(Number(e.target.value))
-                      setSimulation(null)
-                    }}
+                    onChange={(e) => setDemand(Number(e.target.value))}
                   />
                   <div className="range-scale">
                     <span>0%</span>
@@ -901,10 +917,38 @@ function App() {
                 <section className="scenario-results">
                   {simulation ? (
                     <>
+                      {scenarioIsStale && (
+                        <div className="result-banner" role="status">
+                          <span className="result-icon">
+                            <AlertTriangle size={18} />
+                          </span>
+                          <div>
+                            <b>Inputs changed since this run</b>
+                            <small>
+                              The result still reflects the submitted inputs below. Run again to
+                              update it.
+                            </small>
+                          </div>
+                          <span className="result-time">STALE INPUTS</span>
+                        </div>
+                      )}
                       <div className="scenario-result-top">
                         <div>
                           <p className="eyebrow">API SIMULATION RESULT</p>
                           <h2>Here’s the impact.</h2>
+                        </div>
+                      </div>
+                      <div className="scenario-insight">
+                        <span>
+                          <Activity size={16} />
+                        </span>
+                        <div>
+                          <b>Submitted scenario inputs</b>
+                          <small>
+                            Resource outage: {scenarioRun?.inputs.downId || 'none'} · Priority
+                            order: {scenarioRun?.inputs.rushId || 'none'} · Demand increase:{' '}
+                            {scenarioRun?.inputs.demand ?? 0}%
+                          </small>
                         </div>
                       </div>
                       <div className="scenario-kpis">
@@ -967,9 +1011,10 @@ function App() {
                               <Check size={18} />
                             </span>
                             <div>
-                              <b>No material due-date changes</b>
+                              <b>No due-date changes met the API reporting threshold</b>
                               <small>
-                                This scenario leaves projected due-date outcomes unchanged.
+                                The API reports work orders when modeled completion or delay changes
+                                by at least 0.25 hours. Smaller changes may not appear here.
                               </small>
                             </div>
                           </div>
@@ -982,12 +1027,24 @@ function App() {
                         <div>
                           <b>How to read this</b>
                           <small>
-                            {downId
+                            {scenarioRun?.inputs.downId
                               ? 'The selected resource is excluded from the scenario schedule. '
                               : 'No resource outage is applied. '}
                             The simulation does not update source work orders.
                           </small>
                         </div>
+                      </section>
+                      <section className="panel scenario-gantt-panel">
+                        <div className="panel-heading">
+                          <div>
+                            <h2>Scenario schedule</h2>
+                            <p>Operations returned for the submitted scenario</p>
+                          </div>
+                        </div>
+                        <Gantt
+                          operations={simulation.gantt}
+                          maxHour={Math.max(24, ...simulation.gantt.map((item) => item.end_hour))}
+                        />
                       </section>
                     </>
                   ) : (
@@ -1077,20 +1134,25 @@ function CompareCard({
   goodDown,
 }: {
   title: string
-  before: number
-  after: number
-  delta: number
+  before: number | null | undefined
+  after: number | null | undefined
+  delta: number | null | undefined
   unit: string
   goodDown: boolean
 }) {
-  const improved = goodDown ? delta < 0 : delta > 0
+  const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
+  const hasDelta = delta != null && Number.isFinite(delta)
   return (
     <article className="compare-card">
       <div className="compare-title">
         {title}
-        <span className={improved ? 'delta-chip good' : delta ? 'delta-chip bad' : 'delta-chip'}>
-          {improved ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />}
-          {delta > 0 ? '+' : ''}
+        <span
+          className={
+            improved ? 'delta-chip good' : hasDelta && delta !== 0 ? 'delta-chip bad' : 'delta-chip'
+          }
+        >
+          {hasDelta && (improved ? <ArrowDownRight size={13} /> : <ArrowUpRight size={13} />)}
+          {hasDelta && delta > 0 ? '+' : ''}
           {fmt(delta)} {unit}
         </span>
       </div>
@@ -1099,7 +1161,7 @@ function CompareCard({
           <small>BASELINE</small>
           <b>
             {fmt(before)}
-            <i>{unit}</i>
+            <i>{before == null ? '' : unit}</i>
           </b>
         </div>
         <ArrowRight size={15} />
@@ -1107,12 +1169,16 @@ function CompareCard({
           <small>OPTIMIZED</small>
           <b className={improved ? 'better-number' : ''}>
             {fmt(after)}
-            <i>{unit}</i>
+            <i>{after == null ? '' : unit}</i>
           </b>
         </div>
       </div>
       <div className="compare-bar">
-        <span style={{ width: `${Math.min(100, before <= 0 ? 0 : (after / before) * 100)}%` }} />
+        <span
+          style={{
+            width: `${before == null || after == null || before <= 0 ? 0 : Math.min(100, (after / before) * 100)}%`,
+          }}
+        />
       </div>
     </article>
   )
@@ -1127,13 +1193,13 @@ function ImpactCard({
   goodDown,
 }: {
   label: string
-  baseline: number
-  scenario: number
-  delta: number
+  baseline: number | null
+  scenario: number | null
+  delta: number | null
   unit: string
   goodDown: boolean
 }) {
-  const improved = goodDown ? delta < 0 : delta > 0
+  const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
   return (
     <article className="impact-kpi">
       <small>{label}</small>
@@ -1144,10 +1210,14 @@ function ImpactCard({
         </b>
         <span
           className={
-            improved ? 'impact-change good' : delta === 0 ? 'impact-change' : 'impact-change bad'
+            improved
+              ? 'impact-change good'
+              : delta == null || delta === 0
+                ? 'impact-change'
+                : 'impact-change bad'
           }
         >
-          {delta > 0 ? '+' : ''}
+          {delta != null && delta > 0 ? '+' : ''}
           {fmt(delta)} {unit}
         </span>
       </div>
@@ -1160,15 +1230,34 @@ function ImpactCard({
 
 export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHour: number }) {
   const [selected, setSelected] = useState<Operation | null>(null)
+  const selectedBar = useRef<HTMLButtonElement | null>(null)
+  const detailClose = useRef<HTMLButtonElement | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
     operations.forEach((operation) => {
       const key = operation.resource_id
-      grouped.set(key, [...(grouped.get(key) ?? []), operation])
+      const items = grouped.get(key) ?? []
+      items.push(operation)
+      grouped.set(key, items)
     })
     return [...grouped.entries()]
   }, [operations])
   const selectedOperation = selected && operations.includes(selected) ? selected : null
+  useEffect(() => {
+    if (selectedOperation) detailClose.current?.focus()
+  }, [selectedOperation])
+  useEffect(() => {
+    if (!selectedOperation) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        setSelected(null)
+        requestAnimationFrame(() => selectedBar.current?.focus())
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [selectedOperation])
   if (!operations.length)
     return <div className="gantt-empty">No operations are available for this schedule.</div>
   return (
@@ -1206,7 +1295,7 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
                 {items.map((item, index) => {
                   const left = Math.max(0, (item.start_hour / maxHour) * 100)
                   const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
-                  const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours${item.is_late ? ', late' : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
+                  const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
                   return (
                     <button
                       type="button"
@@ -1215,7 +1304,10 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
                       style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
                       aria-label={accessibleName}
                       title={accessibleName}
-                      onClick={() => setSelected(item)}
+                      onClick={(event) => {
+                        selectedBar.current = event.currentTarget
+                        setSelected(item)
+                      }}
                     >
                       <span aria-hidden="true">{item.wo_number}</span>
                     </button>
@@ -1243,18 +1335,29 @@ export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHou
           <strong>{selectedOperation.wo_number}</strong>
           <span>{selectedOperation.sku_code}</span>
           <span>{selectedOperation.stage}</span>
+          {selectedOperation.batch_id && <span>Batch {selectedOperation.batch_id}</span>}
           <span>
             {selectedOperation.resource_name} · {selectedOperation.plant}
           </span>
           <span>
             {fmt(selectedOperation.start_hour)}–{fmt(selectedOperation.end_hour)}h
           </span>
-          {selectedOperation.is_late && (
+          {selectedOperation.is_late ? (
             <span className="delay-tag">
               Late{selectedOperation.delay_reason ? ` · ${selectedOperation.delay_reason}` : ''}
             </span>
+          ) : (
+            <span className="on-time-tag">On time at scheduled completion</span>
           )}
-          <button type="button" className="link-button" onClick={() => setSelected(null)}>
+          <button
+            ref={detailClose}
+            type="button"
+            className="link-button"
+            onClick={() => {
+              setSelected(null)
+              requestAnimationFrame(() => selectedBar.current?.focus())
+            }}
+          >
             Clear selection
           </button>
         </div>
