@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --reporter=dot` — 16 tests passed.
+- Frontend unit tests: `npm test -- --reporter=dot` — 25 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -23,6 +23,7 @@
 
 ## Final implementation update
 
+- Reworked the stage flow, planning hierarchy, and responsive schedule layout. The Gantt keeps the timeline and resource labels together, with keyboard selection, focus restoration, and a text view of returned operation details.
 - Added shared typed API response definitions in `src/types.ts` and hardened the Flow Board, optimizer, and scenario interactions around supported response data.
 - Expanded regression tests for empty-database onboarding, seed confirmation, demand bounds, disabled empty scenarios, dense/long-horizon Gantt operations, operation details and Escape focus restoration, submitted scenario snapshots, Pydantic error arrays, and unavailable metric formatting.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
@@ -30,7 +31,7 @@
 ## Final Git record
 
 - Feature branch: `feat/frontend-experience`.
-- Branch base: `6bd4c7e80dff7a2449a71f67fdc2ab290b239e34` (`main` at task setup); this final update started from `2213c0e`.
+- Branch base: `6bd4c7e80dff7a2449a71f67fdc2ab290b239e34` (`main` at task setup); the design and browser verification continuation started from `6cce593`.
 - Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`.
 - No changes were pushed; `main` and backend source were not edited. The final documentation commit SHA and working-tree status are reported in the handoff message.
 
@@ -48,17 +49,29 @@ Use a second terminal for the frontend:
 
 ```powershell
 cd frontend
+$env:VITE_ENABLE_DEMO_SEED = "true"
 npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
 Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in the dedicated demo database. See the root README for the explicit seed warning.
 
+## Repeatable browser verification
+
+From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It exercises optimization, keyboard Gantt details and scenario inputs.
+
+Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and exercises retry, explicit seed confirmation, optimization, timeline selection and two simulation requests. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
+
+## Screenshots
+
+- `screenshots/baseline-board.png` records the board before the current design pass.
+- `screenshots/{board,optimizer,scenario}-{desktop,tablet,mobile}.png` record all three screens at desktop, tablet and mobile sizes.
+- `screenshots/real-api-{board,optimizer,scenario}.png` document the isolated API flow.
+- `screenshots/flow-*.png` preserve the earlier Flow Board viewport review.
+
 ## Follow-up
 
-- Backend contract requests are listed in `BACKEND_REQUESTS.md`.
-- Validate the UI against representative customer data before using it for shop-floor decisions.
-- Production use requires a trusted authentication/proxy design; the browser must not hold shared API credentials.
-- `UI_ACCEPTANCE_CHECKLIST.md` remains the acceptance ledger. It separates verified work from checks that still need assistive-technology review or a scripted full browser flow.
-- Reviewed viewport screenshots are committed under `frontend/docs/screenshots/`: 1920×1080, 1280×800, 768×1024, and 390×844. They document the Flow Board; they do not show every screen at every size.
-- Full keyboard-only traversal, screen-reader review, measured contrast across all states, reduced-motion behavior, repeatable browser automation, and a timed founder walkthrough remain open. The source contains a reduced-motion media rule, but behavior has not been exercised.
+- See `BACKEND_REQUESTS.md` for requests and `UI_ACCEPTANCE_CHECKLIST.md` for the open acceptance items.
+- Have a plant planner validate routings, order data, calendars, and model assumptions before using the results for shop-floor decisions.
+- Production use requires a trusted authentication/proxy design. Keep shared API credentials on the server.
+- Full screen-reader, contrast, and keyboard coverage remain open. The focused browser checks cover the major planning actions. The five-minute founder presentation requires a spoken rehearsal using `docs/CEO_DEMO.md`.

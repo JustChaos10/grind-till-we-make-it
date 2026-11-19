@@ -27,7 +27,7 @@ Branch: `feat/frontend-experience`
 
 | Check | Result |
 | --- | --- |
-| `cd frontend; npm test -- --reporter=dot` | Passed: 16 tests, including empty-state onboarding, seed confirmation, long Gantt schedules, scenario snapshots, stale-response ordering, and API error parsing |
+| `cd frontend; npm test -- --reporter=dot` | Passed: 25 tests across five files, including empty-state onboarding, seed confirmation, long Gantt schedules, scenario snapshots, stale-response ordering, and API error parsing |
 | `cd frontend; npm run build` | Passed |
 | `cd frontend; npm run lint` | Passed (Oxlint and Prettier) |
 | `.venv\Scripts\python.exe -m pytest -q` | Passed: 23 tests; one Starlette/httpx deprecation warning |
@@ -41,13 +41,13 @@ Branch: `feat/frontend-experience`
 | Desktop screenshot inspection | Tracked screenshot `frontend/docs/screenshots/flow-desktop.png` inspected during this task |
 | Responsive browser review | Exact Edge screenshots were captured after the final CSS adjustment at 1920×1080, 1280×800, 768×1024, and 390×844. All four were visually reviewed; see `docs/screenshots/flow-desktop-1920.png`, `flow-laptop-1280.png`, `flow-tablet-768.png`, and `flow-mobile-390.png`. At each size, the document scroll width matched its client width, with no horizontal page overflow. The tablet and phone client widths exclude the 15 px vertical scrollbar. Dense timeline content stays within its own scroll region. |
 
-The API process command line showed `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db` and `APP_ENV=development`. Its startup guard refused to reuse an existing file. This continuation used read-only API requests and did not call `/api/seed`.
+The API process command line showed `DATABASE_URL=sqlite+aiosqlite:///./indoflow-demo.db` and `APP_ENV=development`. Its startup guard refused to reuse an existing file. The original API observation used read-only requests against the demo DB. The separate real-API browser script uses a temporary DB and verifies explicit seeding there.
 
 Global Python 3.13 did not have `aiosqlite`, so its initial pytest run failed during test setup. The repository `.venv` (Python 3.12) contains the dependencies and passed the complete suite. Use the `.venv` commands above for backend checks.
 
 ## Visual and acceptance limits
 
-The final responsive captures were made with browser device metrics set to each CSS viewport, then visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844. At all four widths, `document.documentElement.scrollWidth` matched `clientWidth` (1920, 1280, 753, and 375 respectively; the smaller client widths at tablet and phone exclude the vertical scrollbar), so there is no horizontal page overflow. The mobile view uses a two-column KPI and stage layout and a bottom navigation bar. Screenshots are in `docs/screenshots/flow-{desktop-1920,laptop-1280,tablet-768,mobile-390}.png`. Keyboard-only navigation across every screen, screen-reader review, full measured contrast, scripted end-to-end browser coverage, and a full five-minute founder walkthrough remain incomplete. Source review confirmed a `prefers-reduced-motion` rule in `src/styles.css`, but its behavior was not exercised, so that acceptance item remains open. Targeted text/status color swatches were measured after the CSS changes; this is not a full contrast audit. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
+The final responsive captures were made with browser device metrics set to each CSS viewport, then visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844. At all four widths, `document.documentElement.scrollWidth` matched `clientWidth` (1920, 1280, 753, and 375 respectively; the smaller client widths at tablet and phone exclude the vertical scrollbar), so there is no horizontal page overflow. The mobile view uses a two-column KPI and stage layout and a bottom navigation bar. Screenshots are in `docs/screenshots/flow-{desktop-1920,laptop-1280,tablet-768,mobile-390}.png`. Keyboard-only navigation across every screen, screen-reader review, full measured contrast, and a spoken five-minute founder walkthrough remain incomplete. The browser smoke scripts cover representative fixture and isolated local API flows. Source review confirmed a `prefers-reduced-motion` rule in `src/styles.css`, but its behavior was not exercised, so that acceptance item remains open. Targeted text/status color swatches were measured after the CSS changes; this is not a full contrast audit. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
 
 The current browser/API smoke is against local synthetic demo data only. It is not evidence of production ERP integration, validated plant constraints, solver optimality, realized savings, or production readiness.
 

@@ -14,7 +14,7 @@
 - [x] Local Windows Node/Python requirements verified.
 - [x] API started on explicit local `indoflow-demo.db` DB; Vite app started successfully.
 - [x] Frontend build/lint/tests and backend tests/lint run; results recorded in `FRONTEND_AUDIT.md`.
-- [ ] Baseline screenshots or visual observations recorded before redesign.
+- [x] Baseline capture recorded before the design pass (`docs/screenshots/baseline-board.png`).
 
 ## 1. Truth and safety
 
@@ -93,9 +93,9 @@
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); behavior under an OS reduced-motion setting still needs browser verification.
-- [ ] Tested keyboard-only navigation across all three screens.
+- [ ] Tested keyboard-only navigation across all three screens. Browser smoke checks cover navigation activation and selected Gantt and scenario actions. Full Tab traversal and focus order remain to be reviewed.
 - [ ] Form controls have accessible names/help/error association.
-- [ ] Dialogs have appropriate focus and escape behavior.
+- [ ] Dialogs have appropriate focus and escape behavior. Seed confirmation and Gantt Escape/focus restoration have targeted coverage. A full focus review is open.
 - [ ] Color contrast and no color-only status indicators checked (targeted muted/status text swatches were measured, but the full UI and all states remain unaudited).
 
 ## 6. Engineering and tests
@@ -107,12 +107,12 @@
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, and scenario behavior; no filter UI exists.
-- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. It is not yet a repeatable browser automation flow.
+- [x] Manual browser smoke covers the populated real-API demo path (Flow Board → optimizer → scenario); empty-state and seed confirmation are covered by component tests. Repeatable scripts are in `scripts/browser_flow.py` and `scripts/browser_real_api.py`.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
 - [x] Python backend pytest/ruff regression results documented (without backend edits).
-- [x] Flow Board screenshots captured and **actually inspected**, not just created, at desktop 1920×1080, laptop 1280×800, tablet 768×1024, and phone 390×844 (`docs/screenshots/flow-*.png`). The optimizer and Scenario Lab were also visually reviewed in the browser; screenshot coverage for those screens is not saved.
+- [x] Flow Board screenshots captured and **actually inspected**, not just created, at desktop 1920×1080, laptop 1280×800, tablet 768×1024, and phone 390×844 (`docs/screenshots/flow-*.png`). The optimizer and Scenario Lab were also visually reviewed in the browser; additional desktop, tablet and mobile captures for all three screens are in `docs/screenshots/{board,optimizer,scenario}-{desktop,tablet,mobile}.png`.
 - [x] No production deploy, public secret or paid infrastructure action was taken.
 
 ## 7. Git handoff and founder demo
@@ -124,7 +124,7 @@
 - [x] Final `git status` and commit SHA recorded in the task handoff; implementation SHA is in `FRONTEND_AUDIT.md`.
 - [x] Frontend setup/run instructions verified in PowerShell; exact commands are in `FRONTEND_AUDIT.md`.
 - [x] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md`.
-- [ ] Five-minute founder walkthrough rehearsed against actual UI.
+- [ ] Five-minute spoken founder walkthrough rehearsed against actual UI. Use `docs/CEO_DEMO.md` and time the prepared presentation.
 - [x] `CEO_DEMO.md` and the reviewed UI communicate: *synthetic → compare → stress-test → request plant expert validation*.
 - [x] All incomplete items explicitly listed with specific next steps below and in `FRONTEND_AUDIT.md`.
 
