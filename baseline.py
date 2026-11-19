@@ -34,7 +34,7 @@ def schedule(orders: list[OrderSpec], resources, parts_by_id: dict, *, down_reso
         ready = 0
         order_stage_ops[order.id] = []
         for stage in route_for(order, part.requires_machining, getattr(part, "process_route", None)):
-            candidates = eligible_resources(usable_resources, part, stage)
+            candidates = eligible_resources(usable_resources, part, stage, plant=order.plant)
             if stage == order.current_stage and order.locked_resource_id:
                 candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
             if not candidates:

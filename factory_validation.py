@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from domain import STAGES, route_for
+from domain import STAGES, eligible_resources, route_for
 
 
 class FactoryDataError(ValueError):
@@ -77,6 +77,8 @@ def validate_factory_data(resources, parts, work_orders) -> None:
                 )
         if order.status.upper() in {"COMPLETED", "QUALITY_HOLD"}:
             continue
+        if not order.plant or order.plant not in {resource.plant for resource in resources}:
+            raise FactoryDataError(f"Work order {order.wo_number} needs a valid plant assignment")
         part = part_by_id[order.part_id]
         try:
             remaining_route = route_for(
@@ -89,6 +91,10 @@ def validate_factory_data(resources, parts, work_orders) -> None:
             cycle_value = _finite(cycle, f"Part {part.sku_code} {stage} cycle time")
             if cycle_value <= 0:
                 raise FactoryDataError(f"Part {part.sku_code} {stage} cycle time must be positive")
+            if not eligible_resources(resources, part, stage, plant=order.plant):
+                raise FactoryDataError(
+                    f"No active compatible {stage} resource at {order.plant} for {order.wo_number}"
+                )
 
 
 def _finite(value, label: str) -> float:

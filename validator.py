@@ -87,6 +87,11 @@ def validate_schedule_rows(
             raise ScheduleValidationError(
                 f"Operation {_operation_id(op)} uses {resource.id} ({resource.stage}) for {op.stage}"
             )
+        order_plant = getattr(order, "plant", None)
+        if order_plant and resource.plant != order_plant:
+            raise ScheduleValidationError(
+                f"Operation {_operation_id(op)} crosses from work-order plant {order_plant} to {resource.plant}"
+            )
         if resource.status != "ACTIVE":
             raise ScheduleValidationError(f"Operation {_operation_id(op)} uses inactive resource {resource.id}")
         if resource.id in unavailable:

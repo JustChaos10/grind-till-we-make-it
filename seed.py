@@ -102,7 +102,7 @@ def make_parts(rng: random.Random) -> list[Part]:
     return parts
 
 
-def make_work_orders(parts: list[Part], rng: random.Random) -> list[WorkOrder]:
+def make_work_orders(parts: list[Part], rng: random.Random, resources: list[Resource] | None = None) -> list[WorkOrder]:
     stage_weights = [0.34, 0.20, 0.19, 0.18, 0.09]
     orders: list[WorkOrder] = []
     for i in range(150):
@@ -114,10 +114,20 @@ def make_work_orders(parts: list[Part], rng: random.Random) -> list[WorkOrder]:
             due = rng.randint(28, 105)
         age = round(rng.uniform(0, 62), 1)
         status = "LATE_RISK" if due < 72 or (age > 42 and priority >= 4) else "QUEUED"
+        plant = None
+        if resources is not None:
+            compatible_furnace = next(
+                resource for resource in resources
+                if resource.stage == "Sintering"
+                and part.alloy_family in (resource.alloy_compatibility or [])
+                and (not resource.recipe_compatibility or part.sintering_recipe_id in resource.recipe_compatibility)
+            )
+            plant = compatible_furnace.plant
         orders.append(WorkOrder(
             id=f"wo-{i + 1:04d}",
             wo_number=f"WO-26-{i + 1:04d}",
             part_id=part.id,
+            plant=plant,
             quantity=rng.randint(18, 75),
             due_date_hours=float(due),
             priority=priority,
@@ -140,7 +150,7 @@ async def seed_database() -> dict[str, int]:
         rng = random.Random(SEED)
         resources = make_resources()
         parts = make_parts(rng)
-        orders = make_work_orders(parts, rng)
+        orders = make_work_orders(parts, rng, resources)
         session.add_all(resources + parts + orders)
         await session.commit()
     return {"resources": len(resources), "parts": len(parts), "work_orders": len(orders)}

@@ -107,16 +107,20 @@ def test_simulation_keeps_locked_wip_and_excludes_quality_hold(client, monkeypat
     assert client.post("/api/seed").status_code == 200
     database_path = client.app.state.database_path
     with sqlite3.connect(database_path) as connection:
-        locked_order_id = connection.execute(
-            """SELECT w.id FROM work_orders w JOIN parts p ON p.id = w.part_id
+        locked_order_id, locked_plant = connection.execute(
+            """SELECT w.id, w.plant FROM work_orders w JOIN parts p ON p.id = w.part_id
                WHERE p.requires_machining = 1 LIMIT 1"""
+        ).fetchone()
+        locked_resource_id = connection.execute(
+            "SELECT id FROM resources WHERE stage = 'CNC Machining' AND plant = ? ORDER BY id LIMIT 1",
+            (locked_plant,),
         ).fetchone()[0]
         held_order_id = connection.execute(
             "SELECT id FROM work_orders WHERE id != ? LIMIT 1", (locked_order_id,)
         ).fetchone()[0]
         connection.execute(
-            "UPDATE work_orders SET current_stage = 'CNC Machining', locked_resource_id = 'CNC-3', locked_until_hour = 12 WHERE id = ?",
-            (locked_order_id,),
+            "UPDATE work_orders SET current_stage = 'CNC Machining', locked_resource_id = ?, locked_until_hour = 12 WHERE id = ?",
+            (locked_resource_id, locked_order_id),
         )
         connection.execute(
             "UPDATE work_orders SET status = 'QUALITY_HOLD' WHERE id = ?", (held_order_id,)
@@ -130,7 +134,7 @@ def test_simulation_keeps_locked_wip_and_excludes_quality_hold(client, monkeypat
         operation for operation in operations
         if operation["work_order_id"] == locked_order_id and operation["stage"] == "CNC Machining"
     )
-    assert cnc["resource_id"] == "CNC-3"
+    assert cnc["resource_id"] == locked_resource_id
     assert cnc["start_hour"] >= 12
 
 

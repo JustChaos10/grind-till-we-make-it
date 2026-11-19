@@ -202,7 +202,7 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
     normalized_headers = [name.strip().casefold() for name in reader.fieldnames if name is not None]
     if len(normalized_headers) != len(reader.fieldnames) or len(set(normalized_headers)) != len(normalized_headers):
         raise HTTPException(status_code=422, detail="CSV headers must be non-empty and unique")
-    required_headers = {"wo_number", "sku_code", "segment", "alloy_family", "quantity", "due_date_hours", "current_stage"}
+    required_headers = {"wo_number", "sku_code", "plant", "segment", "alloy_family", "quantity", "due_date_hours", "current_stage"}
     missing_headers = sorted(required_headers - set(normalized_headers))
     if missing_headers:
         raise HTTPException(status_code=422, detail=f"CSV is missing required columns: {', '.join(missing_headers)}")
@@ -222,6 +222,9 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
         for order in (await session.scalars(select(WorkOrder))).all()
     }
     seen_orders: set[str] = set()
+    known_plants = sorted({
+        resource.plant for resource in (await session.scalars(select(Resource))).all()
+    })
     imported = 0
     rejected = []
     for row_number, raw in enumerate(reader, start=2):
@@ -317,6 +320,10 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
         requires_machining = machining_value in {"1", "true", "yes", "y"}
         if not sku_code:
             errors.append("sku_code is required")
+        plant_input = row.get("plant", "")
+        plant = next((name for name in known_plants if name.casefold() == plant_input.casefold()), None)
+        if not plant:
+            errors.append(f"unknown or missing plant '{plant_input}'; choose one of: {', '.join(known_plants)}")
         existing_part = existing_parts.get(sku_code.casefold())
         if existing_part and not recipe_input:
             recipe = existing_part.sintering_recipe_id
@@ -385,6 +392,7 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
             id=f"erp-wo-{uuid.uuid4().hex}",
             wo_number=wo_number,
             part_id=part.id,
+            plant=plant,
             quantity=quantity,
             due_date_hours=due,
             priority=priority,
@@ -460,6 +468,7 @@ async def catalog(session: AsyncSession = Depends(get_session)) -> dict:
             "id": order.id,
             "wo_number": order.wo_number,
             "sku_code": parts[order.part_id].sku_code,
+            "plant": order.plant,
             "stage": order.current_stage,
             "status": order.status,
             "due_date_hours": order.due_date_hours,
@@ -494,6 +503,7 @@ def _order_specs(work_orders: list[WorkOrder]) -> list[OrderSpec]:
         status=order.status,
         locked_resource_id=order.locked_resource_id,
         locked_until_hour=order.locked_until_hour,
+        plant=order.plant,
     ) for order in work_orders]
 
 
@@ -652,6 +662,7 @@ async def simulate(
         status=order.status,
         locked_resource_id=order.locked_resource_id,
         locked_until_hour=order.locked_until_hour,
+        plant=order.plant,
     ) for order in original_specs]
     part_map = {part.id: part for part in parts}
     try:
@@ -727,6 +738,7 @@ async def simulate(
                 current_stage=spec.current_stage,
                 status="QUEUED",
                 wip_age_hours=spec.wip_age_hours,
+                plant=spec.plant,
             ) for spec in scenario_specs
         ]),
         "gantt": _timeline(scenario, work_orders, parts, resources),

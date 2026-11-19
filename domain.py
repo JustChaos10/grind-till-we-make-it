@@ -24,6 +24,7 @@ class OrderSpec:
     status: str = "QUEUED"
     locked_resource_id: str | None = None
     locked_until_hour: float = 0.0
+    plant: str | None = None
 
 
 @dataclass
@@ -86,10 +87,12 @@ def duration_ticks(order: OrderSpec, part, stage: str) -> int:
     return max(1, math.ceil(cycle_mins / 15.0 - 1e-9))
 
 
-def eligible_resources(resources, part, stage: str, *, active_only: bool = True):
+def eligible_resources(resources, part, stage: str, *, plant: str | None = None, active_only: bool = True):
     compatible = []
     for resource in resources:
         if resource.stage != stage:
+            continue
+        if plant is not None and resource.plant != plant:
             continue
         if active_only and resource.status != "ACTIVE":
             continue

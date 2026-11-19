@@ -202,7 +202,7 @@ def _solve_scale_fallback(orders, available, parts_by_id, *, time_limit_seconds:
         part = parts_by_id[order.part_id]
         ready = 0
         for stage in routes[order.id]:
-            candidates = eligible_resources(available, part, stage)
+            candidates = eligible_resources(available, part, stage, plant=order.plant)
             if stage == order.current_stage and order.locked_resource_id:
                 candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
             if not candidates:
@@ -336,7 +336,7 @@ def solve(
             if stage == "Sintering":
                 continue
             task = task_vars[(order.id, stage)]
-            candidates = eligible_resources(available, part, stage)
+            candidates = eligible_resources(available, part, stage, plant=order.plant)
             if stage == order.current_stage and order.locked_resource_id:
                 candidates = [resource for resource in candidates if resource.id == order.locked_resource_id]
                 task["locked_until_tick"] = hours_to_ticks(order.locked_until_hour)
@@ -375,16 +375,19 @@ def solve(
     for order in orders:
         if "Sintering" in routes[order.id]:
             part = parts_by_id[order.part_id]
-            sinter_ids_by_recipe.setdefault(part.sintering_recipe_id, []).append(order.id)
+            group = f"{part.sintering_recipe_id}@@{order.plant or ''}"
+            sinter_ids_by_recipe.setdefault(group, []).append(order.id)
 
     batch_resource: dict[tuple[str, int], dict[str, object]] = {}
     order_batch_slots: dict[str, tuple[str, int]] = {}
     batch_records: dict[tuple[str, int], dict] = {}
 
-    for recipe_id, order_ids in sinter_ids_by_recipe.items():
+    for recipe_and_plant, order_ids in sinter_ids_by_recipe.items():
+        recipe_id, plant = recipe_and_plant.split("@@", 1)
+        plant = plant or None
         order_ids.sort(key=lambda oid: (order_map[oid].due_date_hours, -order_map[oid].priority, order_map[oid].wo_number))
         first_part = parts_by_id[order_map[order_ids[0]].part_id]
-        candidates = [r for r in eligible_resources(available, first_part, "Sintering")
+        candidates = [r for r in eligible_resources(available, first_part, "Sintering", plant=plant)
                       if not (r.recipe_compatibility or []) or recipe_id in r.recipe_compatibility]
         if not candidates:
             raise SchedulingError(f"No active compatible furnace for recipe {recipe_id}")
@@ -400,8 +403,8 @@ def solve(
             batch["load"] += quantity
 
         for slot, batch in enumerate(packed):
-            key = (recipe_id, slot)
-            safe_recipe = _safe_name(recipe_id)
+            key = (recipe_and_plant, slot)
+            safe_recipe = _safe_name(recipe_and_plant)
             batch_candidates = [resource for resource in candidates if resource.capacity_units >= batch["load"]]
             if not batch_candidates:
                 raise SchedulingError(

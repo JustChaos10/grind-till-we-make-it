@@ -23,7 +23,7 @@ def _parts_and_resources():
     return {part.id: part for part in parts}, make_resources()
 
 
-def _order(part, index: int, *, stage="Molding", status="QUEUED", due=160, lock=None, lock_until=0):
+def _order(part, index: int, *, stage="Molding", status="QUEUED", due=160, lock=None, lock_until=0, plant=None):
     return OrderSpec(
         id=f"chaos-{index:04d}",
         wo_number=f"CHAOS-WO-{index:04d}",
@@ -36,6 +36,7 @@ def _order(part, index: int, *, stage="Molding", status="QUEUED", due=160, lock=
         status=status,
         locked_resource_id=lock,
         locked_until_hour=float(lock_until),
+        plant=plant,
     )
 
 
@@ -115,6 +116,19 @@ def test_part_specific_route_skips_unneeded_machining_and_validates():
     assert [op.stage for op in sorted(result.operations, key=lambda op: op.start_hour)] == [
         "Molding", "Debinding", "Sintering", "Finishing",
     ]
+    _assert_independently_feasible(result, [order], parts, resources)
+
+
+def test_order_plant_prevents_cross_plant_stage_assignments():
+    parts, resources = _parts_and_resources()
+    part = next(part for part in parts.values() if part.alloy_family == "MIM-17-4PH")
+    order = _order(part, 702, due=500, plant="Hoskote")
+
+    result = solve([order], resources, parts, time_limit_seconds=1.0)
+
+    assert result.operations
+    plants = {next(resource for resource in resources if resource.id == op.resource_id).plant for op in result.operations}
+    assert plants == {"Hoskote"}
     _assert_independently_feasible(result, [order], parts, resources)
 
 
@@ -208,27 +222,27 @@ async def test_dirty_erp_csv_import_sanitizes_rows_and_optimization_continues(cs
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "wo_number", "sku_code", "part_name", "segment", "alloy_family",
+        "wo_number", "sku_code", "plant", "part_name", "segment", "alloy_family",
         "sintering_recipe_id", "quantity", "due_date_hours", "priority", "current_stage", "process_route",
         "molding_cycle_mins", "debinding_cycle_mins", "sintering_cycle_mins",
         "cnc_machining_cycle_mins", "finishing_cycle_mins",
     ])
     writer.writerow([
-        "ERP-CHAOS-001", " dirty-sku-01 ", "Imported part", "aerospace",
+        "ERP-CHAOS-001", " dirty-sku-01 ", " HOSKOTE ", "Imported part", "aerospace",
         " mim-17-4ph ", "", "5", "-24", "5", "Molding",
         "Molding > Debinding > Sintering > Finishing", "2", "390", "600", "", "1.2",
     ])
     writer.writerow([
-        "ERP-CHAOS-001", "DIRTY-SKU-02", "Duplicate", "Aerospace",
-        "MIM-17-4PH", "", "4", "24", "3", "Molding",
+        "ERP-CHAOS-001", "DIRTY-SKU-02", "Hoskote", "Duplicate", "Aerospace",
+        "MIM-17-4PH", "", "4", "24", "3", "Molding", "", "", "", "", "", "",
     ])
     writer.writerow([
-        "ERP-CHAOS-002", "DIRTY-SKU-03", "Zero quantity", "Medical",
-        "MIM-316L", "", "0", "24", "3", "Molding",
+        "ERP-CHAOS-002", "DIRTY-SKU-03", "Hoskote", "Zero quantity", "Medical",
+        "MIM-316L", "", "0", "24", "3", "Molding", "", "", "", "", "", "",
     ])
     writer.writerow([
-        "ERP-CHAOS-003", "DIRTY-SKU-04", "Missing alloy", "Medical",
-        "", "", "2", "24", "3", "Molding",
+        "ERP-CHAOS-003", "DIRTY-SKU-04", "Hoskote", "Missing alloy", "Medical",
+        "", "", "2", "24", "3", "Molding", "", "", "", "", "", "",
     ])
 
     response = await csv_import_client.post(
@@ -259,19 +273,20 @@ async def test_dirty_erp_csv_import_sanitizes_rows_and_optimization_continues(cs
 
 async def test_erp_csv_requires_explicit_classification_and_unique_headers(csv_import_client):
     missing_segment = (
-        "wo_number,sku_code,alloy_family,quantity,due_date_hours,current_stage\n"
-        "ERP-CHAOS-004,NO-SEGMENT,MIM-17-4PH,1,24,Molding\n"
+        "wo_number,sku_code,plant,segment,alloy_family,quantity,due_date_hours,current_stage\n"
+        "ERP-CHAOS-004,NO-SEGMENT,Hoskote,,MIM-17-4PH,1,24,Molding\n"
     )
     response = await csv_import_client.post(
         "/api/import/erp-csv", content=missing_segment,
         headers={"Content-Type": "text/csv"},
     )
-    assert response.status_code == 422
-    assert "segment" in response.json()["detail"]
+    assert response.status_code == 200
+    assert response.json()["imported"] == 0
+    assert any("segment" in error for error in response.json()["rejected_rows"][0]["errors"])
 
     duplicate_header = (
-        "wo_number,sku_code,segment,alloy_family,quantity,due_date_hours,current_stage,SKU_CODE\n"
-        "ERP-CHAOS-005,DUP-HEADER,Aerospace,MIM-17-4PH,1,24,Molding,DUP-HEADER\n"
+        "wo_number,sku_code,plant,segment,alloy_family,quantity,due_date_hours,current_stage,SKU_CODE\n"
+        "ERP-CHAOS-005,DUP-HEADER,Hoskote,Aerospace,MIM-17-4PH,1,24,Molding,DUP-HEADER\n"
     )
     response = await csv_import_client.post(
         "/api/import/erp-csv", content=duplicate_header,
@@ -281,8 +296,8 @@ async def test_erp_csv_requires_explicit_classification_and_unique_headers(csv_i
     assert "unique" in response.json()["detail"]
 
     no_cycle_times = (
-        "wo_number,sku_code,segment,alloy_family,quantity,due_date_hours,current_stage\n"
-        "ERP-CHAOS-006,NO-CYCLE-TIMES,Aerospace,MIM-17-4PH,1,24,Molding\n"
+        "wo_number,sku_code,plant,segment,alloy_family,quantity,due_date_hours,current_stage\n"
+        "ERP-CHAOS-006,NO-CYCLE-TIMES,Hoskote,Aerospace,MIM-17-4PH,1,24,Molding\n"
     )
     response = await csv_import_client.post(
         "/api/import/erp-csv", content=no_cycle_times,

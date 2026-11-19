@@ -57,6 +57,8 @@ class WorkOrder(Base):
     id: Mapped[str] = mapped_column(String(80), primary_key=True, default=new_id)
     wo_number: Mapped[str] = mapped_column(String(40), unique=True, index=True)
     part_id: Mapped[str] = mapped_column(ForeignKey("parts.id", ondelete="RESTRICT"), index=True)
+    # Plant selected by ERP/planning; NULL is retained for legacy records until backfilled.
+    plant: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     quantity: Mapped[int] = mapped_column(Integer)
     due_date_hours: Mapped[float] = mapped_column(Float)
     priority: Mapped[int] = mapped_column(Integer, default=3)
