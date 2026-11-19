@@ -25,6 +25,7 @@ from domain import ALLOYS, SEGMENTS, OrderSpec, STAGES
 from models import Part, Resource, ScheduleVersion, ScheduledOperation, WorkOrder
 from seed import RECIPES, seed_database
 from solver import SchedulingError, solve as run_solver
+from validator import ScheduleValidationError, validate_schedule_rows
 
 logger = logging.getLogger("indoflow.import")
 MAX_ERP_CSV_BYTES = 5 * 1024 * 1024
@@ -511,6 +512,23 @@ async def _persist_schedule(session: AsyncSession, result, orders: list[WorkOrde
     return version_id
 
 
+def _validate_generated_schedule(result, orders, parts, resources, *, unavailable_resource_ids=None) -> None:
+    """Reject solver output before exposing it or persisting a schedule run."""
+    try:
+        validate_schedule_rows(
+            result.operations,
+            orders,
+            parts,
+            resources,
+            unavailable_resource_ids=unavailable_resource_ids,
+        )
+    except (ScheduleValidationError, ValueError, TypeError, KeyError) as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Generated schedule failed independent validation",
+        ) from exc
+
+
 @app.post("/api/schedule/optimize", dependencies=[Depends(require_api_access)])
 async def optimize(
     request: OptimizeRequest,
@@ -527,6 +545,8 @@ async def optimize(
         )
     except (SchedulingError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    _validate_generated_schedule(baseline_result, specs, parts, resources)
+    _validate_generated_schedule(optimized_result, specs, parts, resources)
     baseline_id = await _persist_schedule(session, baseline_result, work_orders)
     optimized_id = await _persist_schedule(session, optimized_result, work_orders)
     await session.commit()
@@ -584,6 +604,9 @@ async def simulate(
         priority=5 if order.id in rush_ids else order.priority,
         current_stage=order.current_stage,
         wip_age_hours=order.wip_age_hours,
+        status=order.status,
+        locked_resource_id=order.locked_resource_id,
+        locked_until_hour=order.locked_until_hour,
     ) for order in original_specs]
     part_map = {part.id: part for part in parts}
     try:
@@ -597,6 +620,15 @@ async def simulate(
         )
     except (SchedulingError, ValueError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    _validate_generated_schedule(reference, original_specs, parts, resources)
+    _validate_generated_schedule(
+        scenario,
+        scenario_specs,
+        parts,
+        resources,
+        unavailable_resource_ids=set(request.down_resource_ids),
+    )
 
     original_by_id = {order.id: order for order in original_specs}
     scenario_by_id = {order.id: order for order in scenario_specs}

@@ -99,3 +99,36 @@ def test_scenario_validates_overrides_and_does_not_persist(client, monkeypatch):
         "SELECT COUNT(*) FROM schedule_versions"
     ).fetchone()[0]
     assert after_versions == before_versions
+
+
+def test_simulation_keeps_locked_wip_and_excludes_quality_hold(client, monkeypatch):
+    monkeypatch.delenv("INDOFLOW_API_TOKEN", raising=False)
+    monkeypatch.delenv("INDOFLOW_ADMIN_TOKEN", raising=False)
+    assert client.post("/api/seed").status_code == 200
+    database_path = client.app.state.database_path
+    with sqlite3.connect(database_path) as connection:
+        locked_order_id = connection.execute(
+            """SELECT w.id FROM work_orders w JOIN parts p ON p.id = w.part_id
+               WHERE p.requires_machining = 1 LIMIT 1"""
+        ).fetchone()[0]
+        held_order_id = connection.execute(
+            "SELECT id FROM work_orders WHERE id != ? LIMIT 1", (locked_order_id,)
+        ).fetchone()[0]
+        connection.execute(
+            "UPDATE work_orders SET current_stage = 'CNC Machining', locked_resource_id = 'CNC-3', locked_until_hour = 12 WHERE id = ?",
+            (locked_order_id,),
+        )
+        connection.execute(
+            "UPDATE work_orders SET status = 'QUALITY_HOLD' WHERE id = ?", (held_order_id,)
+        )
+
+    response = client.post("/api/schedule/simulate", json={"time_limit_seconds": 0.1})
+    assert response.status_code == 200, response.text
+    operations = response.json()["gantt"]
+    assert held_order_id not in {operation["work_order_id"] for operation in operations}
+    cnc = next(
+        operation for operation in operations
+        if operation["work_order_id"] == locked_order_id and operation["stage"] == "CNC Machining"
+    )
+    assert cnc["resource_id"] == "CNC-3"
+    assert cnc["start_hour"] >= 12

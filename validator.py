@@ -32,6 +32,14 @@ def _overlaps(start_a: float, end_a: float, start_b: float, end_b: float) -> boo
     return start_a < end_b - 1e-9 and start_b < end_a - 1e-9
 
 
+def _operation_id(operation) -> str:
+    return str(getattr(
+        operation,
+        "id",
+        f"{operation.work_order_id}:{operation.stage}:{operation.resource_id}:{operation.start_hour}",
+    ))
+
+
 def validate_schedule_rows(
     operations,
     work_orders,
@@ -39,6 +47,7 @@ def validate_schedule_rows(
     resources,
     *,
     current_time: float = 0.0,
+    unavailable_resource_ids: set[str] | None = None,
 ) -> None:
     """Raise ``ScheduleValidationError`` if any operation is physically invalid.
 
@@ -49,6 +58,7 @@ def validate_schedule_rows(
     """
     if current_time < 0:
         raise ValueError("current_time must use non-negative hours from the planning origin")
+    unavailable = unavailable_resource_ids or set()
     order_by_id = {order.id: order for order in work_orders}
     part_by_id = {part.id: part for part in parts}
     resource_by_id = {resource.id: resource for resource in resources}
@@ -59,29 +69,31 @@ def validate_schedule_rows(
 
     for op in operations:
         if op.work_order_id not in order_by_id:
-            raise ScheduleValidationError(f"Operation {op.id} references unknown work order {op.work_order_id}")
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} references unknown work order {op.work_order_id}")
         if op.resource_id not in resource_by_id:
-            raise ScheduleValidationError(f"Operation {op.id} references unknown resource {op.resource_id}")
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} references unknown resource {op.resource_id}")
         if op.stage not in STAGES:
-            raise ScheduleValidationError(f"Operation {op.id} has unknown stage {op.stage}")
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} has unknown stage {op.stage}")
         if op.start_hour < current_time - 1e-9:
             raise ScheduleValidationError(
-                f"Operation {op.id} starts at {op.start_hour}, before current_time {current_time}"
+                f"Operation {_operation_id(op)} starts at {op.start_hour}, before current_time {current_time}"
             )
         if op.end_hour <= op.start_hour:
-            raise ScheduleValidationError(f"Operation {op.id} has a non-positive duration")
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} has a non-positive duration")
         resource = resource_by_id[op.resource_id]
         order = order_by_id[op.work_order_id]
         part = part_by_id[order.part_id]
         if resource.stage != op.stage:
             raise ScheduleValidationError(
-                f"Operation {op.id} uses {resource.id} ({resource.stage}) for {op.stage}"
+                f"Operation {_operation_id(op)} uses {resource.id} ({resource.stage}) for {op.stage}"
             )
         if resource.status != "ACTIVE":
-            raise ScheduleValidationError(f"Operation {op.id} uses inactive resource {resource.id}")
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} uses inactive resource {resource.id}")
+        if resource.id in unavailable:
+            raise ScheduleValidationError(f"Operation {_operation_id(op)} uses unavailable resource {resource.id}")
         if op.stage not in _route_for(order, part):
             raise ScheduleValidationError(
-                f"Operation {op.id} schedules {op.stage} before/currently outside {order.current_stage} route"
+                f"Operation {_operation_id(op)} schedules {op.stage} before/currently outside {order.current_stage} route"
             )
         if part.alloy_family not in (resource.alloy_compatibility or []):
             raise ScheduleValidationError(f"{resource.id} cannot process alloy {part.alloy_family}")
@@ -98,13 +110,13 @@ def validate_schedule_rows(
             expected_hours = max(1, math.ceil(float(cycle_mins) / 15.0 - 1e-9)) / 4.0
             if abs((op.end_hour - op.start_hour) - expected_hours) > 1e-6:
                 raise ScheduleValidationError(
-                    f"Operation {op.id} duration does not match the part cycle time and quantity"
+                    f"Operation {_operation_id(op)} duration does not match the part cycle time and quantity"
                 )
 
         for blackout_start, blackout_end in getattr(resource, "blackout_windows", None) or []:
             if _overlaps(op.start_hour, op.end_hour, float(blackout_start), float(blackout_end)):
                 raise ScheduleValidationError(
-                    f"{op.stage} operation {op.id} overlaps {resource.id} blackout "
+                    f"{op.stage} operation {_operation_id(op)} overlaps {resource.id} blackout "
                     f"[{blackout_start}, {blackout_end}]"
                 )
 
@@ -154,12 +166,12 @@ def validate_schedule_rows(
     discrete_stages = {"Molding", "CNC Machining", "Finishing"}
     for resource_id, assigned in ops_by_resource.items():
         resource = resource_by_id[resource_id]
-        assigned.sort(key=lambda op: (op.start_hour, op.end_hour, op.id))
+        assigned.sort(key=lambda op: (op.start_hour, op.end_hour, _operation_id(op)))
         if resource.stage in discrete_stages:
             for previous, following in zip(assigned, assigned[1:]):
                 if previous.end_hour > following.start_hour + 1e-9:
                     raise ScheduleValidationError(
-                        f"Resource {resource_id} overlaps operations {previous.id} and {following.id}"
+                        f"Resource {resource_id} overlaps operations {_operation_id(previous)} and {_operation_id(following)}"
                     )
                 previous_part = part_by_id[order_by_id[previous.work_order_id].part_id]
                 next_part = part_by_id[order_by_id[following.work_order_id].part_id]
@@ -169,7 +181,7 @@ def validate_schedule_rows(
                     < previous.end_hour + resource.setup_changeover_mins / 60.0
                 ):
                     raise ScheduleValidationError(
-                        f"Resource {resource_id} lacks setup gap after {previous.id} before {following.id}"
+                        f"Resource {resource_id} lacks setup gap after {_operation_id(previous)} before {_operation_id(following)}"
                     )
 
     for (resource_id, batch_id), batch in furnace_batches.items():
@@ -216,11 +228,11 @@ def validate_schedule_rows(
 
 
 def _validate_non_overlap(operations, label: str) -> None:
-    ordered = sorted(operations, key=lambda op: (op.start_hour, op.end_hour, op.id))
+    ordered = sorted(operations, key=lambda op: (op.start_hour, op.end_hour, _operation_id(op)))
     for previous, following in zip(ordered, ordered[1:]):
         if previous.end_hour > following.start_hour + 1e-9:
             raise ScheduleValidationError(
-                f"{label} overlaps operations {previous.id} and {following.id}"
+                f"{label} overlaps operations {_operation_id(previous)} and {_operation_id(following)}"
             )
 
 

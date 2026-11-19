@@ -116,6 +116,7 @@ Do not commit `.env` files, database credentials, or API tokens.
 - A deterministic feasible schedule is used as a fallback if CP-SAT reaches its time limit without finding an incumbent. Check the returned solver status and validate results on plant data; a fallback schedule is not a guarantee of globally optimal production performance.
 - At 300 or more active orders, IndoFlow skips the quadratic CP-SAT sequencing model and uses a deterministic due-date, priority, and remaining-work dispatch heuristic. This path is designed to return a feasible schedule quickly; it does not claim mathematical optimality.
 - Optimization persists `ScheduleVersion` and `ScheduledOperation` records only. It leaves source work orders unchanged.
+- What-if runs retain each work order's status and locked-resource commitment. Every generated baseline, optimized, and scenario schedule is checked against raw operations and master data before it is returned or persisted; a failed check blocks the response.
 
 `validator.py` independently checks raw persisted operation rows against orders, parts, and resources. It validates remaining route order, cycle-time duration, non-overlap, shared mold contention, setup gaps, furnace recipe/capacity, active-resource use, and blackout windows without reading solver status flags or summary metrics.
 
