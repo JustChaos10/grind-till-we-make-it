@@ -30,6 +30,13 @@ from validator import ScheduleValidationError, validate_schedule_rows
 logger = logging.getLogger("indoflow.import")
 MAX_ERP_CSV_BYTES = 5 * 1024 * 1024
 MAX_ERP_CSV_ROWS = 10_000
+CYCLE_TIME_COLUMNS = {
+    "Molding": "molding_cycle_mins",
+    "Debinding": "debinding_cycle_mins",
+    "Sintering": "sintering_cycle_mins",
+    "CNC Machining": "cnc_machining_cycle_mins",
+    "Finishing": "finishing_cycle_mins",
+}
 
 
 @asynccontextmanager
@@ -306,13 +313,52 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
         machining_value = row.get("requires_machining", "true").casefold()
         if machining_value not in {"1", "0", "true", "false", "yes", "no", "y", "n"}:
             errors.append("requires_machining must be true or false")
+        requires_machining = machining_value in {"1", "true", "yes", "y"}
         if not sku_code:
             errors.append("sku_code is required")
         existing_part = existing_parts.get(sku_code.casefold())
+        if existing_part and not recipe_input:
+            recipe = existing_part.sintering_recipe_id
         if existing_part and alloy and existing_part.alloy_family != alloy:
             errors.append(
                 f"SKU {sku_code} is registered as {existing_part.alloy_family}, not {alloy}"
             )
+        full_route = process_route or tuple(
+            item for item in STAGES if requires_machining or item != "CNC Machining"
+        )
+        cycle_times: dict[str, float] = {}
+        for cycle_stage, column in CYCLE_TIME_COLUMNS.items():
+            cycle_text = row.get(column, "")
+            if not cycle_text:
+                if existing_part is None and cycle_stage in full_route:
+                    errors.append(f"{column} is required for new SKU {sku_code} because its route includes {cycle_stage}")
+                continue
+            try:
+                cycle_value = float(cycle_text)
+                if not math.isfinite(cycle_value) or cycle_value <= 0:
+                    raise ValueError
+                cycle_times[cycle_stage] = cycle_value
+            except (TypeError, ValueError):
+                errors.append(f"{column} must be a positive finite number of minutes")
+        if existing_part:
+            if segment and existing_part.segment != segment:
+                errors.append(f"SKU {sku_code} is registered in segment {existing_part.segment}, not {segment}")
+            if recipe and existing_part.sintering_recipe_id != recipe:
+                errors.append(f"SKU {sku_code} is registered with recipe {existing_part.sintering_recipe_id}, not {recipe}")
+            registered_route = tuple(existing_part.process_route or tuple(
+                item for item in STAGES
+                if existing_part.requires_machining or item != "CNC Machining"
+            ))
+            if route_input and registered_route != tuple(process_route or ()):
+                errors.append(f"SKU {sku_code} has a different registered process_route")
+            if "requires_machining" in row and existing_part.requires_machining != requires_machining:
+                errors.append(f"SKU {sku_code} has a different registered machining requirement")
+            if row.get("tool_id") and existing_part.tool_id != row["tool_id"]:
+                errors.append(f"SKU {sku_code} is registered with a different physical tool_id")
+            for cycle_stage, cycle_value in cycle_times.items():
+                registered = (existing_part.cycle_times_mins or {}).get(cycle_stage)
+                if registered is None or abs(float(registered) - cycle_value) > 1e-6:
+                    errors.append(f"SKU {sku_code} has a different registered {cycle_stage} cycle time")
         if errors:
             logger.warning("ERP CSV row %d rejected for %s: %s", row_number, wo_number or "<missing ID>", "; ".join(errors))
             rejected.append({"row": row_number, "work_order_id": wo_number or None, "errors": errors})
@@ -327,14 +373,8 @@ async def import_erp_csv(request: Request, session: AsyncSession = Depends(get_s
                 segment=segment,
                 alloy_family=alloy,
                 sintering_recipe_id=recipe,
-                cycle_times_mins={
-                    "Molding": 2.0,
-                    "Debinding": 390,
-                    "Sintering": 600,
-                    "CNC Machining": 3.0,
-                    "Finishing": 1.2,
-                },
-                requires_machining=machining_value in {"1", "true", "yes", "y"},
+                cycle_times_mins=cycle_times,
+                requires_machining=requires_machining,
                 process_route=process_route,
                 tool_id=row.get("tool_id") or None,
             )

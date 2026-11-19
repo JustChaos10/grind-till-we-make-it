@@ -210,11 +210,13 @@ async def test_dirty_erp_csv_import_sanitizes_rows_and_optimization_continues(cs
     writer.writerow([
         "wo_number", "sku_code", "part_name", "segment", "alloy_family",
         "sintering_recipe_id", "quantity", "due_date_hours", "priority", "current_stage", "process_route",
+        "molding_cycle_mins", "debinding_cycle_mins", "sintering_cycle_mins",
+        "cnc_machining_cycle_mins", "finishing_cycle_mins",
     ])
     writer.writerow([
         "ERP-CHAOS-001", " dirty-sku-01 ", "Imported part", "aerospace",
         " mim-17-4ph ", "", "5", "-24", "5", "Molding",
-        "Molding > Debinding > Sintering > Finishing",
+        "Molding > Debinding > Sintering > Finishing", "2", "390", "600", "", "1.2",
     ])
     writer.writerow([
         "ERP-CHAOS-001", "DIRTY-SKU-02", "Duplicate", "Aerospace",
@@ -277,6 +279,19 @@ async def test_erp_csv_requires_explicit_classification_and_unique_headers(csv_i
     )
     assert response.status_code == 422
     assert "unique" in response.json()["detail"]
+
+    no_cycle_times = (
+        "wo_number,sku_code,segment,alloy_family,quantity,due_date_hours,current_stage\n"
+        "ERP-CHAOS-006,NO-CYCLE-TIMES,Aerospace,MIM-17-4PH,1,24,Molding\n"
+    )
+    response = await csv_import_client.post(
+        "/api/import/erp-csv", content=no_cycle_times,
+        headers={"Content-Type": "text/csv"},
+    )
+    assert response.status_code == 200
+    assert response.json()["imported"] == 0
+    errors = response.json()["rejected_rows"][0]["errors"]
+    assert any("molding_cycle_mins is required" in error for error in errors)
 
 
 def test_thousand_order_45_machine_scale_is_feasible_and_improves_both_kpis():
