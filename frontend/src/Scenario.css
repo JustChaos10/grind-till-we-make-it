@@ -32,3 +32,14 @@
 .impact-list tbody th {
   white-space: nowrap;
 }
+
+@media (max-width: 900px) {
+  .scenario-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scenario-controls,
+  .scenario-results {
+    min-width: 0;
+  }
+}

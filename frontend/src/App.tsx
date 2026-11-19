@@ -797,7 +797,7 @@ function App() {
                       {activeResources.map((resource) => (
                         <option key={resource.id} value={resource.id}>
                           {resource.name} · {stageShort[resource.stage] ?? resource.stage} ·{' '}
-                          {resource.plant} � {resource.status}
+                          {resource.plant} · {resource.status}
                         </option>
                       ))}
                     </select>
@@ -973,7 +973,7 @@ function App() {
                               ?.name ??
                               simulation.delta.bottleneck_before ??
                               'None reported'}{' '}
-                            � Scenario:{' '}
+                            · Scenario:{' '}
                             {resources.find((r) => r.id === simulation.delta.bottleneck_after)
                               ?.name ??
                               simulation.delta.bottleneck_after ??
@@ -1058,7 +1058,7 @@ function App() {
                           <ul>
                             {simulation.why_late.map((order) => (
                               <li key={order.work_order_id}>
-                                <b>{order.wo_number}</b> � {fmt(order.delay_hours)}h late �{' '}
+                                <b>{order.wo_number}</b> · {fmt(order.delay_hours)}h late ·{' '}
                                 {order.explanation}
                               </li>
                             ))}
