@@ -1,0 +1,34 @@
+.impact-list {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.impact-list table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.impact-list caption {
+  padding: 0 0 10px;
+  color: var(--muted, #667085);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.impact-list th,
+.impact-list td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  vertical-align: top;
+}
+
+.impact-list thead th {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.impact-list tbody th {
+  white-space: nowrap;
+}

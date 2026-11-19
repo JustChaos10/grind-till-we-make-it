@@ -1,0 +1,25 @@
+.stage-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: #355d40;
+  cursor: pointer;
+  font-size: 12px;
+}
+.stage-help:focus-visible {
+  outline: 2px solid #355d40;
+  outline-offset: 2px;
+}
+.stage-route-note,
+.stage-help-detail {
+  margin: 12px 0 0;
+  color: #55655b;
+  font-size: 12px;
+}
+.stage-help-detail {
+  min-height: 2.5em;
+}

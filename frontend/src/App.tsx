@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -22,6 +22,11 @@ import {
   Zap,
 } from 'lucide-react'
 import { api, fmt } from './api'
+import { Gantt } from './Gantt'
+import { StageFlow } from './StageFlow'
+import './Optimizer.css'
+import './Scenario.css'
+export { Gantt } from './Gantt'
 import type {
   Board,
   CatalogResponse,
@@ -40,20 +45,12 @@ type ScenarioInputs = { downId: string; rushId: string; demand: number }
 type ScenarioRun = { inputs: ScenarioInputs; result: Simulation }
 type Page = 'board' | 'optimizer' | 'scenario'
 
-const stages = ['Molding', 'Debinding', 'Sintering', 'CNC Machining', 'Finishing']
 const stageShort: Record<string, string> = {
   Molding: 'Molding',
   Debinding: 'Debinding',
   Sintering: 'Sintering',
   'CNC Machining': 'CNC',
   Finishing: 'Finishing',
-}
-const stageGlyph: Record<string, string> = {
-  Molding: '01',
-  Debinding: '02',
-  Sintering: '03',
-  'CNC Machining': '04',
-  Finishing: '05',
 }
 const canSeedDemo = () => import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
 const formatPlanningAlert = (alert: string) =>
@@ -68,10 +65,14 @@ function App() {
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
   const [busy, setBusy] = useState<'seed' | 'optimize' | 'simulate' | null>(null)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
   const [demand, setDemand] = useState(0)
   const [scheduleTab, setScheduleTab] = useState<'optimized' | 'baseline'>('optimized')
+  const [focusWorkOrderRequest, setFocusWorkOrderRequest] = useState<
+    { order: string; sequence: number } | undefined
+  >()
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
@@ -87,6 +88,7 @@ function App() {
 
   const refresh = useCallback(async () => {
     const sequence = ++refreshSequence.current
+    setLoading(true)
     refreshController.current?.abort()
     const controller = new AbortController()
     refreshController.current = controller
@@ -105,6 +107,8 @@ function App() {
       if (sequence !== refreshSequence.current || (e instanceof Error && e.name === 'AbortError'))
         return
       setError(e instanceof Error ? e.message : 'Could not connect to the IndoFlow API.')
+    } finally {
+      if (sequence === refreshSequence.current) setLoading(false)
     }
   }, [])
 
@@ -117,7 +121,6 @@ function App() {
   }, [refresh])
 
   const activeResources = resources.filter((resource) => resource.status === 'ACTIVE')
-  const stageMax = Math.max(1, ...(board?.queues.map((queue) => queue.queue_depth) ?? [1]))
   const bottleneckQueue = board?.queues.reduce<Queue | null>(
     (top, queue) => (!top || queue.queue_depth > top.queue_depth ? queue : top),
     null,
@@ -157,7 +160,7 @@ function App() {
   }
 
   async function optimize() {
-    if (scheduleRequestInFlight.current) return
+    if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
     setBusy('optimize')
     setError('')
@@ -178,7 +181,7 @@ function App() {
   }
 
   async function runScenario() {
-    if (scheduleRequestInFlight.current) return
+    if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
     const submittedInputs = { ...scenarioInputs }
     setBusy('simulate')
@@ -290,7 +293,9 @@ function App() {
             <span className="updated">
               {lastUpdated
                 ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : 'Waiting for API'}
+                : loading
+                  ? 'Loading API data'
+                  : 'API unavailable'}
             </span>
             <button
               className="icon-button"
@@ -309,27 +314,28 @@ function App() {
               <AlertTriangle size={17} />
               <div>
                 <b>Something needs attention</b>
-                <span>
-                  {error}
-                  {error.includes('401') || error.includes('403')
-                    ? ' Configure the API bearer token in the frontend environment before using a protected deployment.'
-                    : ''}
-                </span>
+                <span>{error}</span>
               </div>
               <button onClick={() => setError('')} aria-label="Dismiss">
                 ×
               </button>
             </div>
           )}
-          {!board && (
+          {!board && loading && (
+            <section className="welcome-panel" role="status">
+              <h1>Loading factory data</h1>
+              <p>Connecting to the API and loading the latest snapshot.</p>
+            </section>
+          )}
+          {!board && !loading && (
             <section className="welcome-panel">
               <div className="welcome-icon">
                 <Activity size={24} />
               </div>
               <h1>Connect to the factory demo</h1>
               <p className="welcome-copy">
-                Connect to the IndoFlow API and load a synthetic factory dataset to explore live
-                WIP, optimized schedules, and operational what-if scenarios.
+                Connect to the IndoFlow API and load a synthetic factory dataset to explore WIP,
+                proposed schedules, and operational what-if scenarios.
               </p>
               <div className="welcome-actions">
                 <button
@@ -367,7 +373,11 @@ function App() {
                     Work orders and resource queues from the latest API snapshot.
                   </p>
                 </div>
-                <button className="primary-button" onClick={optimize} disabled={busy !== null}>
+                <button
+                  className="primary-button"
+                  onClick={optimize}
+                  disabled={busy !== null || board.total_wip_orders === 0 || orders.length === 0}
+                >
                   <Zap size={16} fill="currentColor" />
                   {busy === 'optimize' ? 'Optimizing…' : 'Optimize schedule'}
                   <ArrowRight size={15} />
@@ -394,7 +404,9 @@ function App() {
                   icon={<Gauge size={18} />}
                   foot={
                     board.total_wip_orders
-                      ? `${bottleneckQueue?.queue_depth ?? 0} open work orders in this API snapshot`
+                      ? bottleneckQueue
+                        ? `${bottleneckQueue.queue_depth} open work orders in this API snapshot`
+                        : 'Stage queue data unavailable'
                       : 'No queued work orders'
                   }
                   tone="violet"
@@ -434,55 +446,11 @@ function App() {
                 </section>
               ) : (
                 <div className="content-grid board-grid">
-                  <section className="panel flow-panel">
-                    <div className="panel-heading">
-                      <div>
-                        <h2>Production flow</h2>
-                        <p>Work in progress by current stage</p>
-                      </div>
-                      <span className="neutral-pill">
-                        <span className="pulse" /> API SNAPSHOT
-                      </span>
-                    </div>
-                    <div className="flow-track">
-                      {stages.map((stage, index) => {
-                        const queue = board.queues.find((item) => item.stage === stage)
-                        const count = queue?.queue_depth ?? 0
-                        return (
-                          <div className="stage-column" key={stage}>
-                            <div className="stage-top">
-                              <span className="stage-index">{stageGlyph[stage]}</span>
-                              {index < stages.length - 1 && (
-                                <span className="stage-connector">
-                                  <ArrowRight size={13} />
-                                </span>
-                              )}
-                            </div>
-                            <div className="stage-count">{count.toLocaleString()}</div>
-                            <div className="stage-name">{stageShort[stage]}</div>
-                            <div className="stage-bar">
-                              <span
-                                style={{
-                                  width: `${Math.max(count ? 5 : 0, (count / stageMax) * 100)}%`,
-                                }}
-                              />
-                            </div>
-                            <div className="stage-meta">
-                              {fmt(queue?.avg_wip_age_hours)}h avg age
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                    <div className="flow-foot">
-                      <span>
-                        <i className="legend-dot" /> Open orders at each operation’s current stage
-                      </span>
-                      <button className="link-button" onClick={optimize}>
-                        View schedule <ArrowRight size={14} />
-                      </button>
-                    </div>
-                  </section>
+                  <StageFlow
+                    queues={board.queues}
+                    onSchedule={optimize}
+                    disabled={busy !== null || orders.length === 0}
+                  />
                   <section className="panel alerts-panel">
                     <div className="panel-heading">
                       <div>
@@ -544,7 +512,11 @@ function App() {
                       resource constraints supplied by this demo API.
                     </p>
                   </div>
-                  <button className="secondary-button" onClick={optimize} disabled={busy !== null}>
+                  <button
+                    className="secondary-button"
+                    onClick={optimize}
+                    disabled={busy !== null || orders.length === 0}
+                  >
                     {busy === 'optimize' ? 'Working…' : 'Run comparison'} <ArrowRight size={14} />
                   </button>
                 </section>
@@ -569,11 +541,20 @@ function App() {
                     Compare an illustrative FIFO reference with a proposed model schedule.
                   </p>
                 </div>
-                <button className="primary-button" onClick={optimize} disabled={busy !== null}>
+                <button
+                  className="primary-button"
+                  onClick={optimize}
+                  disabled={busy !== null || orders.length === 0}
+                >
                   <RefreshCw size={15} className={busy === 'optimize' ? 'spin' : ''} />
                   {busy === 'optimize' ? 'Running model…' : 'Run optimization'}
                 </button>
               </div>
+              {busy === 'optimize' && (
+                <p className="optimizer-progress" role="status">
+                  The model is running. Results will appear when the API responds.
+                </p>
+              )}
               {!optimization ? (
                 <div className="empty-run panel">
                   <div className="empty-run-icon">
@@ -584,7 +565,11 @@ function App() {
                     Run the model to compare late orders, WIP age, and flow time against an
                     illustrative FIFO reference.
                   </p>
-                  <button className="primary-button" onClick={optimize} disabled={busy !== null}>
+                  <button
+                    className="primary-button"
+                    onClick={optimize}
+                    disabled={busy !== null || orders.length === 0}
+                  >
                     <Play size={15} fill="currentColor" />
                     {busy === 'optimize' ? 'Running…' : 'Optimize now'}
                   </button>
@@ -603,6 +588,21 @@ function App() {
                     </div>
                     <span className="result-time">API RESULT</span>
                   </div>
+                  <details className="optimizer-metadata">
+                    <summary>Saved model versions</summary>
+                    <p>
+                      Illustrative FIFO reference:{' '}
+                      {optimization.comparison.baseline.schedule_version_id || 'Not provided'}
+                    </p>
+                    <p>
+                      Proposed schedule:{' '}
+                      {optimization.comparison.optimized.schedule_version_id || 'Not provided'}
+                    </p>
+                    <p>
+                      These IDs identify saved model results. They do not indicate production
+                      approval.
+                    </p>
+                  </details>
                   <div className="comparison-grid">
                     <CompareCard
                       title="Late work orders"
@@ -638,9 +638,11 @@ function App() {
                     />
                   </div>
                   <p className="metric-caption">
-                    Throughput counts modeled work orders completed within 168 hours. Furnace batch
-                    fill is a modeled load ratio; it is not utilization or OEE. Deltas show proposed
-                    minus reference, in percentage points for batch fill.
+                    Late orders are projected, not confirmed customer misses. Average WIP age
+                    includes modeled time through completion, unlike current WIP age on the flow
+                    board. Throughput counts modeled work orders completed within 168 hours. Furnace
+                    batch fill is a modeled load ratio; it is not utilization or OEE. Deltas show
+                    proposed minus reference, in percentage points for batch fill.
                   </p>
                   <section className="panel schedule-panel">
                     <div className="panel-heading schedule-heading">
@@ -665,14 +667,19 @@ function App() {
                         </button>
                       </div>
                     </div>
-                    <Gantt operations={shownOperations} maxHour={maxHour} />
+                    <Gantt
+                      operations={shownOperations}
+                      maxHour={maxHour}
+                      focusWorkOrderRequest={focusWorkOrderRequest}
+                    />
                   </section>
                   <section className="panel late-panel">
                     <div className="panel-heading">
                       <div>
                         <h2>Late order explanations</h2>
                         <p>
-                          Orders still projected to miss their due date under the optimized plan
+                          Projected misses in the proposed schedule, not confirmed customer misses.
+                          Hours are relative to the model start.
                         </p>
                       </div>
                       <span className="neutral-pill">
@@ -686,18 +693,53 @@ function App() {
                         aria-label="Late order explanations"
                         tabIndex={0}
                       >
-                        <div className="table-head">
-                          <span>WORK ORDER</span>
-                          <span>DELAY</span>
-                          <span>CAPACITY EXPLANATION</span>
-                        </div>
-                        {optimization.why_late.optimized.map((order) => (
-                          <div className="late-row" key={order.work_order_id}>
-                            <b>{order.wo_number}</b>
-                            <span className="delay-tag">+{fmt(order.delay_hours)}h</span>
-                            <span>{order.explanation}</span>
-                          </div>
-                        ))}
+                        <table className="optimizer-late-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Work order</th>
+                              <th scope="col">Due</th>
+                              <th scope="col">Completion</th>
+                              <th scope="col">Delay</th>
+                              <th scope="col">Priority</th>
+                              <th scope="col">Explanation</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {optimization.why_late.optimized.map((order) => (
+                              <tr key={order.work_order_id}>
+                                <th scope="row">
+                                  <button
+                                    className="link-button"
+                                    onClick={() => {
+                                      setScheduleTab('optimized')
+                                      setFocusWorkOrderRequest((previous) => ({
+                                        order: order.wo_number,
+                                        sequence: (previous?.sequence ?? 0) + 1,
+                                      }))
+                                    }}
+                                  >
+                                    {order.wo_number}
+                                  </button>
+                                </th>
+                                <td>
+                                  {order.due_date_hours == null
+                                    ? 'Not provided'
+                                    : `${fmt(order.due_date_hours)}h`}
+                                </td>
+                                <td>
+                                  {order.completion_hours == null
+                                    ? 'Not provided'
+                                    : `${fmt(order.completion_hours)}h`}
+                                </td>
+                                <td>
+                                  <span className="delay-tag">+{fmt(order.delay_hours)}h</span>
+                                </td>
+                                <td>{order.priority ?? 'Not provided'}</td>
+                                <td>{order.explanation || 'Not provided'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     ) : (
                       <div className="empty-alert">
@@ -755,14 +797,14 @@ function App() {
                       {activeResources.map((resource) => (
                         <option key={resource.id} value={resource.id}>
                           {resource.name} · {stageShort[resource.stage] ?? resource.stage} ·{' '}
-                          {resource.plant}
+                          {resource.plant} � {resource.status}
                         </option>
                       ))}
                     </select>
                     <ChevronDown size={15} />
                   </div>
                   <p className="field-help" id="machine-down-help">
-                    If selected, this resource is removed from the scenario schedule.
+                    Select up to one active resource. It is removed from the scenario schedule.
                   </p>
                   <label className="field-label" htmlFor="rush-order">
                     Priority rush order
@@ -790,7 +832,7 @@ function App() {
                   </p>
                   <div className="slider-head">
                     <label className="field-label" htmlFor="demand-spike">
-                      Demand increase
+                      Increase quantities in this model
                     </label>
                     <b>{demand}%</b>
                   </div>
@@ -900,7 +942,6 @@ function App() {
                           scenario={simulation.scenario_metrics.late_orders}
                           delta={simulation.delta.late_orders}
                           unit="orders"
-                          goodDown
                         />
                         <ImpactCard
                           label="Average WIP age"
@@ -908,7 +949,6 @@ function App() {
                           scenario={simulation.scenario_metrics.avg_wip_age_hours}
                           delta={simulation.delta.avg_wip_age_hours}
                           unit="h"
-                          goodDown
                         />
                         <ImpactCard
                           label="Throughput"
@@ -916,14 +956,32 @@ function App() {
                           scenario={simulation.scenario_metrics.throughput}
                           delta={simulation.delta.throughput}
                           unit="orders"
-                          goodDown={false}
                         />
                       </div>
                       <p className="metric-caption">
                         Throughput is modeled work orders completed within 168 hours. WIP age here
                         is model-derived through completion, not the current age shown on the Flow
-                        Board.
+                        Board. When quantities change, the two schedules contain different amounts
+                        of work; compare these measures in that context.
                       </p>
+                      <section className="scenario-insight">
+                        <div>
+                          <b>Resource with most modeled busy hours</b>
+                          <small>
+                            Reference:{' '}
+                            {resources.find((r) => r.id === simulation.delta.bottleneck_before)
+                              ?.name ??
+                              simulation.delta.bottleneck_before ??
+                              'None reported'}{' '}
+                            � Scenario:{' '}
+                            {resources.find((r) => r.id === simulation.delta.bottleneck_after)
+                              ?.name ??
+                              simulation.delta.bottleneck_after ??
+                              'None reported'}
+                            . This is a busy-hours signal, not proof of a bottleneck or utilization.
+                          </small>
+                        </div>
+                      </section>
                       <section className="panel impact-panel">
                         <div className="panel-heading">
                           <div>
@@ -938,38 +996,41 @@ function App() {
                             aria-label="Due-date impact by work order"
                             tabIndex={0}
                           >
-                            {simulation.due_date_impact.map((row) => (
-                              <div className="impact-row" key={row.work_order_id}>
-                                <span
-                                  className={
-                                    row.late_scenario ? 'impact-dot late' : 'impact-dot ok'
-                                  }
-                                  aria-hidden="true"
-                                />{' '}
-                                <b>{row.wo_number}</b>
-                                <span>
-                                  {row.late_before ? 'Late' : 'On track'} <ArrowRight size={12} />{' '}
-                                  {row.late_scenario ? 'Late' : 'On track'}
-                                </span>
-                                <small
-                                  className={
-                                    row.completion_delta_hours > 0
-                                      ? 'impact-time later'
-                                      : row.completion_delta_hours < 0
-                                        ? 'impact-time earlier'
-                                        : 'impact-time unchanged'
-                                  }
-                                >
-                                  {row.completion_delta_hours > 0
-                                    ? 'Later · '
-                                    : row.completion_delta_hours < 0
-                                      ? 'Earlier · '
-                                      : 'Unchanged · '}
-                                  {row.completion_delta_hours > 0 ? '+' : ''}
-                                  {fmt(row.completion_delta_hours)}h completion
-                                </small>
-                              </div>
-                            ))}
+                            <table>
+                              <caption>
+                                Modeled due-date impact by work order (hours relative to planning
+                                origin)
+                              </caption>
+                              <thead>
+                                <tr>
+                                  <th scope="col">Work order</th>
+                                  <th scope="col">Due before</th>
+                                  <th scope="col">Due scenario</th>
+                                  <th scope="col">Completion before</th>
+                                  <th scope="col">Completion scenario</th>
+                                  <th scope="col">Status before</th>
+                                  <th scope="col">Status scenario</th>
+                                  <th scope="col">Completion change</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {simulation.due_date_impact.map((row) => (
+                                  <tr key={row.work_order_id}>
+                                    <th scope="row">{row.wo_number}</th>
+                                    <td>{fmt(row.due_date_before_hours)}h</td>
+                                    <td>{fmt(row.due_date_scenario_hours)}h</td>
+                                    <td>{fmt(row.completion_before_hours)}h</td>
+                                    <td>{fmt(row.completion_scenario_hours)}h</td>
+                                    <td>{row.late_before ? 'Late' : 'On track'}</td>
+                                    <td>{row.late_scenario ? 'Late' : 'On track'}</td>
+                                    <td>
+                                      {row.completion_delta_hours > 0 ? '+' : ''}
+                                      {fmt(row.completion_delta_hours)}h
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         ) : (
                           <div className="empty-alert">
@@ -984,6 +1045,26 @@ function App() {
                               </small>
                             </div>
                           </div>
+                        )}
+                      </section>
+                      <section className="panel late-panel">
+                        <div className="panel-heading">
+                          <div>
+                            <h2>Scenario late-order explanations</h2>
+                            <p>Model-generated reasons for projected late orders</p>
+                          </div>
+                        </div>
+                        {simulation.why_late.length ? (
+                          <ul>
+                            {simulation.why_late.map((order) => (
+                              <li key={order.work_order_id}>
+                                <b>{order.wo_number}</b> � {fmt(order.delay_hours)}h late �{' '}
+                                {order.explanation}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No late-order explanations were returned for this scenario.</p>
                         )}
                       </section>
                       <section className="scenario-insight">
@@ -1152,24 +1233,15 @@ function ImpactCard({
   scenario,
   delta,
   unit,
-  goodDown,
 }: {
   label: string
   baseline: number | null
   scenario: number | null
   delta: number | null
   unit: string
-  goodDown: boolean
 }) {
-  const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
   const hasDelta = delta != null && Number.isFinite(delta)
-  const status = !hasDelta
-    ? 'Unavailable'
-    : delta === 0
-      ? 'Unchanged'
-      : improved
-        ? 'Improved'
-        : 'Worsened'
+  const status = !hasDelta ? 'Unavailable' : delta === 0 ? 'Unchanged' : 'Change'
   return (
     <article className="impact-kpi">
       <small>{label}</small>
@@ -1178,15 +1250,7 @@ function ImpactCard({
           {fmt(scenario)}
           <i>{unit}</i>
         </b>
-        <span
-          className={
-            improved
-              ? 'impact-change good'
-              : delta == null || delta === 0
-                ? 'impact-change'
-                : 'impact-change bad'
-          }
-        >
+        <span className="impact-change">
           <span className="sr-only">{status}: </span>
           {delta != null && delta > 0 ? '+' : ''}
           {hasDelta ? `${fmt(delta)} ${unit}` : '—'}
@@ -1196,153 +1260,6 @@ function ImpactCard({
         Reference: {fmt(baseline)} {unit}
       </span>
     </article>
-  )
-}
-
-export function Gantt({ operations, maxHour }: { operations: Operation[]; maxHour: number }) {
-  const [selected, setSelected] = useState<Operation | null>(null)
-  const detailId = useId()
-  const selectedBar = useRef<HTMLButtonElement | null>(null)
-  const detailClose = useRef<HTMLButtonElement | null>(null)
-  const rows = useMemo(() => {
-    const grouped = new Map<string, Operation[]>()
-    operations.forEach((operation) => {
-      const key = operation.resource_id
-      const items = grouped.get(key) ?? []
-      items.push(operation)
-      grouped.set(key, items)
-    })
-    return [...grouped.entries()]
-  }, [operations])
-  const selectedOperation = selected && operations.includes(selected) ? selected : null
-  useEffect(() => {
-    if (selectedOperation) detailClose.current?.focus()
-  }, [selectedOperation])
-  useEffect(() => {
-    if (!selectedOperation) return
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        setSelected(null)
-        requestAnimationFrame(() => selectedBar.current?.focus())
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedOperation])
-  if (!operations.length)
-    return <div className="gantt-empty">No operations are available for this schedule.</div>
-  return (
-    <>
-      <div className="gantt-summary" aria-live="polite">
-        {operations.length.toLocaleString()} operations across {rows.length} resources · Timeline:
-        0–{fmt(maxHour, 0)}h
-      </div>
-      <div
-        className="gantt"
-        role="region"
-        tabIndex={0}
-        aria-label="Schedule timeline. Use the scroll area to review all resources and hours."
-      >
-        <div className="gantt-canvas">
-          <div className="gantt-axis">
-            <span>RESOURCE / MACHINE</span>
-            <div>
-              {[0, 0.25, 0.5, 0.75, 1].map((point) => (
-                <span key={point}>{fmt(maxHour * point, 0)}h</span>
-              ))}
-            </div>
-          </div>
-          {rows.map(([resourceId, items]) => (
-            <div className="gantt-row" key={resourceId}>
-              <div className="gantt-resource">
-                <span className="machine-icon">
-                  <Wrench size={13} />
-                </span>
-                <span>
-                  {items[0].resource_name}
-                  <small>{items[0].plant}</small>
-                </span>
-              </div>
-              <div className="gantt-lane">
-                {items.map((item, index) => {
-                  const left = Math.max(0, (item.start_hour / maxHour) * 100)
-                  const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
-                  const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
-                  return (
-                    <button
-                      type="button"
-                      className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
-                      key={`${item.work_order_id}-${item.stage}-${index}`}
-                      style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }}
-                      aria-label={accessibleName}
-                      aria-expanded={selectedOperation === item}
-                      aria-controls={selectedOperation === item ? detailId : undefined}
-                      title={accessibleName}
-                      onClick={(event) => {
-                        selectedBar.current = event.currentTarget
-                        setSelected(item)
-                      }}
-                    >
-                      <span aria-hidden="true">{item.wo_number}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-          <div className="gantt-legend">
-            {stages.map((stage, index) => (
-              <span key={stage}>
-                <i className={`legend-stage stage-${index + 1}`} />
-                {stage}
-              </span>
-            ))}
-            <span>
-              <i className="legend-late" />
-              Late at scheduled completion
-            </span>
-          </div>
-        </div>
-      </div>
-      {selectedOperation && (
-        <div
-          className="gantt-detail"
-          id={detailId}
-          role="region"
-          aria-label="Selected operation details"
-        >
-          <strong>{selectedOperation.wo_number}</strong>
-          <span>{selectedOperation.sku_code}</span>
-          <span>{selectedOperation.stage}</span>
-          {selectedOperation.batch_id && <span>Batch {selectedOperation.batch_id}</span>}
-          <span>
-            {selectedOperation.resource_name} · {selectedOperation.plant}
-          </span>
-          <span>
-            {fmt(selectedOperation.start_hour)}–{fmt(selectedOperation.end_hour)}h
-          </span>
-          {selectedOperation.is_late ? (
-            <span className="delay-tag">
-              Late{selectedOperation.delay_reason ? ` · ${selectedOperation.delay_reason}` : ''}
-            </span>
-          ) : (
-            <span className="on-time-tag">On time at scheduled completion</span>
-          )}
-          <button
-            ref={detailClose}
-            type="button"
-            className="link-button"
-            onClick={() => {
-              setSelected(null)
-              requestAnimationFrame(() => selectedBar.current?.focus())
-            }}
-          >
-            Clear selection
-          </button>
-        </div>
-      )}
-    </>
   )
 }
 

@@ -1,0 +1,36 @@
+.optimizer-progress {
+  color: var(--muted);
+  margin: 12px 0;
+}
+.optimizer-metadata {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 12px 0;
+}
+.optimizer-metadata summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.optimizer-metadata p {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.optimizer-late-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 740px;
+  text-align: left;
+  width: 100%;
+}
+.optimizer-late-table th,
+.optimizer-late-table td {
+  border-bottom: 1px solid #edf0ec;
+  padding: 9px 10px;
+  vertical-align: top;
+}
+.optimizer-late-table thead th {
+  color: var(--muted);
+}
+.optimizer-late-table tbody th {
+  white-space: nowrap;
+}

@@ -65,6 +65,7 @@ function makeSimulation(
 ) {
   const operation = makeOperations(1)[0]
   return {
+    scenario_inputs: { down_resource_ids: [], rush_order_ids: [], demand_spike_pct: 0 },
     reference_metrics: { late_orders: 1, avg_wip_age_hours: 12, throughput: 2 },
     scenario_metrics: { late_orders: 1, avg_wip_age_hours: 12, throughput: 2 },
     delta: {
@@ -155,7 +156,9 @@ describe('frontend data states', () => {
     await screen.findByRole('heading', { name: 'No work orders in this database' })
     fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
 
-    const demand = screen.getByRole('slider', { name: 'Demand increase' }) as HTMLInputElement
+    const demand = screen.getByRole('slider', {
+      name: 'Increase quantities in this model',
+    }) as HTMLInputElement
     expect(demand.min).toBe('0')
     expect(demand.max).toBe('300')
     expect(demand.value).toBe('0')
@@ -329,7 +332,14 @@ describe('frontend data states', () => {
         : path.endsWith('/api/catalog')
           ? makeCatalog()
           : path.endsWith('/api/schedule/simulate')
-            ? makeSimulation()
+            ? {
+                ...makeSimulation(),
+                scenario_inputs: {
+                  down_resource_ids: ['res-1'],
+                  rush_order_ids: ['wo-1'],
+                  demand_spike_pct: 25,
+                },
+              }
             : { message: 'ok' }
       return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
     })
@@ -339,7 +349,7 @@ describe('frontend data states', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
     fireEvent.change(screen.getByLabelText('Machine unavailable'), { target: { value: 'res-1' } })
     fireEvent.change(screen.getByLabelText('Priority rush order'), { target: { value: 'wo-1' } })
-    fireEvent.change(screen.getByRole('slider', { name: 'Demand increase' }), {
+    fireEvent.change(screen.getByRole('slider', { name: 'Increase quantities in this model' }), {
       target: { value: '25' },
     })
     fireEvent.click(screen.getByRole('button', { name: /run scenario/i }))
@@ -363,7 +373,9 @@ describe('frontend data states', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset inputs' }))
     expect(screen.getByLabelText('Machine unavailable')).toHaveValue('')
     expect(screen.getByLabelText('Priority rush order')).toHaveValue('')
-    expect(screen.getByRole('slider', { name: 'Demand increase' })).toHaveValue('0')
+    expect(screen.getByRole('slider', { name: 'Increase quantities in this model' })).toHaveValue(
+      '0',
+    )
     expect(screen.getByRole('status')).toHaveTextContent('Inputs changed since this run')
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/simulate')),
@@ -467,7 +479,17 @@ describe('frontend data states', () => {
     ])
     const lateOrders = screen.getByRole('region', { name: 'Late order explanations' })
     expect(lateOrders).toHaveAttribute('tabindex', '0')
-    expect(within(lateOrders).getByText('WO-010')).toBeTruthy()
+    expect(within(lateOrders).getByRole('table')).toBeTruthy()
+    expect(within(lateOrders).getByRole('columnheader', { name: 'Due' })).toBeTruthy()
+    expect(within(lateOrders).getByRole('columnheader', { name: 'Completion' })).toBeTruthy()
+    const lastOrder = within(lateOrders).getByRole('row', { name: /WO-010/ })
+    expect(within(lastOrder).getByText('24h')).toBeTruthy()
+    expect(within(lastOrder).getByText('30h')).toBeTruthy()
+    expect(within(lastOrder).getByText('2')).toBeTruthy()
+    fireEvent.click(within(lateOrders).getByRole('button', { name: 'WO-001' }))
+    expect(screen.getByLabelText('Work order')).toHaveValue('WO-001')
+    expect(screen.getByText(/baseline-1/)).toBeTruthy()
+    expect(screen.getByText(/proposed-1/)).toBeTruthy()
     const request = fetchMock.mock.calls.find(([input]) =>
       String(input).endsWith('/api/schedule/optimize'),
     )
@@ -550,16 +572,14 @@ describe('frontend data states', () => {
     expect(await screen.findByRole('heading', { name: 'Scenario schedule' })).toBeTruthy()
     const impact = screen.getByRole('region', { name: 'Due-date impact by work order' })
     expect(impact).toHaveAttribute('tabindex', '0')
-    const impactCopy = impact.textContent?.replace(/\s+/g, ' ')
-    expect(impactCopy).toContain('Late Late')
-    expect(impactCopy).toContain('On track Late')
-    const impactTimes = Array.from(impact.querySelectorAll('.impact-time')).map((item) =>
-      item.textContent?.replace(/\s+/g, ' ').trim(),
+    expect(impact.querySelector('table')).toBeTruthy()
+    const rows = Array.from(impact.querySelectorAll('tbody tr')).map((row) =>
+      Array.from(row.querySelectorAll('th, td')).map((cell) => cell.textContent),
     )
-    expect(impactTimes).toEqual([
-      'Earlier · -2h completion',
-      'Later · +3h completion',
-      'Unchanged · 0h completion',
+    expect(rows).toEqual([
+      ['WO-EARLIER', '24h', '24h', '30h', '28h', 'Late', 'Late', '-2h'],
+      ['WO-LATER', '24h', '24h', '22h', '25h', 'On track', 'Late', '+3h'],
+      ['WO-UNCHANGED', '24h', '24h', '22h', '22h', 'On track', 'On track', '0h'],
     ])
   })
 })
