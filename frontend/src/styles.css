@@ -81,7 +81,6 @@ a {
   color: #efffeb;
   display: grid;
   place-items: center;
-  box-shadow: 0 4px 8px #174a2920;
 }
 .brand-name {
   font-family: Manrope, sans-serif;
@@ -394,15 +393,14 @@ a {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 10px;
-  box-shadow: 0 2px 8px #233b2a05;
 }
 .stat-card {
   min-height: 119px;
   padding: 15px 16px 13px;
 }
 .stat-label {
-  color: #7f8a82;
-  font-size: 10px;
+  color: #626e66;
+  font-size: 11px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -435,6 +433,7 @@ a {
   font:
     700 25px Manrope,
     sans-serif;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.8px;
   color: #203027;
   margin-top: 7px;
@@ -448,7 +447,7 @@ a {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 .tiny-status {
@@ -482,8 +481,8 @@ a {
   letter-spacing: -0.25px;
 }
 .panel-heading p {
-  font-size: 10px;
-  color: #929c95;
+  font-size: 11px;
+  color: var(--muted);
   margin: 5px 0 0;
 }
 .neutral-pill,
@@ -543,6 +542,7 @@ a {
   font:
     700 23px Manrope,
     sans-serif;
+  font-variant-numeric: tabular-nums;
   letter-spacing: -0.7px;
   margin: 8px 0 1px;
   color: #28372e;
@@ -913,6 +913,7 @@ a {
   color: #96433a;
 }
 .compare-numbers {
+  font-variant-numeric: tabular-nums;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -924,7 +925,7 @@ a {
   gap: 4px;
 }
 .compare-numbers small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -933,6 +934,7 @@ a {
   font:
     700 17px Manrope,
     sans-serif;
+  font-variant-numeric: tabular-nums;
   color: #47554b;
 }
 .compare-numbers b i,
@@ -1170,6 +1172,7 @@ a {
   margin-top: 13px;
 }
 .late-table {
+  font-variant-numeric: tabular-nums;
   margin-top: 13px;
 }
 .table-head,
@@ -1407,13 +1410,14 @@ a {
   gap: 9px;
 }
 .impact-kpi {
+  font-variant-numeric: tabular-nums;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 12px;
 }
 .impact-kpi > small {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
 }
 .impact-kpi > div {
@@ -1427,6 +1431,7 @@ a {
   font:
     700 19px Manrope,
     sans-serif;
+  font-variant-numeric: tabular-nums;
   color: #334239;
   white-space: nowrap;
 }
@@ -1782,7 +1787,7 @@ a {
     font-size: 16px;
   }
   .stat-foot {
-    font-size: 10px;
+    font-size: 11px;
   }
   .content-grid {
     gap: 9px;

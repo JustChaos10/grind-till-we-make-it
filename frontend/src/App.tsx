@@ -17,7 +17,7 @@ import {
   Play,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
+  GitBranch,
   Truck,
   Wrench,
   Zap,
@@ -255,7 +255,7 @@ function App() {
             aria-current={page === 'scenario' ? 'page' : undefined}
             onClick={() => setPage('scenario')}
           >
-            <Sparkles size={17} />
+            <GitBranch size={17} />
             <span>Scenario lab</span>
             <span className="beta">WHAT IF</span>
           </button>
@@ -331,12 +331,7 @@ function App() {
               <div className="welcome-icon">
                 <Activity size={24} />
               </div>
-              <p className="eyebrow">SYNTHETIC OPERATIONS DEMO</p>
-              <h1>
-                See work in flow,
-                <br />
-                <em>from order to finish.</em>
-              </h1>
+              <h1>Connect to the factory demo</h1>
               <p className="welcome-copy">
                 Connect to the IndoFlow API and load a synthetic factory dataset to explore live
                 WIP, optimized schedules, and operational what-if scenarios.
@@ -372,12 +367,10 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">
-                    OPERATIONS OVERVIEW <span>·</span> SYNTHETIC DEMO DATA
-                  </p>
+                  <p className="eyebrow">Synthetic demo data</p>
                   <h1>Production flow overview</h1>
                   <p className="heading-sub">
-                    A planning view of the work orders and resources in the current API snapshot.
+                    Work orders and resource queues from the latest API snapshot.
                   </p>
                 </div>
                 <button className="primary-button" onClick={optimize} disabled={busy !== null}>
@@ -426,7 +419,6 @@ function App() {
                   <span className="placeholder-orbit">
                     <Boxes size={22} />
                   </span>
-                  <p className="eyebrow">SYNTHETIC DEMO DATA</p>
                   <h2>No work orders in this database</h2>
                   <p>
                     Load the documented synthetic dataset to explore the flow board, schedule, and
@@ -442,7 +434,7 @@ function App() {
                         : undefined
                     }
                   >
-                    <Sparkles size={16} />{' '}
+                    <GitBranch size={16} />{' '}
                     {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
                   </button>
                 </section>
@@ -535,7 +527,7 @@ function App() {
                     )}
                     <button className="scenario-shortcut" onClick={() => setPage('scenario')}>
                       <span className="shortcut-icon">
-                        <Sparkles size={16} />
+                        <GitBranch size={16} />
                       </span>
                       <span>
                         <b>Plan for a disruption</b>
@@ -552,8 +544,7 @@ function App() {
                     <GitCompareArrows size={19} />
                   </div>
                   <div>
-                    <p className="eyebrow">SCHEDULE PLANNING</p>
-                    <h2>See what an optimized plan can change.</h2>
+                    <h2>Compare production schedules</h2>
                     <p>
                       Compare an illustrative FIFO baseline with a proposed schedule based on the
                       resource constraints supplied by this demo API.
@@ -579,9 +570,6 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">
-                    DECISION SUPPORT <span>·</span> CAPACITY-AWARE PLANNING
-                  </p>
                   <h1>Schedule optimizer</h1>
                   <p className="heading-sub">
                     Compare an illustrative FIFO reference with a proposed model schedule.
@@ -597,7 +585,7 @@ function App() {
                   <div className="empty-run-icon">
                     <GitCompareArrows size={21} />
                   </div>
-                  <h2>Put the plan to work</h2>
+                  <h2>Generate a proposed schedule</h2>
                   <p>
                     Run the model to compare late orders, WIP age, and flow time against an
                     illustrative FIFO reference.
@@ -611,7 +599,7 @@ function App() {
                 <>
                   <div className="result-banner">
                     <span className="result-icon">
-                      <Sparkles size={18} />
+                      <GitBranch size={18} />
                     </span>
                     <div>
                       <b>Proposed model schedule ready</b>
@@ -741,12 +729,9 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <p className="eyebrow">
-                    DECISION SUPPORT <span>·</span> SAFE WHAT-IF ANALYSIS
-                  </p>
                   <h1>Scenario lab</h1>
                   <p className="heading-sub">
-                    Pressure-test the plan before the unexpected hits the shop floor.
+                    Model how a change in capacity or demand affects scheduled work.
                   </p>
                 </div>
                 <span className="read-only-tag">
@@ -757,10 +742,9 @@ function App() {
                 <section className="panel scenario-controls">
                   <div className="panel-heading">
                     <div>
-                      <h2>Shape your scenario</h2>
+                      <h2>Scenario inputs</h2>
                       <p>Choose one or more events to simulate</p>
                     </div>
-                    <span className="control-tag">CONTROLS</span>
                   </div>
                   <label className="field-label" htmlFor="machine-down">
                     Machine unavailable
@@ -899,8 +883,7 @@ function App() {
                       )}
                       <div className="scenario-result-top">
                         <div>
-                          <p className="eyebrow">API SIMULATION RESULT</p>
-                          <h2>Here’s the impact.</h2>
+                          <h2>Simulation results</h2>
                         </div>
                       </div>
                       <div className="scenario-insight">
@@ -1011,7 +994,7 @@ function App() {
                       </section>
                       <section className="scenario-insight">
                         <span>
-                          <Sparkles size={16} />
+                          <GitBranch size={16} />
                         </span>
                         <div>
                           <b>How to read this</b>
@@ -1039,25 +1022,13 @@ function App() {
                   ) : (
                     <div className="scenario-placeholder panel">
                       <span className="placeholder-orbit">
-                        <Sparkles size={23} />
+                        <GitBranch size={23} />
                       </span>
-                      <p className="eyebrow">YOUR DECISION SANDBOX</p>
                       <h2>Choose a disruption to model</h2>
                       <p>
                         Select an outage, rush order, or demand change, then run the API simulation
                         to review its modeled effect on late orders, WIP, and throughput.
                       </p>
-                      <div className="placeholder-steps">
-                        <span>
-                          <b>01</b> Set scenario inputs
-                        </span>
-                        <span>
-                          <b>02</b> Run the simulation
-                        </span>
-                        <span>
-                          <b>03</b> Review modeled changes
-                        </span>
-                      </div>
                     </div>
                   )}
                 </section>
