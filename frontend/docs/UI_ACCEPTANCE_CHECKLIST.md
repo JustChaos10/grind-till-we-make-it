@@ -122,7 +122,7 @@
 - [ ] Changes grouped into meaningful commits.
 - [ ] No history rewrite or force push.
 - [ ] No direct merge/push to main.
-- [ ] Final `git status` and commit SHA recorded. (Update `FRONTEND_AUDIT.md` after final commit.)
+- [x] Final `git status` and commit SHA recorded in the task handoff; implementation SHA is in `FRONTEND_AUDIT.md`.
 - [ ] Frontend setup/run instructions verified in PowerShell.
 - [ ] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md` if needed.
 - [ ] Five-minute founder walkthrough rehearsed against actual UI.

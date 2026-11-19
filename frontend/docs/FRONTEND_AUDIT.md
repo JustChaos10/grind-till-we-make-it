@@ -82,4 +82,4 @@ Only enable the seed control after confirming the API uses the dedicated local d
 
 ## Final commit record
 
-Fill after commit: starting branch head `e12e03f`; ending SHA: pending; `git status`: pending.
+Starting branch head: `e12e03f`. Frontend implementation commit: `f17195b`. The final documentation commit and clean working-tree status are recorded in the task handoff.
