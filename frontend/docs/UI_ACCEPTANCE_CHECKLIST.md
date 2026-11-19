@@ -40,9 +40,9 @@
 - [x] Populated board shows correct totals and queues from API (API/browser smoke and component test).
 - [x] All five stages and optional CNC context presented correctly (API/browser review).
 - [x] Stage labels/count/avg age readable on desktop and phone (responsive review).
-- [x] Alert panel treats warnings as planning signals (component test and source review).
+- [x] Alert panel identifies stage queues and modeled busy-hours signals by message content. Unrecognized messages use a general planning label (component test and source review).
 - [x] Empty alerts doesn't imply real production is normal (copy/source review).
-- [x] Navigation to optimizer and scenario works by click and keyboard activation (component tests cover click; browser Enter activation checked for all three screens). Full keyboard-only traversal remains unverified.
+- [x] Navigation to optimizer and scenario works by click and keyboard activation (component tests and the Edge keyboard-only walkthrough).
 - [x] Refresh works, updates time only on successful data fetch (failure recovery and stale-response component tests).
 
 ## 3. Optimizer & Gantt
@@ -58,7 +58,7 @@
 - [x] Horizontal and vertical scroll behave at reviewed dense data sizes (browser review; not a stress test).
 - [x] Stage legend readable and status not dependent on color alone (source review).
 - [x] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason (component test and source review).
-- [x] Operation details are keyboard-focusable and Escape restores focus (component test); full screen keyboard traversal remains unverified.
+- [x] Operation details are keyboard-focusable and Escape restores focus (component test and Edge keyboard-only walkthrough).
 - [x] Gantt filters use returned stage, plant, resource, work order, and late status values. Tests cover status and order filters, no matches, reset, consistent time scale, zoom, and work-order drill-down.
 - [x] Late orders beyond first eight accessible via a labeled, keyboard-focusable scroll region (10-row component regression test includes WO-010).
 - [x] No unsupported optimality or scheduling-feasibility claim (copy/source review).
@@ -82,7 +82,7 @@
 ## 5. Design and responsiveness
 
 - [ ] Consistent tokens for color, spacing, typography, borders and status semantics (source review is partial; a full token/contrast audit is open).
-- [ ] Body text comfortably legible; no unnecessary 7–10px labels (small table and impact labels were raised to 10–11px; a whole-screen typography review is still open).
+- [ ] Body text comfortably legible; no unnecessary 7–10px labels (source scan found no 7–10 px font-size declarations; review all screens and states for legibility).
 - [x] Desktop 1920×1080 reviewed (`docs/screenshots/flow-desktop-1920.png`).
 - [x] Desktop 1440×900 reviewed.
 - [x] Laptop 1280×800 reviewed (`docs/screenshots/flow-laptop-1280.png`).
@@ -93,9 +93,9 @@
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); behavior under an OS reduced-motion setting still needs browser verification.
-- [ ] Tested keyboard-only navigation across all three screens. Browser Tab and Enter checks reached all three screens. The fixture smoke also covers Gantt details, focus restoration, and scenario inputs. Full Tab traversal and focus order remain to be reviewed.
-- [ ] Form controls have accessible names/help/error association.
-- [ ] Dialogs have appropriate focus and escape behavior. Seed confirmation and Gantt Escape/focus restoration have targeted coverage. A full focus review is open.
+- [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
+- [ ] Form controls have accessible names, help, and error associations. Browser checks confirmed labeled scenario inputs and linked help text. Field-error association remains open.
+- [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details.
 - [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; coverage of all states remains open).
 
 ## 6. Engineering and tests
@@ -107,7 +107,7 @@
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, scenario behavior, and timeline filters.
-- [x] Repeatable browser smoke passed with synthetic fixtures and an isolated real API and temporary SQLite DB. `scripts/browser_real_api.py` covers outage/retry, empty onboarding, explicit seed, optimization, timeline interactions, and two scenario runs.
+- [x] Repeatable browser smoke passed with synthetic fixtures and an isolated real API and temporary SQLite DB. `scripts/browser_real_api.py` covers outage/retry, empty onboarding, explicit seed, optimization, timeline interactions, and two scenario runs. A separate smoke passed seed, optimization and a CNC-1 outage against backend `origin/main` at `d9ae616` with a temporary SQLite DB.
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
