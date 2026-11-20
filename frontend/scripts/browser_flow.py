@@ -253,7 +253,11 @@ with sync_playwright() as playwright:
     expect(rush).to_have_value('wo-1')
     expect(page.get_by_text('This machine is no longer available. Choose another option.')).to_be_visible()
     expect(page.get_by_text('This work order is no longer available. Choose another option.')).to_be_visible()
-    expect(page.get_by_role('button', name='Run scenario')).to_be_disabled()
+    disabled_run = page.get_by_role('button', name='Run scenario')
+    expect(disabled_run).to_be_disabled()
+    if os.environ.get('INDOFLOW_DISABLED_SCREENSHOT'):
+        disabled_run.scroll_into_view_if_needed()
+        page.screenshot(path=os.environ['INDOFLOW_DISABLED_SCREENSHOT'])
     machine.select_option('')
     rush.select_option('wo-2')
     expect(page.get_by_role('button', name='Run scenario')).to_be_enabled()

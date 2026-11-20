@@ -145,3 +145,5 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Gantt operation-list pagination retains keyboard focus when the first or last page disables its navigation button. Component tests and an Edge check with 51 synthetic operations passed.
 - Changing or clearing Gantt filters closes stale operation details; clearing filters returns keyboard focus to Stage. Dismissing an API error returns focus to Refresh data. Component tests and the synthetic Edge walkthrough cover these flows; all 53 frontend tests, lint, and the build passed.
 - Repeated surface, text, border, and accent colors now use shared CSS tokens with their original values. Lint, build, and the synthetic Edge walkthrough passed. A complete token and contrast audit remains open.
+
+- Disabled primary and secondary actions now use a muted surface with readable text instead of fading the whole control. The synthetic Edge walkthrough covered an invalid scenario and saved `screenshots/scenario-disabled-mobile.png`; the screenshot was inspected. Other disabled control types still need the full-state contrast review.

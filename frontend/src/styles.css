@@ -418,6 +418,14 @@ a {
 .secondary-button:hover:not(:disabled) {
   background: #f7faf7;
 }
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 1;
+  color: #485b4d;
+  background: #e4e9e5;
+  border-color: #a9b5ac;
+  box-shadow: none;
+}
 .text-button,
 .link-button {
   border: 0;
