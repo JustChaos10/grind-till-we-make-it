@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- The scenario impact table keeps work-order identifiers visible during horizontal scrolling. The synthetic Edge walkthrough checks the row header at the right edge at 1280 and 390 px; both screenshots were visually reviewed. All 67 frontend tests, build, and lint passed, with the existing Gantt effect warning.
+
 - Scenario due-date impact now shows the API's delay change as well as completion change. A component regression covers a changed due date and delay with unchanged completion; 67 frontend tests, build, and lint passed. Lint retains the existing Gantt effect warning. The synthetic Edge walkthrough checked the rendered values and keyboard scrolling at 1280 and 390 px; the right edge was visually reviewed in `screenshots/scenario-impact-1280.png` and `screenshots/scenario-impact-390.png`.
 
 - Furnace batch fill comparison values now use percent, while the change uses percentage points. A component regression checks 72%, 77%, and +5 pp; the synthetic Edge walkthrough checks the rendered card. All 67 frontend tests, the production build, and lint passed; lint retains the existing Gantt effect warning.

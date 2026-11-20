@@ -238,6 +238,11 @@ with sync_playwright() as playwright:
         for _ in range(100):
             page.keyboard.press('ArrowRight')
         assert impact.evaluate('(element) => element.scrollLeft + element.clientWidth >= element.scrollWidth - 1')
+        assert impact_row.get_by_role('rowheader').evaluate('''element => {
+            const cell = element.getBoundingClientRect();
+            const region = element.closest('[role="region"]').getBoundingClientRect();
+            return cell.left >= region.left - 1 && cell.right <= region.right + 1;
+        }''')
         impact.screenshot(path=f'docs/screenshots/scenario-impact-{width}.png')
     fail_run = '/api/schedule/simulate'
     page.get_by_role('button', name='Run scenario').click()
