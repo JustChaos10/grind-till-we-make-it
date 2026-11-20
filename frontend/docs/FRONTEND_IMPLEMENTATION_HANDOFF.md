@@ -142,7 +142,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
-- Stage Help preserves a keyboard dismissal when the pointer enters another stage. Seven StageFlow component tests and the full 69-test frontend suite passed; lint and build passed, with the existing Gantt effect warning. This mixed pointer/keyboard case has not been checked with a screen reader.
+- Stage Help preserves a keyboard dismissal when the pointer enters another stage. Seven StageFlow component tests, the full 69-test frontend suite, and an Edge synthetic-fixture check at 1280 × 800 passed; lint and build passed, with the existing Gantt effect warning. This mixed pointer/keyboard case has not been checked with a screen reader.
 
 - `scripts/contrast_states.py` measures solid text/background pairs across the populated board, optimizer and scenario results, plus selected error and detail states. Synthetic Edge runs at 1280 × 800 and 390 × 844 found no measured failures; the lowest supported ratios were 4.69:1 and 4.74:1 respectively. This does not cover every state, non-text contrast, images, or assistive technology.
 - The empty Schedule optimizer explains that work orders are required and offers a link to the Flow board. Component tests verify the disabled run action and no optimization request; synthetic Edge checks covered navigation and overflow at 390 × 844 and 1280 × 844. See `screenshots/empty-optimizer-390.png` and `screenshots/empty-optimizer-1280.png`.
