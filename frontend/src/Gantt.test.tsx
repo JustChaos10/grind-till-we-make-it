@@ -289,4 +289,22 @@ describe('Gantt controls', () => {
     expect(screen.getByText('Showing 1–1 of 1 operations')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /WO-50 · Sintering/ })).toBeInTheDocument()
   })
+
+  it('returns focus to the list when the selected list item is no longer mounted', async () => {
+    const operations = Array.from({ length: 51 }, (_, index) => ({
+      ...first,
+      work_order_id: String(index),
+      wo_number: `WO-${index}`,
+    }))
+    render(<Gantt operations={operations} maxHour={1200} />)
+    const summary = screen.getByText('Browse operations as a list')
+    const disclosure = summary.closest('details')!
+    disclosure.open = true
+    fireEvent(disclosure, new Event('toggle'))
+    fireEvent.click(screen.getByRole('button', { name: /WO-0 · Sintering/ }))
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Next operations' }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(summary).toHaveFocus())
+  })
 })

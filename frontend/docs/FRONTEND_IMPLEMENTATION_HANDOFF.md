@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- When a selected Gantt list item is removed by pagination or collapsing the list, closing its details now returns focus to the list summary. A component regression and `scripts/gantt_list_focus.py` passed with synthetic data in Edge at 390 px. All 68 frontend tests, the build, and lint passed; lint retains the existing Gantt effect warning.
+
 - The synthetic contrast check now also covers stage help, scenario failure, and the retained scenario-result notice at 1280 and 390 px. No supported solid-color text pairs failed; this is not a complete contrast or screen-reader audit.
 
 - The scenario impact table keeps work-order identifiers visible during horizontal scrolling. The synthetic Edge walkthrough checks the row header at the right edge at 1280 and 390 px; both screenshots were visually reviewed. All 67 frontend tests, build, and lint passed, with the existing Gantt effect warning.

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Wrench } from 'lucide-react'
 import { fmt } from './api'
 import type { ScheduledOperation as Operation } from './types'
@@ -65,6 +65,7 @@ export function Gantt({
   const chartFocus = useRef<'previous' | 'next' | null>(null)
   const stageFilter = useRef<HTMLSelectElement | null>(null)
   const orderFilter = useRef<HTMLSelectElement | null>(null)
+  const listSummary = useRef<HTMLElement | null>(null)
   const previousPageButton = useRef<HTMLButtonElement | null>(null)
   const nextPageButton = useRef<HTMLButtonElement | null>(null)
   const paginationFocus = useRef<'previous' | 'next' | null>(null)
@@ -114,6 +115,12 @@ export function Gantt({
   const detailRef = useRef<HTMLDivElement | null>(null)
   const detailHasFocus = useRef(false)
   const timelineEndRef = useRef<HTMLDivElement | null>(null)
+  const restoreSelectionFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      const target = selectedBar.current?.isConnected ? selectedBar.current : listSummary.current
+      ;(target ?? stageFilter.current)?.focus()
+    })
+  }, [])
   const chartStart = currentChartPage * chartPageSize
   const chartOperations = useMemo(
     () => filtered.slice(chartStart, chartStart + chartPageSize),
@@ -216,12 +223,12 @@ export function Gantt({
       if (event.key === 'Escape') {
         event.preventDefault()
         setSelected(null)
-        requestAnimationFrame(() => selectedBar.current?.focus())
+        restoreSelectionFocus()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [selectedOperation])
+  }, [selectedOperation, restoreSelectionFocus])
   return (
     <>
       <div className="sr-only" role="status">
@@ -321,7 +328,7 @@ export function Gantt({
           className="operation-list"
           onToggle={(event) => setListOpen(event.currentTarget.open)}
         >
-          <summary>Browse operations as a list</summary>
+          <summary ref={listSummary}>Browse operations as a list</summary>
           {listOpen && (
             <div>
               <p>Choose an operation to view its details. The list follows the timeline filters.</p>
@@ -639,7 +646,7 @@ export function Gantt({
                 className="link-button"
                 onClick={() => {
                   setSelected(null)
-                  requestAnimationFrame(() => selectedBar.current?.focus())
+                  restoreSelectionFocus()
                 }}
               >
                 Clear selection
