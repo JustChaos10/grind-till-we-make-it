@@ -25,7 +25,9 @@ export function StageFlow({
   onSchedule: () => void
   disabled: boolean
 }) {
-  const [active, setActive] = useState<string | null>(null)
+  const [focused, setFocused] = useState<string | null>(null)
+  const [hovered, setHovered] = useState<string | null>(null)
+  const active = focused ?? hovered
   const max = Math.max(1, ...queues.map((queue) => queue.queue_depth))
   const detail = stages.find((stage) => stage.name === active)
   return (
@@ -73,11 +75,11 @@ export function StageFlow({
                 aria-label={`About ${stage.name}`}
                 aria-expanded={active === stage.name}
                 aria-controls="stage-help-detail"
-                onMouseEnter={() => setActive(stage.name)}
-                onMouseLeave={() => setActive(null)}
-                onFocus={() => setActive(stage.name)}
-                onBlur={() => setActive(null)}
-                onClick={() => setActive(stage.name)}
+                onMouseEnter={() => setHovered(stage.name)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setFocused(stage.name)}
+                onBlur={() => setFocused(null)}
+                onClick={() => setFocused(stage.name)}
               >
                 <Info size={14} /> Help
               </button>

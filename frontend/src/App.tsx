@@ -75,6 +75,9 @@ function App() {
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
   const [demand, setDemand] = useState(0)
+  const [optimizationSnapshotStale, setOptimizationSnapshotStale] = useState(false)
+  const [scenarioSnapshotStale, setScenarioSnapshotStale] = useState(false)
+  const snapshotRevision = useRef(0)
   const [scheduleTab, setScheduleTab] = useState<'optimized' | 'baseline'>('optimized')
   const [focusWorkOrderRequest, setFocusWorkOrderRequest] = useState<
     { order: string; sequence: number } | undefined
@@ -83,6 +86,7 @@ function App() {
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
   const scheduleRequestInFlight = useRef(false)
+  const scenarioFieldRevisions = useRef<Record<string, number>>({})
   const simulation = scenarioRun?.result ?? null
   const scenarioInputs = { downId, rushId, demand }
   const scenarioIsStale = Boolean(
@@ -104,6 +108,9 @@ function App() {
         api<CatalogResponse>('/api/catalog', { signal: controller.signal }),
       ])
       if (sequence !== refreshSequence.current) return
+      snapshotRevision.current += 1
+      setOptimizationSnapshotStale(true)
+      setScenarioSnapshotStale(true)
       setBoard(b)
       setResources(catalog.resources)
       setOrders(catalog.work_orders)
@@ -168,6 +175,7 @@ function App() {
   async function optimize() {
     if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
+    const submittedSnapshot = snapshotRevision.current
     setBusy('optimize')
     setError('')
     try {
@@ -177,6 +185,7 @@ function App() {
           body: JSON.stringify({ time_limit_seconds: 3 }),
         }),
       )
+      setOptimizationSnapshotStale(snapshotRevision.current !== submittedSnapshot)
       setPage('optimizer')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Schedule optimization failed.')
@@ -189,7 +198,9 @@ function App() {
   async function runScenario() {
     if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
+    const submittedSnapshot = snapshotRevision.current
     const submittedInputs = { ...scenarioInputs }
+    const submittedRevisions = { ...scenarioFieldRevisions.current }
     setBusy('simulate')
     setError('')
     setFieldErrors({})
@@ -204,6 +215,7 @@ function App() {
         }),
       })
       setScenarioRun({ inputs: submittedInputs, result })
+      setScenarioSnapshotStale(snapshotRevision.current !== submittedSnapshot)
       setPage('scenario')
     } catch (e) {
       if (e instanceof ApiError && Array.isArray(e.detail)) {
@@ -213,7 +225,12 @@ function App() {
           const field = entry.loc.find((part: unknown) =>
             ['down_resource_ids', 'rush_order_ids', 'demand_spike_pct'].includes(String(part)),
           )
-          if (field && typeof entry.msg === 'string') errors[String(field)] = entry.msg
+          if (
+            field &&
+            typeof entry.msg === 'string' &&
+            scenarioFieldRevisions.current[String(field)] === submittedRevisions[String(field)]
+          )
+            errors[String(field)] = entry.msg
         }
         setFieldErrors(errors)
       }
@@ -229,6 +246,16 @@ function App() {
     setRushId('')
     setDemand(0)
     setFieldErrors({})
+  }
+
+  function clearScenarioFieldError(field: string) {
+    scenarioFieldRevisions.current[field] = (scenarioFieldRevisions.current[field] ?? 0) + 1
+    setFieldErrors((previous) => {
+      if (!(field in previous)) return previous
+      const next = { ...previous }
+      delete next[field]
+      return next
+    })
   }
 
   const activePageLabel =
@@ -594,6 +621,12 @@ function App() {
                 </div>
               ) : (
                 <>
+                  {optimizationSnapshotStale && (
+                    <p className="optimizer-progress" role="status">
+                      Data was refreshed since this model run. Run optimization again after
+                      refreshing.
+                    </p>
+                  )}
                   <div className="result-banner">
                     <span className="result-icon">
                       <GitBranch size={18} />
@@ -814,7 +847,10 @@ function App() {
                       }
                       aria-invalid={Boolean(fieldErrors.down_resource_ids)}
                       value={downId}
-                      onChange={(e) => setDownId(e.target.value)}
+                      onChange={(e) => {
+                        setDownId(e.target.value)
+                        clearScenarioFieldError('down_resource_ids')
+                      }}
                     >
                       <option value="">No machine outage</option>
                       {activeResources.map((resource) => (
@@ -846,7 +882,10 @@ function App() {
                       }
                       aria-invalid={Boolean(fieldErrors.rush_order_ids)}
                       value={rushId}
-                      onChange={(e) => setRushId(e.target.value)}
+                      onChange={(e) => {
+                        setRushId(e.target.value)
+                        clearScenarioFieldError('rush_order_ids')
+                      }}
                     >
                       <option value="">No rush order</option>
                       {orders.map((order) => (
@@ -885,7 +924,10 @@ function App() {
                     max="300"
                     step="1"
                     value={demand}
-                    onChange={(e) => setDemand(Number(e.target.value))}
+                    onChange={(e) => {
+                      setDemand(Number(e.target.value))
+                      clearScenarioFieldError('demand_spike_pct')
+                    }}
                   />
                   <div className="range-scale">
                     <span>0%</span>
@@ -944,6 +986,12 @@ function App() {
                 <section className="scenario-results">
                   {simulation ? (
                     <>
+                      {scenarioSnapshotStale && (
+                        <p className="optimizer-progress" role="status">
+                          Data was refreshed since this model run. Run the scenario again after
+                          refreshing.
+                        </p>
+                      )}
                       {scenarioIsStale && (
                         <div className="result-banner" role="status">
                           <span className="result-icon">

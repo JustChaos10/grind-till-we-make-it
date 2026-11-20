@@ -210,6 +210,65 @@ describe('frontend data states', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('marks model results as potentially out of date after a successful refresh', async () => {
+    const metrics = {
+      late_orders: 1,
+      avg_wip_age_hours: 12,
+      throughput: 2,
+      furnace_batch_efficiency_pct: 72,
+      makespan_hours: 42,
+      resource_busy_hours: {},
+    }
+    const comparison = {
+      comparison: {
+        baseline: metrics,
+        optimized: metrics,
+        delta: {
+          late_orders: 0,
+          avg_wip_age_hours: 0,
+          throughput: 0,
+          furnace_batch_efficiency_pct: 0,
+        },
+      },
+      gantt: { baseline: [], optimized: [] },
+      why_late: { baseline: [], optimized: [] },
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input)
+        const body = path.endsWith('/api/flow-board')
+          ? { ...emptyBoard, total_wip_orders: 1 }
+          : path.endsWith('/api/catalog')
+            ? makeCatalog()
+            : path.endsWith('/api/schedule/optimize')
+              ? comparison
+              : makeSimulation()
+        return Response.json(body)
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }))
+    await screen.findByText('Proposed model schedule ready')
+    expect(screen.queryByText(/Data was refreshed since this model run/)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByText(/Run optimization again after refreshing/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Run optimization' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/Run optimization again after refreshing/)).toBeNull(),
+    )
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Run scenario' }))
+    await screen.findByRole('heading', { name: 'Simulation results' })
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByText(/Run the scenario again after refreshing/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Run scenario' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/Run the scenario again after refreshing/)).toBeNull(),
+    )
+  })
+
   it('does not let an older refresh replace a newer API snapshot', async () => {
     let resolveFirst: ((response: Response) => void) | undefined
     let flowRequests = 0
@@ -338,6 +397,8 @@ describe('frontend data states', () => {
             {
               detail: [
                 { loc: ['body', 'demand_spike_pct'], msg: 'Invalid demand' },
+                { loc: ['body', 'down_resource_ids', 0], msg: 'Invalid machine' },
+                { loc: ['body', 'rush_order_ids', 0], msg: 'Invalid order' },
                 { loc: ['body', 'other'], msg: 'Other problem' },
               ],
             },
@@ -357,6 +418,52 @@ describe('frontend data states', () => {
     await waitFor(() => expect(slider).toHaveAttribute('aria-invalid', 'true'))
     expect(slider).toHaveAccessibleDescription(/Invalid demand/)
     expect(screen.getByRole('alert')).toHaveTextContent('Other problem')
+    const machine = screen.getByRole('combobox', { name: 'Machine unavailable' })
+    const rush = screen.getByRole('combobox', { name: 'Priority rush order' })
+    expect(machine).toHaveAccessibleDescription(/Invalid machine/)
+    expect(rush).toHaveAccessibleDescription(/Invalid order/)
+    fireEvent.change(machine, { target: { value: 'res-1' } })
+    expect(machine).toHaveAttribute('aria-invalid', 'false')
+    expect(machine).not.toHaveAccessibleDescription(/Invalid machine/)
+    expect(rush).toHaveAttribute('aria-invalid', 'true')
+    fireEvent.change(rush, { target: { value: 'wo-1' } })
+    fireEvent.change(slider, { target: { value: '25' } })
+    expect(rush).toHaveAttribute('aria-invalid', 'false')
+    expect(slider).toHaveAttribute('aria-invalid', 'false')
+    expect(rush).not.toHaveAccessibleDescription(/Invalid order/)
+    expect(slider).not.toHaveAccessibleDescription(/Invalid demand/)
+  })
+
+  it('does not attach a late validation error to an edited scenario field', async () => {
+    let reply!: (response: Response) => void
+    const pending = new Promise<Response>((resolve) => {
+      reply = resolve
+    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input)
+        if (path.endsWith('/api/schedule/simulate')) return pending
+        return Response.json(
+          path.endsWith('/api/catalog') ? makeCatalog() : { ...emptyBoard, total_wip_orders: 1 },
+        )
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    fireEvent.click(screen.getByRole('button', { name: /run scenario/i }))
+    const slider = screen.getByRole('slider', { name: 'Increase quantities in this model' })
+    fireEvent.change(slider, { target: { value: '25' } })
+    reply(
+      Response.json(
+        { detail: [{ loc: ['body', 'demand_spike_pct'], msg: 'Invalid demand' }] },
+        { status: 422 },
+      ),
+    )
+    await screen.findByRole('alert')
+    expect(slider).toHaveAttribute('aria-invalid', 'false')
+    expect(slider).not.toHaveAccessibleDescription(/Invalid demand/)
   })
 
   it('submits and labels the exact scenario inputs that produced the returned Gantt', async () => {
