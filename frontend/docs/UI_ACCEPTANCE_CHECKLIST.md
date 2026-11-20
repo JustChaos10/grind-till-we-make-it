@@ -51,7 +51,7 @@
 - [x] Comparison cards handle improved/worse/unchanged/missing data correctly (component test asserts all four states).
 - [x] Percent metric displays changes in percentage points (source review).
 - [x] Operations scheduled after 96 hours are inspectable (120-operation, 240-hour component test).
-- [x] Dense Gantt remains inspectable. A single-resource component test renders all 1,200 operations and opens the last operation.
+- [x] Dense Gantt remains inspectable. A single-resource component test pages through 1,200 operations, renders 100 bars per page, and opens the last operation.
 - [x] Gantt uses consistent relative-hour axis and correct start/end bar geometry (component test and source review).
 - [x] Baseline and proposed selections show the corresponding API response dataset (component test and source review).
 - [x] Resource rows grouped by stable resource IDs, labels include plant (source review and browser smoke).
