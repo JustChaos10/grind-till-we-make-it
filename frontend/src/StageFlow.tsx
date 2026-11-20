@@ -76,7 +76,7 @@ export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule:
                 aria-controls="stage-help-detail"
                 onMouseEnter={() => {
                   setHovered(stage.name)
-                  setDismissed(null)
+                  if (!focused) setDismissed(null)
                 }}
                 onMouseLeave={() => setHovered(null)}
                 onFocus={() => {

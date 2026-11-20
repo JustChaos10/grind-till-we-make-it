@@ -87,4 +87,17 @@ describe('production stage flow', () => {
     fireEvent.mouseLeave(help)
     expect(help).toHaveAttribute('aria-expanded', 'false')
   })
+
+  it('keeps keyboard-dismissed help closed when the pointer enters another stage', () => {
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
+    const molding = screen.getByRole('button', { name: 'About Molding' })
+    const debinding = screen.getByRole('button', { name: 'About Debinding' })
+    fireEvent.focus(molding)
+    fireEvent.keyDown(molding, { key: 'Escape' })
+    fireEvent.mouseEnter(debinding)
+    expect(molding).toHaveAttribute('aria-expanded', 'false')
+    expect(debinding).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.queryByText(/Molding forms parts from feedstock/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Debinding removes binder/)).toBeInTheDocument()
+  })
 })
