@@ -35,6 +35,15 @@ responses = {'/api/flow-board': board, '/api/catalog': catalog,
     '/api/schedule/optimize': optimize, '/api/schedule/simulate': scenario}
 requests = []
 
+def check_document_width(page):
+    for width in (320, 390, 768, 1440):
+        page.set_viewport_size({'width': width, 'height': 844})
+        # Let media queries and layout settle after resizing before measuring.
+        page.evaluate('() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+        document_width = page.evaluate('document.documentElement.scrollWidth')
+        assert document_width <= width, f'Page overflows at {width}px: {document_width}px'
+
+
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
     context = browser.new_context(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
@@ -83,6 +92,7 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('heading', name='Schedule optimizer', exact=True)).to_be_focused()
     expect(page.get_by_text('All returned operations · hours from the model planning origin')).to_be_visible()
     expect(page.get_by_role('status', name='Optimization run status')).to_have_text('Optimization complete. Results are available below.')
+    check_document_width(page)
     page.set_viewport_size({'width': 390, 'height': 844})
     page.get_by_text('Browse operations as a list').click()
     list_button = page.get_by_role('button', name='WO-001 · Molding · Molding Cell 1 · 0–1h · Late')
@@ -147,6 +157,7 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('status', name='Scenario run status')).to_have_text('Simulation complete. Results are available below.')
     expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
+    check_document_width(page)
     elapsed = time.perf_counter() - started
     assert ('POST', '/api/schedule/optimize', {'time_limit_seconds': 3}) in requests
     assert ('POST', '/api/schedule/simulate', {'down_resource_ids': ['res-1'],

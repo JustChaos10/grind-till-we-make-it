@@ -89,7 +89,7 @@
 - [x] Laptop 1280×800 reviewed (`docs/screenshots/flow-laptop-1280.png`).
 - [x] Tablet ~768×1024 reviewed.
 - [x] Mobile ~390×844 reviewed after the CSS width adjustment (`docs/screenshots/flow-mobile-390.png`); KPI and stage cards use two columns and navigation moves to the bottom bar.
-- [x] No unintended horizontal page overflow at reviewed viewport sizes. Browser measurements showed `scrollWidth === clientWidth` at desktop 1920, laptop 1280, tablet 768 (753 px client area after vertical scrollbar), and mobile 390 (375 px client area after vertical scrollbar).
+- [x] No unintended horizontal page overflow at reviewed viewport sizes. Browser measurements showed `scrollWidth === clientWidth` at desktop 1920, laptop 1280, tablet 768 (753 px client area after vertical scrollbar), and mobile 390 (375 px client area after vertical scrollbar). Populated optimizer and scenario results also passed at 320, 390, 768 and 1440 px in the synthetic browser flow.
 - [x] Dense chart and tables use intentional scroll in reviewed browser views.
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.

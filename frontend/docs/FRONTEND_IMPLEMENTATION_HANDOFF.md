@@ -116,3 +116,5 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Screen-reader review, full state contrast, and visible focus remain open. Scenario field-error associations are covered by component tests and a source audit; they have not been checked with a screen reader. The five-minute founder presentation requires a spoken rehearsal using `docs/CEO_DEMO.md`.
 - A full token audit remains open: colors, spacing, and radii still include literal values across the stylesheets. Review all control states and affordances as listed in the acceptance checklist before calling the design complete.
 - Stage Help controls now have a 44 px minimum target. The fixture browser flow checks their dimensions and document width at 320, 390, 768, and 1440 px. Text buttons show an underline on hover; an Edge fixture check confirmed the hover and focus states. These checks do not cover every state or replace screen-reader review.
+
+- The synthetic browser flow now checks document width on populated optimizer and scenario results at 320, 390, 768, and 1440 px, after viewport layout settles. The chart retains its intentional internal scroll.
