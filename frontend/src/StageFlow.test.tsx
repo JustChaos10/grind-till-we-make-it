@@ -48,6 +48,19 @@ describe('production stage flow', () => {
     expect(help).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('hides the controlled detail when no stage help is active', () => {
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
+    const help = screen.getByRole('button', { name: 'About Molding' })
+    const detail = document.getElementById('stage-help-detail')
+
+    expect(help).toHaveAttribute('aria-expanded', 'false')
+    expect(detail).toHaveAttribute('hidden')
+
+    fireEvent.focus(help)
+    expect(help).toHaveAttribute('aria-expanded', 'true')
+    expect(detail).not.toHaveAttribute('hidden')
+  })
+
   it('keeps stage help open on the first pointer activation', () => {
     render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
     const help = screen.getByRole('button', { name: 'About Molding' })

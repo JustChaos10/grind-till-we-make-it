@@ -103,14 +103,12 @@ export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule:
         })}
       </div>
       <p className="stage-route-note">Some parts skip CNC machining.</p>
-      <div id="stage-help-detail" className="stage-help-detail" aria-live="polite">
-        {detail ? (
+      <div id="stage-help-detail" className="stage-help-detail" aria-live="polite" hidden={!detail}>
+        {detail && (
           <>
             <strong>{detail.name}:</strong> {detail.help} Counts show open orders at this current
             stage, not live transfers.
           </>
-        ) : (
-          'Select or focus Help for stage details.'
         )}
       </div>
       <div className="flow-foot">
