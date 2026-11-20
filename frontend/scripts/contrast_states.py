@@ -1,6 +1,7 @@
 """Measure selected rendered text states with synthetic API responses.
 
 Start Vite on port 5187; then run python scripts/contrast_states.py.
+Set INDOFLOW_VIEWPORT_WIDTH and INDOFLOW_VIEWPORT_HEIGHT to check another size.
 This checks solid-color text/background pairs only, not full accessibility compliance.
 """
 import ast
@@ -62,7 +63,10 @@ def check(label, locator):
 
 with sync_playwright() as p:
     browser = p.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
-    page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
+    page = browser.new_page(viewport={
+        'width': int(os.environ.get('INDOFLOW_VIEWPORT_WIDTH', '1280')),
+        'height': int(os.environ.get('INDOFLOW_VIEWPORT_HEIGHT', '800')),
+    }, reduced_motion='reduce')
     def route_api(route):
         path = '/' + route.request.url.split('/', 3)[3].split('?', 1)[0]
         if path == fail_path:
@@ -75,14 +79,16 @@ with sync_playwright() as p:
     page.route('**/api/**', route_api)
     page.goto(os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5187'), wait_until='networkidle')
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    failures = check('Populated Flow board', page.locator('body'))
     fail_path = '/api/flow-board'
     page.get_by_role('button', name='Refresh data').click()
-    failures = check('Refresh failure alert', page.get_by_role('alert'))
+    failures += check('Refresh failure alert', page.get_by_role('alert'))
     page.get_by_role('button', name='Dismiss').click()
     failures += check('Previous data warning', page.get_by_text('Showing the last successfully loaded data. Retry to update it.'))
     fail_path = ''
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
+    failures += check('Optimization results', page.locator('body'))
     bar = page.get_by_role('button', name='WO-001, SKU-1, Molding, Molding Cell 1, 0 to 1 hours, late, batch B-42')
     bar.click()
     failures += check('Selected operation details', page.get_by_role('region', name='Selected operation details'))
@@ -96,6 +102,7 @@ with sync_playwright() as p:
     page.get_by_role('button', name='Scenario lab').click()
     page.get_by_role('button', name='Run scenario').click()
     expect(page.get_by_role('status', name='Scenario run status')).to_have_text('Simulation complete. Results are available below.')
+    failures += check('Scenario results', page.locator('body'))
     failures += check('Submitted scenario inputs', page.get_by_text('Submitted inputs:', exact=False))
     failures += check('Scenario late-order explanations', page.get_by_role('region', name='Scenario late-order explanations'))
     browser.close()

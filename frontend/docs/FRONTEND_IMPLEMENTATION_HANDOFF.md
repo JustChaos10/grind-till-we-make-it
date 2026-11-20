@@ -126,6 +126,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- `scripts/contrast_states.py` measures solid text/background pairs across the populated board, optimizer and scenario results, plus selected error and detail states. Synthetic Edge runs at 1280 × 800 and 390 × 844 found no measured failures; the lowest supported ratios were 4.69:1 and 4.74:1 respectively. This does not cover every state, non-text contrast, images, or assistive technology.
 - The empty Schedule optimizer explains that work orders are required and offers a link to the Flow board. Component tests verify the disabled run action and no optimization request; synthetic Edge checks covered navigation and overflow at 390 × 844 and 1280 × 844. See `screenshots/empty-optimizer-390.png` and `screenshots/empty-optimizer-1280.png`.
 - Screen navigation now uses `#board`, `#optimizer`, and `#scenario`, so a direct link or reload opens the selected screen and browser Back/Forward restores it with heading focus. Unknown hashes fall back to the board. The synthetic Edge flow checked reload and browser history; all 63 frontend tests, lint, and build passed. Lint reports an existing Gantt effect warning.
 - Stage Help now hides its detail region when no help is active, matching the controls' collapsed state. Component tests and the synthetic browser flow passed; screen-reader speech remains unverified.

@@ -15,6 +15,9 @@
   --line: #e9ece8;
   --table-divider: #edf0ec;
   --on-primary: #fff;
+  --button-primary-background: #17824d;
+  --button-primary-border: #127343;
+  --button-primary-hover-background: #0f7040;
   --neutral-track: #f0f2ef;
   --subtle-divider: var(--neutral-track);
   --track: var(--neutral-track);
@@ -398,12 +401,12 @@ a {
   height: 38px;
   padding: 0 14px;
   color: var(--on-primary);
-  background: #17824d;
-  border: 1px solid #127343;
+  background: var(--button-primary-background);
+  border: 1px solid var(--button-primary-border);
   box-shadow: 0 2px 4px #167d4924;
 }
 .primary-button:hover:not(:disabled) {
-  background: #0f7040;
+  background: var(--button-primary-hover-background);
   transform: translateY(-1px);
 }
 .secondary-button {
