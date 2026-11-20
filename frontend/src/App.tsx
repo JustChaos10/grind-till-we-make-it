@@ -77,6 +77,8 @@ function App() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [refreshFailed, setRefreshFailed] = useState(false)
+  const [optimizationFailed, setOptimizationFailed] = useState(false)
+  const [scenarioFailed, setScenarioFailed] = useState(false)
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
   const [demand, setDemand] = useState(0)
@@ -230,9 +232,11 @@ function App() {
         }),
       )
       setOptimizationSnapshotStale(snapshotRevision.current !== submittedSnapshot)
+      setOptimizationFailed(false)
       setOptimizationAnnouncement('Optimization complete. Results are available below.')
     } catch (e) {
       setOptimizationAnnouncement('')
+      setOptimizationFailed(true)
       setError(e instanceof Error ? e.message : 'Schedule optimization failed.')
     } finally {
       scheduleRequestInFlight.current = false
@@ -268,9 +272,11 @@ function App() {
       })
       setScenarioRun({ inputs: submittedInputs, result })
       setScenarioSnapshotStale(snapshotRevision.current !== submittedSnapshot)
+      setScenarioFailed(false)
       setScenarioAnnouncement('Simulation complete. Results are available below.')
     } catch (e) {
       setScenarioAnnouncement('')
+      setScenarioFailed(true)
       if (e instanceof ApiError && Array.isArray(e.detail)) {
         const errors: Record<string, string> = {}
         for (const entry of e.detail) {
@@ -701,6 +707,11 @@ function App() {
                 </div>
               ) : (
                 <>
+                  {optimizationFailed && (
+                    <p className="optimizer-progress" role="status">
+                      The latest optimization failed. Showing the last successful result.
+                    </p>
+                  )}
                   {optimizationSnapshotStale && (
                     <p className="optimizer-progress" role="status">
                       Data was refreshed since this model run. Run optimization again after
@@ -1098,6 +1109,11 @@ function App() {
                 <section className="scenario-results">
                   {simulation ? (
                     <>
+                      {scenarioFailed && (
+                        <p className="optimizer-progress" role="status">
+                          The latest simulation failed. Showing the last successful result.
+                        </p>
+                      )}
                       {scenarioSnapshotStale && (
                         <p className="optimizer-progress" role="status">
                           Data was refreshed since this model run. Run the scenario again after

@@ -882,6 +882,15 @@ describe('frontend data states', () => {
     )
     expect(status).toBeEmptyDOMElement()
     expect(screen.getByRole('alert')).toHaveTextContent('Optimization failed')
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(
+      screen.getByText('The latest optimization failed. Showing the last successful result.'),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Run optimization' }))
+    await act(async () => finish?.(Response.json(result)))
+    expect(
+      screen.queryByText('The latest optimization failed. Showing the last successful result.'),
+    ).not.toBeInTheDocument()
   })
 
   it('announces scenario progress and completion on each run, and reports failures', async () => {
@@ -919,6 +928,15 @@ describe('frontend data states', () => {
     await act(async () => finish?.(Response.json({ detail: 'Simulation failed' }, { status: 500 })))
     expect(status).toBeEmptyDOMElement()
     expect(screen.getByRole('alert')).toHaveTextContent('Simulation failed')
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(
+      screen.getByText('The latest simulation failed. Showing the last successful result.'),
+    ).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Run scenario' }))
+    await act(async () => finish?.(Response.json(makeSimulation())))
+    expect(
+      screen.queryByText('The latest simulation failed. Showing the last successful result.'),
+    ).not.toBeInTheDocument()
   })
 
   it('sends only one scenario request when Run is clicked repeatedly while pending', async () => {

@@ -37,6 +37,7 @@ responses = {'/api/flow-board': board, '/api/catalog': catalog,
     '/api/schedule/optimize': optimize, '/api/schedule/simulate': scenario}
 requests = []
 fail_refresh = False
+fail_run = ''
 
 def check_document_width(page):
     for width in (320, 390, 768, 1440):
@@ -55,6 +56,9 @@ with sync_playwright() as playwright:
         request = route.request
         path = '/' + request.url.split('/', 3)[3].split('?', 1)[0]
         requests.append((request.method, path, request.post_data_json if request.post_data else None))
+        if path == fail_run:
+            route.fulfill(status=503, content_type='application/json', body=json.dumps({'detail': 'Synthetic run failure'}))
+            return
         if fail_refresh and path == '/api/flow-board':
             route.fulfill(status=503, content_type='application/json', body=json.dumps({'detail': 'Synthetic refresh failure'}))
             return
@@ -112,6 +116,14 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('heading', name='Schedule optimizer', exact=True)).to_be_focused()
     expect(page.get_by_text('All returned operations · hours from the model planning origin')).to_be_visible()
     expect(page.get_by_role('status', name='Optimization run status')).to_have_text('Optimization complete. Results are available below.')
+    fail_run = '/api/schedule/optimize'
+    page.get_by_role('button', name='Run optimization').click()
+    expect(page.get_by_role('alert')).to_contain_text('Synthetic run failure')
+    page.get_by_role('button', name='Dismiss').click()
+    expect(page.get_by_text('The latest optimization failed. Showing the last successful result.')).to_be_visible()
+    fail_run = ''
+    page.get_by_role('button', name='Run optimization').click()
+    expect(page.get_by_text('The latest optimization failed. Showing the last successful result.')).to_have_count(0)
     check_document_width(page)
     page.set_viewport_size({'width': 390, 'height': 844})
     page.get_by_text('Browse operations as a list').click()
@@ -177,6 +189,14 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('status', name='Scenario run status')).to_have_text('Simulation complete. Results are available below.')
     expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
+    fail_run = '/api/schedule/simulate'
+    page.get_by_role('button', name='Run scenario').click()
+    expect(page.get_by_role('alert')).to_contain_text('Synthetic run failure')
+    page.get_by_role('button', name='Dismiss').click()
+    expect(page.get_by_text('The latest simulation failed. Showing the last successful result.')).to_be_visible()
+    fail_run = ''
+    page.get_by_role('button', name='Run scenario').click()
+    expect(page.get_by_text('The latest simulation failed. Showing the last successful result.')).to_have_count(0)
     check_document_width(page)
     page.set_viewport_size({'width': 390, 'height': 844})
     late_list = page.get_by_role('region', name='Scenario late-order explanations')

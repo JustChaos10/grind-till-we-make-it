@@ -12,6 +12,7 @@
 
 ## Verification completed
 
+- A failed optimization or scenario rerun now leaves a persistent notice beside the last successful result, even after the error is dismissed. A successful rerun clears the notice. Component tests and the synthetic Edge browser flow cover both recovery paths.
 - A failed refresh now changes the header status to identify the previous snapshot; a successful retry clears it. The empty Scenario Lab now links back to Flow Board and moves focus to its heading. Component tests and the synthetic Edge flow passed, including failure/recovery and empty-state navigation at 390 and 1280 px.
 - Scenario late-order explanations now stay in a bounded, keyboard-focusable scroll area. An Edge fixture with 30 synthetic explanations verified keyboard access to the final item at 390 px; `screenshots/scenario-late-list-mobile.png` shows the reviewed result.
 - Network failures now explain that the API connection failed, while request cancellation is preserved. Synthetic Edge checks covered loading and offline states at 1440, 1280 and 390 px, including retry focus; actual screen-reader speech remains unverified.
@@ -19,7 +20,7 @@
 - Shared the existing scenario accent color through a token without changing its value. The full token and visual-state audit remains open.
 - Optimization now announces progress and completion on every run through a persistent status region; failures use the existing alert. The API error dismiss control has 4.94:1 text contrast against its banner. Synthetic component tests and the Edge fixture flow cover these changes; actual screen-reader speech remains unverified.
 
-- Frontend unit tests: `npm test -- --run` — 51 tests passed across six files.
+- Frontend unit tests: `npm test -- --run` — 52 tests passed across six files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
