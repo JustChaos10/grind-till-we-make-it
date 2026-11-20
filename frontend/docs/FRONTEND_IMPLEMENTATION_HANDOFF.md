@@ -12,6 +12,9 @@
 
 ## Verification completed
 
+- Gantt selection remains visible when the same operation is supplied as a cloned object, without moving focus back from another control. The component test covers both cases. An operation whose data actually changes has no stable API operation ID; selection continuity and focus for that case remain open.
+- The error, empty and loading state colors were reviewed in source; sampled normal text meets 4.5:1 and sampled select and machine icons meet 3:1. This is not a full rendered-state contrast audit.
+
 - Headings and metric values now use the documented sans font stack consistently. The synthetic Edge walkthrough passed after the font change; the 320 px board and mobile Gantt captures were inspected. A singular timeline count wording issue found in that review was corrected and covered by Gantt tests. Full visual-state and token audits remain open.
 - A failed optimization or scenario rerun now leaves a persistent notice beside the last successful result, even after the error is dismissed. A successful rerun clears the notice. Component tests and the synthetic Edge browser flow cover both recovery paths.
 - A failed refresh now changes the header status to identify the previous snapshot; a successful retry clears it. The empty Scenario Lab now links back to Flow Board and moves focus to its heading. Component tests and the synthetic Edge flow passed, including failure/recovery and empty-state navigation at 390 and 1280 px.

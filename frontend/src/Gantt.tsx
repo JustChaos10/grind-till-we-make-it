@@ -6,6 +6,13 @@ import './Gantt.css'
 
 const stages = ['Molding', 'Debinding', 'Sintering', 'CNC Machining', 'Finishing']
 
+function sameOperation(left: Operation, right: Operation) {
+  return (
+    (Object.keys(left) as (keyof Operation)[]).every((key) => left[key] === right[key]) &&
+    (Object.keys(right) as (keyof Operation)[]).every((key) => left[key] === right[key])
+  )
+}
+
 function revealFocusedBar(bar: HTMLButtonElement) {
   const timeline = bar.closest<HTMLElement>('.gantt')
   const resource = bar.closest('.gantt-row')?.querySelector<HTMLElement>('.gantt-resource')
@@ -81,6 +88,7 @@ export function Gantt({
   const [selected, setSelected] = useState<Operation | null>(null)
   const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
+  const focusedSelection = useRef<Operation | null>(null)
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const hoveredBar = useRef<HTMLButtonElement | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
@@ -95,8 +103,16 @@ export function Gantt({
     })
     return [...grouped.entries()]
   }, [filtered])
-  const selectedOperation = selected && filtered.includes(selected) ? selected : null
-  const hoveredOperation = hovered && filtered.includes(hovered.item) ? hovered.item : null
+  const selectedOperation = selected
+    ? (filtered.find((item) => item === selected) ??
+      filtered.find((item) => sameOperation(item, selected)) ??
+      null)
+    : null
+  const hoveredOperation = hovered
+    ? (filtered.find((item) => item === hovered.item) ??
+      filtered.find((item) => sameOperation(item, hovered.item)) ??
+      null)
+    : null
   const displayedOperation = selectedOperation ?? hoveredOperation
   const pageSize = 50
   const currentPage = Math.min(listPage, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))
@@ -110,8 +126,9 @@ export function Gantt({
   const spaceBelow = hovered ? window.innerHeight - hovered.rect.bottom : 0
   const showBelow = hovered ? spaceBelow >= hovered.rect.top : true
   useEffect(() => {
-    if (selectedOperation) detailRef.current?.focus()
-  }, [selectedOperation])
+    if (selectedOperation && selected !== focusedSelection.current) detailRef.current?.focus()
+    focusedSelection.current = selected
+  }, [selected, selectedOperation])
   useEffect(() => {
     if (!hoveredOperation || selectedOperation) return
     const dismiss = (event: KeyboardEvent) => {

@@ -100,6 +100,25 @@ describe('Gantt controls', () => {
     expect(screen.getByLabelText('Stage')).toHaveFocus()
   })
 
+  it('retains selected details and focus when refreshed with equivalent operation objects', async () => {
+    const { rerender } = render(<Gantt operations={[first]} maxHour={24} />)
+    fireEvent.click(screen.getByRole('button', { name: /^WO-1, A/ }))
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
+
+    rerender(<Gantt operations={[{ ...first }]} maxHour={24} />)
+
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus(),
+    )
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveTextContent(
+      'WO-1',
+    )
+    const status = screen.getByLabelText('Status')
+    status.focus()
+    rerender(<Gantt operations={[{ ...first }]} maxHour={24} />)
+    expect(status).toHaveFocus()
+  })
+
   it('keeps overlapping operations discoverable and supports zoom and table selection', () => {
     const { container, rerender } = render(<Gantt operations={[first, second]} maxHour={24} />)
     const bars = container.querySelectorAll<HTMLButtonElement>('.gantt-bar')
