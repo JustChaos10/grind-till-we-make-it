@@ -30,7 +30,11 @@ optimize = dict(comparison=dict(baseline=metrics, optimized=metrics,
 scenario = dict(scenario_inputs=dict(down_resource_ids=['res-1'], rush_order_ids=['wo-1'], demand_spike_pct=25),
     reference_metrics=metrics, scenario_metrics=metrics,
     delta=dict(late_orders=0, avg_wip_age_hours=0, throughput=0, bottleneck_before=None, bottleneck_after=None),
-    due_date_impact=[], why_late=[dict(work_order_id=f'late-{i}', wo_number=f'LATE-{i:03}',
+    due_date_impact=[dict(work_order_id='wo-1', wo_number='WO-001',
+        due_date_before_hours=24, due_date_scenario_hours=20,
+        completion_before_hours=22, completion_scenario_hours=22,
+        completion_delta_hours=0, late_before=False, late_scenario=True,
+        delay_delta_hours=2)], why_late=[dict(work_order_id=f'late-{i}', wo_number=f'LATE-{i:03}',
         due_date_hours=24, completion_hours=30, delay_hours=6, priority=2,
         explanation='Synthetic capacity constraint') for i in range(1, 31)], gantt=[operation])
 responses = {'/api/flow-board': board, '/api/catalog': catalog,
@@ -223,6 +227,18 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('status', name='Scenario run status')).to_have_text('Simulation complete. Results are available below.')
     expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
+    impact = page.get_by_role('region', name='Due-date impact by work order')
+    expect(impact.get_by_role('columnheader', name='Delay change')).to_have_text('Delay change')
+    impact_row = impact.get_by_role('row').filter(has_text='WO-001')
+    expect(impact_row.get_by_role('cell').nth(6)).to_have_text('0h')
+    expect(impact_row.get_by_role('cell').nth(7)).to_have_text('+2h')
+    for width in (1280, 390):
+        page.set_viewport_size({'width': width, 'height': 844})
+        impact.focus()
+        for _ in range(100):
+            page.keyboard.press('ArrowRight')
+        assert impact.evaluate('(element) => element.scrollLeft + element.clientWidth >= element.scrollWidth - 1')
+        impact.screenshot(path=f'docs/screenshots/scenario-impact-{width}.png')
     fail_run = '/api/schedule/simulate'
     page.get_by_role('button', name='Run scenario').click()
     expect(page.get_by_role('alert')).to_contain_text('Synthetic run failure')
