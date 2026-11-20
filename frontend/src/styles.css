@@ -2048,6 +2048,12 @@ a {
     inset 0 0 0 1px var(--surface),
     0 0 0 3px var(--ink);
 }
+@media (forced-colors: active) {
+  .gantt-bar.is-late:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 1px;
+  }
+}
 .gantt-summary,
 .gantt-detail {
   color: var(--gantt-label);

@@ -58,6 +58,10 @@ with sync_playwright() as playwright:
     expect(page.get_by_role('status', name='Optimization run status')).to_have_text('Optimization complete. Results are available below.')
     bar = page.get_by_role('button', name='WO-001, SKU-1, Molding, Molding Cell 1, 0 to 1 hours, late, batch B-42')
     tab_to(page, bar)
+    if os.environ.get('INDOFLOW_FORCED_COLORS') == 'active':
+        assert bar.evaluate("element => getComputedStyle(element).outlineStyle === 'solid'"), 'Late operation focus must be distinct from its dashed late-status outline in forced colors'
+        if os.environ.get('INDOFLOW_GANTT_FOCUS_SCREENSHOT'):
+            page.screenshot(path=os.environ['INDOFLOW_GANTT_FOCUS_SCREENSHOT'])
     page.keyboard.press('Enter')
     expect(page.get_by_role('region', name='Selected operation details')).to_be_focused()
     page.keyboard.press('Escape')
