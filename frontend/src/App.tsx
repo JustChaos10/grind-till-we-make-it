@@ -71,6 +71,7 @@ function App() {
   const [optimization, setOptimization] = useState<Optimization | null>(null)
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
   const [scenarioAnnouncement, setScenarioAnnouncement] = useState('')
+  const [optimizationAnnouncement, setOptimizationAnnouncement] = useState('')
   const [busy, setBusy] = useState<'seed' | 'optimize' | 'simulate' | null>(null)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -206,6 +207,7 @@ function App() {
     const submittedSnapshot = snapshotRevision.current
     setPage('optimizer')
     setBusy('optimize')
+    setOptimizationAnnouncement('The model is running. Results will appear when the API responds.')
     setError('')
     try {
       setOptimization(
@@ -215,7 +217,9 @@ function App() {
         }),
       )
       setOptimizationSnapshotStale(snapshotRevision.current !== submittedSnapshot)
+      setOptimizationAnnouncement('Optimization complete. Results are available below.')
     } catch (e) {
+      setOptimizationAnnouncement('')
       setError(e instanceof Error ? e.message : 'Schedule optimization failed.')
     } finally {
       scheduleRequestInFlight.current = false
@@ -626,8 +630,16 @@ function App() {
                   {busy === 'optimize' ? 'Running model…' : 'Run optimization'}
                 </button>
               </div>
+              <p
+                className="sr-only"
+                role="status"
+                aria-label="Optimization run status"
+                aria-atomic="true"
+              >
+                {optimizationAnnouncement}
+              </p>
               {busy === 'optimize' && (
-                <p className="optimizer-progress" role="status">
+                <p className="optimizer-progress" aria-hidden="true">
                   The model is running. Results will appear when the API responds.
                 </p>
               )}

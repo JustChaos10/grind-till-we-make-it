@@ -840,7 +840,7 @@ a {
 .error-banner button {
   border: 0;
   background: none;
-  color: #9b875c;
+  color: inherit;
   font-size: 18px;
   line-height: 15px;
 }

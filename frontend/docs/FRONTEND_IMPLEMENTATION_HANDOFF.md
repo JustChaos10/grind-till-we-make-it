@@ -12,7 +12,9 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --run` — 47 tests passed across five files.
+- Optimization now announces progress and completion on every run through a persistent status region; failures use the existing alert. The API error dismiss control has 4.94:1 text contrast against its banner. Synthetic component tests and the Edge fixture flow cover these changes; actual screen-reader speech remains unverified.
+
+- Frontend unit tests: `npm test -- --run` — 48 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.

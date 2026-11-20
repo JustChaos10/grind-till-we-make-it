@@ -744,6 +744,65 @@ describe('frontend data states', () => {
     expect(JSON.parse(String(request?.[1]?.body))).toEqual({ time_limit_seconds: 3 })
   })
 
+  it('announces optimization progress and completion on each run, and reports failures', async () => {
+    let finish: ((response: Response) => void) | undefined
+    const metrics = {
+      late_orders: 1,
+      avg_wip_age_hours: 12,
+      throughput: 2,
+      furnace_batch_efficiency_pct: 72,
+      makespan_hours: 42,
+      resource_busy_hours: {},
+    }
+    const result = {
+      comparison: {
+        baseline: metrics,
+        optimized: metrics,
+        delta: {
+          late_orders: 0,
+          avg_wip_age_hours: 0,
+          throughput: 0,
+          furnace_batch_efficiency_pct: 0,
+        },
+      },
+      gantt: { baseline: [], optimized: [] },
+      why_late: { baseline: [], optimized: [] },
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('/api/schedule/optimize')) {
+          return await new Promise<Response>((resolve) => {
+            finish = resolve
+          })
+        }
+        return Response.json(
+          String(input).endsWith('/api/catalog')
+            ? makeCatalog()
+            : { ...emptyBoard, total_wip_orders: 1 },
+        )
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
+    const status = screen.getByRole('status', { name: 'Optimization run status' })
+    expect(status).toBeEmptyDOMElement()
+
+    for (let run = 0; run < 2; run++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Run optimization' }))
+      expect(status).toHaveTextContent('The model is running.')
+      await act(async () => finish?.(Response.json(result)))
+      expect(status).toHaveTextContent('Optimization complete. Results are available below.')
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Run optimization' }))
+    await act(async () =>
+      finish?.(Response.json({ detail: 'Optimization failed' }, { status: 500 })),
+    )
+    expect(status).toBeEmptyDOMElement()
+    expect(screen.getByRole('alert')).toHaveTextContent('Optimization failed')
+  })
+
   it('announces scenario progress and completion on each run, and reports failures', async () => {
     let finish: ((response: Response) => void) | undefined
     vi.stubGlobal(
