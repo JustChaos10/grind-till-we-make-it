@@ -2,9 +2,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Wrench } from 'lucide-react'
 import { fmt } from './api'
 import type { ScheduledOperation as Operation } from './types'
+import { stages } from './stages'
 import './Gantt.css'
-
-const stages = ['Molding', 'Debinding', 'Sintering', 'CNC Machining', 'Finishing']
 
 function sameOperation(left: Operation, right: Operation) {
   return (
@@ -482,7 +481,7 @@ export function Gantt({
                         return (
                           <button
                             type="button"
-                            className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
+                            className={`gantt-bar stage-${stages.findIndex((stage) => stage.name === item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
                             key={`${item.work_order_id}-${item.stage}-${index}`}
                             style={{
                               left: `${left}%`,
@@ -529,9 +528,9 @@ export function Gantt({
               })}
               <div className="gantt-legend">
                 {stages.map((stage, index) => (
-                  <span key={stage}>
+                  <span key={stage.name}>
                     <i className={`legend-stage stage-${index + 1}`} />
-                    {stage}
+                    {stage.name}
                   </span>
                 ))}
                 <span>

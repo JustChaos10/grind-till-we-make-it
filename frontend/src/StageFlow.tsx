@@ -2,19 +2,8 @@ import { useRef, useState } from 'react'
 import { ArrowRight, Info } from 'lucide-react'
 import { fmt } from './api'
 import type { Queue } from './types'
+import { stages } from './stages'
 import './StageFlow.css'
-
-const stages = [
-  { name: 'Molding', short: 'Molding', help: 'Molding forms parts from feedstock.' },
-  { name: 'Debinding', short: 'Debinding', help: 'Debinding removes binder from molded parts.' },
-  { name: 'Sintering', short: 'Sintering', help: 'Sintering densifies parts using heat.' },
-  {
-    name: 'CNC Machining',
-    short: 'CNC',
-    help: 'CNC machining is optional; some parts skip this stage.',
-  },
-  { name: 'Finishing', short: 'Finishing', help: 'Finishing covers final processing of parts.' },
-]
 
 export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule: () => void }) {
   const [focused, setFocused] = useState<string | null>(null)
@@ -52,7 +41,7 @@ export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule:
               <div className="stage-count">{queue ? queue.queue_depth.toLocaleString() : '—'}</div>
               <div className="stage-name">
                 {stage.short}
-                {stage.name === 'CNC Machining' && ' (optional)'}
+                {stage.optional && ' (optional)'}
               </div>
               <div className="stage-bar" aria-hidden="true">
                 <span
