@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- The synthetic contrast script now checks hover text on four key board, optimizer, and scenario controls. Edge runs at 1280 and 390 px found no supported solid-color text failures in the sampled states. This does not cover all controls or non-text contrast.
+
 - When a selected Gantt list item is removed by pagination or collapsing the list, closing its details now returns focus to the list summary. A component regression and `scripts/gantt_list_focus.py` passed with synthetic data in Edge at 390 px. All 68 frontend tests, the build, and lint passed; lint retains the existing Gantt effect warning.
 
 - The synthetic contrast check now also covers stage help, scenario failure, and the retained scenario-result notice at 1280 and 390 px. No supported solid-color text pairs failed; this is not a complete contrast or screen-reader audit.
