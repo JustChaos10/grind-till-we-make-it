@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- The board labels `total_wip_orders` as open work orders and states that quality holds are included, matching the API definition. The contrast script now compares full-precision ratios to the threshold; synthetic initial and empty-state checks at 1280 × 800 and 390 × 844 found no supported solid-color failures. The full frontend suite passed 67 tests and the production build passed. Other contrast states and assistive-technology checks remain open.
+
 - Mobile keyboard focus could be hidden behind the fixed bottom navigation. Mobile scroll padding now keeps focused controls clear. `scripts/mobile_focus_visibility.py` passed at 390×844 for optimizer and scenario timeline controls in normal and forced colors; removing the padding reproduced the failure. Lint passed with the existing Gantt effect warning. This does not replace a full assistive-technology review.
 
 - Throughput captions now use both reported horizons. When a horizon is missing or differs, the UI withholds the change and optimizer comparison bar. Scenario copy describes modeled quantities. Component checks cover matching and differing horizons; the synthetic Edge walkthrough passed before the final bar-only adjustment. Frontend tests: 63 passed; build passed; lint passed with the existing Gantt effect warning.
