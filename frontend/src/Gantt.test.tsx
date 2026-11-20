@@ -49,7 +49,7 @@ describe('Gantt controls', () => {
     expect(detail).toHaveTextContent('WO-1')
     expect(detail).toHaveFocus()
     expect(detail).toHaveAccessibleDescription(
-      'WO-1 A Sintering Batch B1 Furnace · Plant A 0–10h On time at scheduled completion',
+      'WO-1 A Sintering Batch B1 Furnace · Plant A 0–10h Duration: 10 hours On time at scheduled completion Modeled operation · not a committed production order',
     )
     fireEvent.mouseEnter(secondBar)
     fireEvent.mouseLeave(secondBar.closest('.gantt')!.parentElement!)
@@ -62,6 +62,17 @@ describe('Gantt controls', () => {
     expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
     await waitFor(() => expect(secondBar).toHaveFocus())
+  })
+
+  it('describes an operation without a batch and its duration', () => {
+    render(<Gantt operations={[{ ...second, batch_id: null }]} maxHour={24} />)
+    fireEvent.click(screen.getByRole('button', { name: /^WO-2, B/ }))
+    const detail = screen.getByRole('region', { name: 'Selected operation details' })
+    expect(detail).toHaveTextContent('No batch')
+    expect(detail).toHaveTextContent('Duration: 6 hours')
+    expect(detail).toHaveAccessibleDescription(
+      'WO-2 B Sintering No batch Furnace · Plant A 2–8h Duration: 6 hours Late Modeled operation · not a committed production order',
+    )
   })
 
   it('filters, reports empty matches, and clears filters without changing the timeline scale', () => {

@@ -80,6 +80,8 @@ with sync_playwright() as playwright:
     page.get_by_role('button', name='Flow board').first.click()
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
+    expect(page.get_by_role('heading', name='Schedule optimizer', exact=True)).to_be_focused()
+    expect(page.get_by_text('All returned operations · hours from the model planning origin')).to_be_visible()
     expect(page.get_by_role('status', name='Optimization run status')).to_have_text('Optimization complete. Results are available below.')
     page.set_viewport_size({'width': 390, 'height': 844})
     page.get_by_text('Browse operations as a list').click()

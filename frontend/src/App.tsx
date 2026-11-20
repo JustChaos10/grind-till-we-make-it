@@ -205,6 +205,8 @@ function App() {
     if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
     const submittedSnapshot = snapshotRevision.current
+    if (page === 'optimizer') destinationHeading.current?.focus()
+    else focusDestination.current = true
     setPage('optimizer')
     setBusy('optimize')
     setOptimizationAnnouncement('The model is running. Results will appear when the API responds.')
@@ -742,7 +744,7 @@ function App() {
                     <div className="panel-heading schedule-heading">
                       <div>
                         <h2>Production timeline</h2>
-                        <p>All returned operations · planned hours from now</p>
+                        <p>All returned operations · hours from the model planning origin</p>
                       </div>
                       <div className="segmented" role="group" aria-label="Schedule view">
                         <button

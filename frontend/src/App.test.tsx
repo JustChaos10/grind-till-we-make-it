@@ -315,10 +315,12 @@ describe('frontend data states', () => {
     await screen.findByRole('heading', { name: 'Production flow overview' })
     fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }))
     await screen.findByText('Proposed model schedule ready')
+    expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
     expect(screen.queryByText(/Data was refreshed since this model run/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     expect(await screen.findByText(/Run optimization again after refreshing/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Run optimization' }))
+    expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
     await waitFor(() =>
       expect(screen.queryByText(/Run optimization again after refreshing/)).toBeNull(),
     )
@@ -713,6 +715,9 @@ describe('frontend data states', () => {
     expect(screen.getByRole('heading', { name: 'Production flow overview' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
     expect(await screen.findByText('Proposed model schedule ready')).toBeTruthy()
+    expect(
+      screen.getByText('All returned operations · hours from the model planning origin'),
+    ).toBeTruthy()
     expect(screen.getByText(/completed within 168 hours/)).toBeTruthy()
     expect(screen.getByText(/not utilization or OEE/)).toBeTruthy()
     const deltaLabels = Array.from(document.querySelectorAll('.delta-chip')).map((chip) =>

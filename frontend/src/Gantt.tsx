@@ -407,10 +407,12 @@ export function Gantt({
                     'order',
                     'sku',
                     'stage',
-                    ...(selectedOperation.batch_id ? ['batch'] : []),
+                    'batch',
                     'resource',
                     'time',
+                    'duration',
                     'status',
+                    'provenance',
                   ]
                     .map((part) => `${detailId}-${part}`)
                     .join(' ')
@@ -453,14 +455,17 @@ export function Gantt({
             <strong id={`${detailId}-order`}>{displayedOperation.wo_number}</strong>
             <span id={`${detailId}-sku`}>{displayedOperation.sku_code}</span>
             <span id={`${detailId}-stage`}>{displayedOperation.stage}</span>
-            {displayedOperation.batch_id && (
-              <span id={`${detailId}-batch`}>Batch {displayedOperation.batch_id}</span>
-            )}
+            <span id={`${detailId}-batch`}>
+              {displayedOperation.batch_id ? `Batch ${displayedOperation.batch_id}` : 'No batch'}
+            </span>
             <span id={`${detailId}-resource`}>
               {displayedOperation.resource_name} · {displayedOperation.plant}
             </span>
             <span id={`${detailId}-time`}>
               {fmt(displayedOperation.start_hour)}–{fmt(displayedOperation.end_hour)}h
+            </span>
+            <span id={`${detailId}-duration`}>
+              Duration: {fmt(displayedOperation.end_hour - displayedOperation.start_hour)} hours
             </span>
             {displayedOperation.is_late ? (
               <span id={`${detailId}-status`} className="delay-tag">
@@ -471,6 +476,9 @@ export function Gantt({
                 On time at scheduled completion
               </span>
             )}
+            <span id={`${detailId}-provenance`}>
+              Modeled operation · not a committed production order
+            </span>
             {selectedOperation && (
               <button
                 type="button"

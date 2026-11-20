@@ -14,7 +14,7 @@
 
 - Optimization now announces progress and completion on every run through a persistent status region; failures use the existing alert. The API error dismiss control has 4.94:1 text contrast against its banner. Synthetic component tests and the Edge fixture flow cover these changes; actual screen-reader speech remains unverified.
 
-- Frontend unit tests: `npm test -- --run` — 48 tests passed across five files.
+- Frontend unit tests: `npm test -- --run` — 49 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -26,6 +26,8 @@
 - Compatibility smoke used the backend at `origin/main` commit `d9ae616` in an isolated worktree with a temporary SQLite database. Empty onboarding rendered, and confirmed seed (150 orders), optimization, and a CNC-1 outage simulation each returned HTTP 200 and rendered. The smoke used the working frontend checkout. Alert classification was corrected and tested separately after that run.
 
 ## Final implementation update
+
+- Corrected the timeline to describe hours from the model planning origin. Gantt details now show duration, batch or no batch, and modeled-operation provenance, including in the accessible description. Starting optimization moves focus to its heading so focus is not lost when the initiating control is disabled or removed. Component tests and the synthetic Edge browser flow passed; screen-reader speech remains unverified.
 
 - Reworked the stage flow, planning hierarchy, and responsive schedule layout. The Gantt keeps the timeline and resource labels together, with keyboard selection, focus restoration, filters, zoom, and a text view of returned operation details. Queue and late-order actions connect the board, timeline, and Scenario Lab. A component test inspects the last operation in a schedule of 1,200 operations on one resource.
 - Classified board alerts by message content, with distinct labels for stage queues and modeled busy-hours signals and a general label for other alerts (`fe3ad6b`).
