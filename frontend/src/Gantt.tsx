@@ -46,6 +46,8 @@ export function Gantt({
     [filterState, requestSequence, focusWorkOrderRequest?.order],
   )
   const [zoom, setZoom] = useState(1)
+  const [listOpen, setListOpen] = useState(false)
+  const [listPage, setListPage] = useState(0)
   const orderFilter = useRef<HTMLSelectElement | null>(null)
   useEffect(() => {
     if (!focusWorkOrderRequest) return
@@ -65,15 +67,16 @@ export function Gantt({
     [operations, filters],
   )
   const options = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b))
-  const setFilter = (name: keyof typeof filters, value: string) =>
+  const setFilter = (name: keyof typeof filters, value: string) => {
+    setListPage(0)
     setFilterState({ filters: { ...filters, [name]: value }, sequence: requestSequence })
+  }
   const activeFilters = Object.values(filters).filter(Boolean).length
   const [selected, setSelected] = useState<Operation | null>(null)
   const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const hoveredBar = useRef<HTMLButtonElement | null>(null)
-  const detailClose = useRef<HTMLButtonElement | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
@@ -88,10 +91,13 @@ export function Gantt({
   const selectedOperation = selected && filtered.includes(selected) ? selected : null
   const hoveredOperation = hovered && filtered.includes(hovered.item) ? hovered.item : null
   const displayedOperation = selectedOperation ?? hoveredOperation
+  const pageSize = 50
+  const currentPage = Math.min(listPage, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))
+  const pageStart = currentPage * pageSize
   const spaceBelow = hovered ? window.innerHeight - hovered.rect.bottom : 0
   const showBelow = hovered ? spaceBelow >= hovered.rect.top : true
   useEffect(() => {
-    if (selectedOperation) detailClose.current?.focus()
+    if (selectedOperation) detailRef.current?.focus()
   }, [selectedOperation])
   useEffect(() => {
     if (!hoveredOperation || selectedOperation) return
@@ -187,7 +193,10 @@ export function Gantt({
         </label>
         <button
           type="button"
-          onClick={() => setFilterState({ filters: emptyFilters, sequence: requestSequence })}
+          onClick={() => {
+            setListPage(0)
+            setFilterState({ filters: emptyFilters, sequence: requestSequence })
+          }}
           disabled={!activeFilters}
         >
           Clear filters ({activeFilters})
@@ -205,6 +214,59 @@ export function Gantt({
         {filtered.length.toLocaleString()} operations across {rows.length} resources · Timeline: 0–
         {fmt(maxHour, 0)}h
       </div>
+      {filtered.length > 0 && (
+        <details
+          className="operation-list"
+          onToggle={(event) => setListOpen(event.currentTarget.open)}
+        >
+          <summary>Browse operations as a list</summary>
+          {listOpen && (
+            <div>
+              <p>Choose an operation to view its details. The list follows the timeline filters.</p>
+              <p className="operation-list-count" aria-live="polite">
+                Showing {pageStart + 1}–{Math.min(pageStart + pageSize, filtered.length)} of{' '}
+                {filtered.length} operations
+              </p>
+              <ul>
+                {filtered.slice(pageStart, pageStart + pageSize).map((item, index) => (
+                  <li key={`${item.work_order_id}-${item.stage}-${pageStart + index}`}>
+                    <button
+                      type="button"
+                      className="operation-list-item"
+                      onClick={(event) => {
+                        selectedBar.current = event.currentTarget
+                        setHovered(null)
+                        setSelected(item)
+                        if (selectedOperation === item) detailRef.current?.focus()
+                      }}
+                    >
+                      {item.wo_number} · {item.stage} · {item.resource_name} ·{' '}
+                      {fmt(item.start_hour)}–{fmt(item.end_hour)}h ·{' '}
+                      {item.is_late ? 'Late' : 'On time'}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="gantt-controls">
+                <button
+                  type="button"
+                  disabled={currentPage === 0}
+                  onClick={() => setListPage(currentPage - 1)}
+                >
+                  Previous operations
+                </button>
+                <button
+                  type="button"
+                  disabled={pageStart + pageSize >= filtered.length}
+                  onClick={() => setListPage(currentPage + 1)}
+                >
+                  Next operations
+                </button>
+              </div>
+            </div>
+          )}
+        </details>
+      )}
       <div onMouseLeave={() => setHovered(null)}>
         {filtered.length === 0 ? (
           <div className="gantt-empty">
@@ -324,6 +386,22 @@ export function Gantt({
             id={selectedOperation ? detailId : undefined}
             role={selectedOperation ? 'region' : undefined}
             aria-label={selectedOperation ? 'Selected operation details' : undefined}
+            aria-describedby={
+              selectedOperation
+                ? [
+                    'order',
+                    'sku',
+                    'stage',
+                    ...(selectedOperation.batch_id ? ['batch'] : []),
+                    'resource',
+                    'time',
+                    'status',
+                  ]
+                    .map((part) => `${detailId}-${part}`)
+                    .join(' ')
+                : undefined
+            }
+            tabIndex={selectedOperation ? -1 : undefined}
             aria-hidden={selectedOperation ? undefined : true}
             onMouseLeave={(event) => {
               if (
@@ -357,26 +435,29 @@ export function Gantt({
                 : undefined
             }
           >
-            <strong>{displayedOperation.wo_number}</strong>
-            <span>{displayedOperation.sku_code}</span>
-            <span>{displayedOperation.stage}</span>
-            {displayedOperation.batch_id && <span>Batch {displayedOperation.batch_id}</span>}
-            <span>
+            <strong id={`${detailId}-order`}>{displayedOperation.wo_number}</strong>
+            <span id={`${detailId}-sku`}>{displayedOperation.sku_code}</span>
+            <span id={`${detailId}-stage`}>{displayedOperation.stage}</span>
+            {displayedOperation.batch_id && (
+              <span id={`${detailId}-batch`}>Batch {displayedOperation.batch_id}</span>
+            )}
+            <span id={`${detailId}-resource`}>
               {displayedOperation.resource_name} · {displayedOperation.plant}
             </span>
-            <span>
+            <span id={`${detailId}-time`}>
               {fmt(displayedOperation.start_hour)}–{fmt(displayedOperation.end_hour)}h
             </span>
             {displayedOperation.is_late ? (
-              <span className="delay-tag">
+              <span id={`${detailId}-status`} className="delay-tag">
                 Late{displayedOperation.delay_reason ? ` · ${displayedOperation.delay_reason}` : ''}
               </span>
             ) : (
-              <span className="on-time-tag">On time at scheduled completion</span>
+              <span id={`${detailId}-status`} className="on-time-tag">
+                On time at scheduled completion
+              </span>
             )}
             {selectedOperation && (
               <button
-                ref={detailClose}
                 type="button"
                 className="link-button"
                 onClick={() => {

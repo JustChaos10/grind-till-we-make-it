@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Gantt } from './Gantt'
 import type { ScheduledOperation } from './types'
@@ -30,7 +30,7 @@ const second: ScheduledOperation = {
 afterEach(cleanup)
 
 describe('Gantt controls', () => {
-  it('shows dismissible hover details without moving focus or replacing an activated selection', () => {
+  it('shows dismissible hover details without moving focus or replacing an activated selection', async () => {
     render(<Gantt operations={[first, second]} maxHour={24} />)
     const firstBar = screen.getByRole('button', { name: /^WO-1, A/ })
     const secondBar = screen.getByRole('button', { name: /^WO-2, B/ })
@@ -47,12 +47,21 @@ describe('Gantt controls', () => {
     fireEvent.click(firstBar)
     const detail = screen.getByRole('region', { name: 'Selected operation details' })
     expect(detail).toHaveTextContent('WO-1')
-    expect(screen.getByRole('button', { name: 'Clear selection' })).toHaveFocus()
+    expect(detail).toHaveFocus()
+    expect(detail).toHaveAccessibleDescription(
+      'WO-1 A Sintering Batch B1 Furnace · Plant A 0–10h On time at scheduled completion',
+    )
     fireEvent.mouseEnter(secondBar)
     fireEvent.mouseLeave(secondBar.closest('.gantt')!.parentElement!)
     expect(detail).toHaveTextContent('WO-1')
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+    await waitFor(() => expect(firstBar).toHaveFocus())
+
+    fireEvent.click(secondBar)
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
+    await waitFor(() => expect(secondBar).toHaveFocus())
   })
 
   it('filters, reports empty matches, and clears filters without changing the timeline scale', () => {
@@ -99,5 +108,34 @@ describe('Gantt controls', () => {
     )
     fireEvent.change(screen.getByLabelText('Work order'), { target: { value: 'WO-1199' } })
     expect(container.querySelectorAll('.gantt-bar')).toHaveLength(1)
+  })
+
+  it('offers paged, text-labelled controls for short operations and respects timeline filters', async () => {
+    const operations = Array.from({ length: 51 }, (_, index) => ({
+      ...first,
+      work_order_id: String(index),
+      wo_number: `WO-${index}`,
+      start_hour: index,
+      end_hour: index + 0.01,
+      is_late: index === 50,
+    }))
+    render(<Gantt operations={operations} maxHour={1200} />)
+    const disclosure = screen.getByText('Browse operations as a list').closest('details')!
+    disclosure.open = true
+    fireEvent(disclosure, new Event('toggle'))
+    expect(screen.getByText('Showing 1–50 of 51 operations')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Next operations' }))
+    expect(screen.getByText('Showing 51–51 of 51 operations')).toBeInTheDocument()
+    const listButton = screen.getByRole('button', { name: /WO-50 · Sintering · Furnace.*Late/ })
+    fireEvent.click(listButton)
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(listButton).toHaveFocus())
+    fireEvent.click(listButton)
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }))
+    await waitFor(() => expect(listButton).toHaveFocus())
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'late' } })
+    expect(screen.getByText('Showing 1–1 of 1 operations')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /WO-50 · Sintering/ })).toBeInTheDocument()
   })
 })

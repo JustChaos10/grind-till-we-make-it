@@ -41,6 +41,8 @@
 - Focusing a Gantt operation scrolls it clear of the sticky resource label. `python scripts/gantt_focus_check.py` passed with Edge at 390 × 844 after horizontal scrolling, including selection and Escape. The shared focus color measured at least 4.34:1 against sampled backgrounds; this is not a full focus audit.
 - Reused shared color tokens for matching surface, divider, and positive-status values. A full token audit remains open.
 - The flow board's View schedule action now opens the optimizer without starting a solver run. The empty board visibly explains when demo seeding is disabled, and disabled secondary buttons no longer change on hover. Fixture browser and unit tests cover the navigation and seeding message.
+- Board shortcuts now move focus to the destination heading. Selecting a Gantt operation moves focus to the named details region, whose description includes the operation fields; Escape or Clear selection returns focus to the control used to open it. Automated checks cannot establish screen-reader announcement quality.
+- The timeline offers a paginated operation list with text labels and 44 px minimum-height controls. It follows the timeline filters and provides a practical target for short bars without changing timeline geometry. Component tests cover pagination, filtering and focus return; the fixture browser flow checks selection at phone width.
 - Extended existing shared tokens to stage and Gantt labels, tracks, and subtle dividers without changing their colors. This is a partial token cleanup, not a completed design-system audit.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
@@ -86,6 +88,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 - `screenshots/baseline-board.png` records the board before the current design pass.
 - `screenshots/{board,optimizer,scenario}-{desktop,tablet,mobile}.png` record all three screens at desktop, tablet and mobile sizes.
+- `screenshots/gantt-list-mobile.png` shows the operation list with synthetic fixture data at 390 × 844.
 - `screenshots/real-api-{board,optimizer,scenario}.png` document the isolated API flow.
 - `screenshots/gantt-hover-desktop.png` shows the inspected hover card with synthetic fixture data at 1280×800.
 - `screenshots/flow-*.png` preserve the earlier Flow Board viewport review.

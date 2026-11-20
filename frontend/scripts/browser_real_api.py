@@ -91,7 +91,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             expect(bar).to_be_visible()
             bar.focus()
             page.keyboard.press('Enter')
-            expect(page.get_by_role('button', name='Clear selection')).to_be_focused()
+            expect(page.get_by_role('region', name='Selected operation details')).to_be_focused()
             page.keyboard.press('Escape')
             expect(bar).to_be_focused()
             page.get_by_role('button', name='Baseline', exact=True).click()

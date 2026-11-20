@@ -63,6 +63,8 @@ const formatPlanningAlert = (alert: string) =>
 
 function App() {
   const [page, setPage] = useState<Page>('board')
+  const destinationHeading = useRef<HTMLHeadingElement>(null)
+  const focusDestination = useRef(false)
   const [board, setBoard] = useState<Board | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [orders, setOrders] = useState<WorkOrder[]>([])
@@ -83,6 +85,17 @@ function App() {
     { order: string; sequence: number } | undefined
   >()
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
+  useEffect(() => {
+    if (focusDestination.current) {
+      destinationHeading.current?.focus()
+      focusDestination.current = false
+    }
+  }, [page])
+
+  function openFromBoard(destination: 'optimizer' | 'scenario') {
+    focusDestination.current = true
+    setPage(destination)
+  }
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
   const scheduleRequestInFlight = useRef(false)
@@ -508,7 +521,7 @@ function App() {
                 </section>
               ) : (
                 <div className="content-grid board-grid">
-                  <StageFlow queues={board.queues} onSchedule={() => setPage('optimizer')} />
+                  <StageFlow queues={board.queues} onSchedule={() => openFromBoard('optimizer')} />
                   <section className="panel alerts-panel">
                     <div className="panel-heading">
                       <div>
@@ -544,7 +557,7 @@ function App() {
                         </div>
                       </div>
                     )}
-                    <button className="scenario-shortcut" onClick={() => setPage('scenario')}>
+                    <button className="scenario-shortcut" onClick={() => openFromBoard('scenario')}>
                       <span className="shortcut-icon">
                         <GitBranch size={16} />
                       </span>
@@ -593,7 +606,9 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <h1>Schedule optimizer</h1>
+                  <h1 ref={destinationHeading} tabIndex={-1}>
+                    Schedule optimizer
+                  </h1>
                   <p className="heading-sub">
                     Compare an illustrative FIFO reference with a proposed model schedule.
                   </p>
@@ -828,7 +843,9 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <h1>Scenario lab</h1>
+                  <h1 ref={destinationHeading} tabIndex={-1}>
+                    Scenario lab
+                  </h1>
                   <p className="heading-sub">
                     Model how a change in capacity or demand affects scheduled work.
                   </p>

@@ -117,10 +117,28 @@ describe('frontend data states', () => {
     render(<App />)
 
     fireEvent.click(await screen.findByRole('button', { name: /view schedule/i }))
+    expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
     expect(screen.getByRole('heading', { name: 'Generate a proposed schedule' })).toBeVisible()
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/optimize')),
     ).toBe(false)
+  })
+
+  it('moves focus to the scenario heading when the board shortcut opens it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(
+          String(input).endsWith('/api/catalog')
+            ? makeCatalog()
+            : { ...emptyBoard, total_wip_orders: 1 },
+        ),
+      ),
+    )
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /plan for a disruption/i }))
+    expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus()
   })
 
   it('keeps destructive synthetic seeding disabled unless explicitly enabled for a local demo', async () => {
@@ -455,7 +473,7 @@ describe('frontend data states', () => {
     const details = screen.getByRole('region', { name: /selected operation details/i })
     expect(bar).toHaveAttribute('aria-expanded', 'true')
     expect(bar).toHaveAttribute('aria-controls', details.id)
-    expect(screen.getByRole('button', { name: 'Clear selection' })).toHaveFocus()
+    expect(details).toHaveFocus()
     expect(screen.getByText('Batch B-42')).toBeTruthy()
     expect(screen.getByText('On time at scheduled completion')).toBeTruthy()
     fireEvent.keyDown(window, { key: 'Escape' })

@@ -2,6 +2,55 @@
   color: var(--muted);
   margin: 12px 0;
 }
+.operation-list {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.operation-list summary {
+  padding: 12px 14px;
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.operation-list > div {
+  padding: 0 14px 14px;
+}
+.operation-list p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 8px 0;
+}
+.operation-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 4px;
+}
+.operation-list-item {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.operation-list-item:hover {
+  background: #f1f5f1;
+}
+.operation-list summary:focus-visible,
+.operation-list-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
 .optimizer-metadata {
   color: var(--muted);
   font-size: 12px;
