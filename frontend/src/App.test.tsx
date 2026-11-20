@@ -141,6 +141,28 @@ describe('frontend data states', () => {
     expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus()
   })
 
+  it('moves focus to the selected workspace heading, including on repeat activation', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(
+          String(input).endsWith('/api/catalog')
+            ? makeCatalog()
+            : { ...emptyBoard, total_wip_orders: 1 },
+        ),
+      ),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
+    expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
+    expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus()
+    fireEvent.click(screen.getByRole('button', { name: 'Flow board' }))
+    expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus()
+  })
+
   it('keeps destructive synthetic seeding disabled unless explicitly enabled for a local demo', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = mockApi()

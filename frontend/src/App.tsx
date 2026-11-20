@@ -94,9 +94,13 @@ function App() {
     }
   }, [page])
 
-  function openFromBoard(destination: 'optimizer' | 'scenario') {
-    focusDestination.current = true
-    setPage(destination)
+  function navigateTo(destination: Page) {
+    if (page === destination) {
+      destinationHeading.current?.focus()
+    } else {
+      focusDestination.current = true
+      setPage(destination)
+    }
   }
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
@@ -304,7 +308,7 @@ function App() {
           href="#board"
           onClick={(e) => {
             e.preventDefault()
-            setPage('board')
+            navigateTo('board')
           }}
         >
           <span className="brand-mark">
@@ -319,7 +323,7 @@ function App() {
           <button
             className={page === 'board' ? 'nav-item selected' : 'nav-item'}
             aria-current={page === 'board' ? 'page' : undefined}
-            onClick={() => setPage('board')}
+            onClick={() => navigateTo('board')}
           >
             <Layers3 size={17} />
             <span>Flow board</span>
@@ -328,7 +332,7 @@ function App() {
           <button
             className={page === 'optimizer' ? 'nav-item selected' : 'nav-item'}
             aria-current={page === 'optimizer' ? 'page' : undefined}
-            onClick={() => setPage('optimizer')}
+            onClick={() => navigateTo('optimizer')}
           >
             <GitCompareArrows size={17} />
             <span>Schedule optimizer</span>
@@ -336,7 +340,7 @@ function App() {
           <button
             className={page === 'scenario' ? 'nav-item selected' : 'nav-item'}
             aria-current={page === 'scenario' ? 'page' : undefined}
-            onClick={() => setPage('scenario')}
+            onClick={() => navigateTo('scenario')}
           >
             <GitBranch size={17} />
             <span>Scenario lab</span>
@@ -452,7 +456,9 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <h1>Production flow overview</h1>
+                  <h1 ref={destinationHeading} tabIndex={-1}>
+                    Production flow overview
+                  </h1>
                   <p className="heading-sub">
                     Work orders and resource queues from the latest API snapshot.
                   </p>
@@ -531,7 +537,7 @@ function App() {
                 </section>
               ) : (
                 <div className="content-grid board-grid">
-                  <StageFlow queues={board.queues} onSchedule={() => openFromBoard('optimizer')} />
+                  <StageFlow queues={board.queues} onSchedule={() => navigateTo('optimizer')} />
                   <section className="panel alerts-panel">
                     <div className="panel-heading">
                       <div>
@@ -567,7 +573,7 @@ function App() {
                         </div>
                       </div>
                     )}
-                    <button className="scenario-shortcut" onClick={() => openFromBoard('scenario')}>
+                    <button className="scenario-shortcut" onClick={() => navigateTo('scenario')}>
                       <span className="shortcut-icon">
                         <GitBranch size={16} />
                       </span>

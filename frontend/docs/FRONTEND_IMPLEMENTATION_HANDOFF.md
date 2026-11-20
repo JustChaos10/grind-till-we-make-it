@@ -3,7 +3,7 @@
 ## Current state
 
 - Branch: `feat/frontend-experience`.
-- Scope: React frontend and frontend documentation only. No backend logic was changed and nothing was pushed.
+- Scope: React frontend and frontend documentation only. No backend logic was changed. The feature branch is pushed to origin.
 - The frontend has a clear Flow Board, Schedule Optimizer, and Scenario Lab, with synthetic/demo and read-only messaging.
 - Scenario controls submit only supported API inputs. The result view reports API values and compares them with the reference metrics returned by the same scenario request; it does not present modeled deltas as realized savings.
 - The Gantt view shows returned operations with proportional durations, resource labels, baseline/optimized selection, and operation details.
@@ -12,9 +12,11 @@
 
 ## Verification completed
 
+- Workspace navigation now moves focus to the destination heading, including repeated activation. A component regression and `scripts/keyboard_acceptance.py` passed with synthetic fixtures in headless Edge at 1280 × 800. When the board cannot be loaded, its content heading is unavailable; screen-reader review remains open.
+- Shared the existing scenario accent color through a token without changing its value. The full token and visual-state audit remains open.
 - Optimization now announces progress and completion on every run through a persistent status region; failures use the existing alert. The API error dismiss control has 4.94:1 text contrast against its banner. Synthetic component tests and the Edge fixture flow cover these changes; actual screen-reader speech remains unverified.
 
-- Frontend unit tests: `npm test -- --run` — 49 tests passed across five files.
+- Frontend unit tests: `npm test -- --run` — 50 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -59,7 +61,7 @@
 - Feature branch: `feat/frontend-experience`.
 - Branch base: `6bd4c7e80dff7a2449a71f67fdc2ab290b239e34` (`main` at task setup); the design and browser verification continuation started from `6cce593`.
 - Frontend implementation commit: `d2a9ace74bbd3f942a3a66a940069c371d6ef429`.
-- No changes were pushed; `main` and backend source were not edited. The final documentation commit SHA and working-tree status are reported in the handoff message.
+- The feature branch is pushed to `origin/feat/frontend-experience`; `main` and backend source were not edited. Use `git status --short --branch` and `git log -1` for the current working-tree status and commit.
 
 ## Local run commands (PowerShell)
 
@@ -87,6 +89,8 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed schedule navigation without an optimization request, optimization, Gantt hover and horizontal-scroll dismissal, keyboard details and Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 1.57 seconds with reduced motion emulated; it is not a timed spoken rehearsal.
 
 With Vite on `127.0.0.1:5187`, run `python scripts/gantt_focus_check.py` to repeat the mobile keyboard focus check.
+
+For the keyboard navigation check, start Vite on port 5189 and run `python scripts/keyboard_acceptance.py`. Set `INDOFLOW_FRONTEND_URL` to use another local port. The script uses synthetic API fixtures and exercises navigation, a timeline selection, and Escape focus restoration.
 
 Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 
