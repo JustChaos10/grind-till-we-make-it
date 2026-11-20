@@ -49,6 +49,9 @@ export function Gantt({
   const [listOpen, setListOpen] = useState(false)
   const [listPage, setListPage] = useState(0)
   const orderFilter = useRef<HTMLSelectElement | null>(null)
+  const previousPageButton = useRef<HTMLButtonElement | null>(null)
+  const nextPageButton = useRef<HTMLButtonElement | null>(null)
+  const paginationFocus = useRef<'previous' | 'next' | null>(null)
   useEffect(() => {
     if (!focusWorkOrderRequest) return
     orderFilter.current?.focus()
@@ -95,6 +98,12 @@ export function Gantt({
   const pageSize = 50
   const currentPage = Math.min(listPage, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))
   const pageStart = currentPage * pageSize
+  useEffect(() => {
+    const target = paginationFocus.current
+    if (!target) return
+    paginationFocus.current = null
+    ;(target === 'previous' ? previousPageButton : nextPageButton).current?.focus()
+  }, [currentPage])
   const spaceBelow = hovered ? window.innerHeight - hovered.rect.bottom : 0
   const showBelow = hovered ? spaceBelow >= hovered.rect.top : true
   useEffect(() => {
@@ -254,15 +263,24 @@ export function Gantt({
               <div className="gantt-controls">
                 <button
                   type="button"
+                  ref={previousPageButton}
                   disabled={currentPage === 0}
-                  onClick={() => setListPage(currentPage - 1)}
+                  onClick={() => {
+                    paginationFocus.current = currentPage === 1 ? 'next' : null
+                    setListPage(currentPage - 1)
+                  }}
                 >
                   Previous operations
                 </button>
                 <button
                   type="button"
+                  ref={nextPageButton}
                   disabled={pageStart + pageSize >= filtered.length}
-                  onClick={() => setListPage(currentPage + 1)}
+                  onClick={() => {
+                    paginationFocus.current =
+                      pageStart + 2 * pageSize >= filtered.length ? 'previous' : null
+                    setListPage(currentPage + 1)
+                  }}
                 >
                   Next operations
                 </button>

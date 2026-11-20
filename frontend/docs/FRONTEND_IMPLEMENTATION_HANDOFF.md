@@ -128,3 +128,4 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Stage Help controls now have a 44 px minimum target. The fixture browser flow checks their dimensions and document width at 320, 390, 768, and 1440 px. Text buttons show an underline on hover; an Edge fixture check confirmed the hover and focus states. These checks do not cover every state or replace screen-reader review.
 
 - The synthetic browser flow now checks document width on populated optimizer and scenario results at 320, 390, 768, and 1440 px, after viewport layout settles. The chart retains its intentional internal scroll.
+- Gantt operation-list pagination retains keyboard focus when the first or last page disables its navigation button. Component tests and an Edge check with 51 synthetic operations passed.
