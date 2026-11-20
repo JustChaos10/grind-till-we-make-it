@@ -526,7 +526,11 @@ function App() {
                 />
                 <StatCard
                   label="Average WIP age"
-                  value={board.total_wip_orders ? `${fmt(board.avg_wip_age_hours)}h` : '—'}
+                  value={
+                    board.total_wip_orders && board.avg_wip_age_hours != null
+                      ? `${fmt(board.avg_wip_age_hours)}h`
+                      : '—'
+                  }
                   icon={<Clock3 size={18} />}
                   foot="Average age of open orders in this snapshot"
                   tone="amber"

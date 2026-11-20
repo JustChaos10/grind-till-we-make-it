@@ -12,6 +12,7 @@
 
 ## Verification completed
 
+- A missing or null WIP age now displays as unavailable without an hours suffix; zero remains a valid measured value. The board response types match the validator's optional fields. A component test and synthetic Edge checks at 390 and 1280 px cover the missing-age state. Frontend tests: 57 passed; build passed; lint passed with the existing Gantt effect warning.
 - Gantt selection remains visible when the same operation is supplied as a cloned object. If the selected operation changes or disappears, the selection is cleared and a status message explains why; focus returns to Stage only when it was inside the removed details. Component tests cover both focus paths. The API has no stable operation ID, so selection continuity across changed data is not available. A synthetic Edge component check also verified focus return and the status message when the operation disappears.
 - Added the missing screen-reader-only utility used by existing labels and the new status message. The synthetic Edge walkthrough passed, and the refreshed 320 px board and mobile Gantt screenshots were inspected. Screen-reader speech still needs a manual review.
 - The error, empty and loading state colors were reviewed in source; sampled normal text meets 4.5:1 and sampled select and machine icons meet 3:1. This is not a full rendered-state contrast audit.

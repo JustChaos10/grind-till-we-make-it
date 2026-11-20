@@ -106,6 +106,29 @@ afterEach(() => {
 })
 
 describe('frontend data states', () => {
+  it('shows unavailable WIP ages without a misleading unit', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(
+          String(input).endsWith('/api/catalog')
+            ? makeCatalog()
+            : {
+                ...emptyBoard,
+                total_wip_orders: 1,
+                avg_wip_age_hours: null,
+                queues: [{ stage: 'Molding', queue_depth: 1 }],
+              },
+        ),
+      ),
+    )
+    render(<App />)
+
+    expect(await screen.findByText('Age unavailable')).toBeVisible()
+    expect(screen.queryByText(/—h/)).not.toBeInTheDocument()
+    expect(screen.getByText('Average WIP age').parentElement).toHaveTextContent('—')
+  })
+
   it('opens the schedule without starting an optimization', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const body = String(input).endsWith('/api/catalog')

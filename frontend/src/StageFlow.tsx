@@ -62,7 +62,11 @@ export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule:
                 />
               </div>
               <div className="stage-meta">
-                {queue ? `${fmt(queue.avg_wip_age_hours)}h avg age` : 'No stage data'}
+                {!queue
+                  ? 'No stage data'
+                  : queue.avg_wip_age_hours == null
+                    ? 'Age unavailable'
+                    : `${fmt(queue.avg_wip_age_hours)}h avg age`}
               </div>
               <button
                 type="button"

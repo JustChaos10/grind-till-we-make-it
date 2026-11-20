@@ -2,12 +2,12 @@
 export type Queue = {
   stage: string
   queue_depth: number
-  avg_wip_age_hours: number
+  avg_wip_age_hours?: number | null
 }
 
 export type Board = {
   total_wip_orders: number
-  avg_wip_age_hours: number
+  avg_wip_age_hours?: number | null
   queues: Queue[]
   active_bottleneck_alerts: string[]
 }
