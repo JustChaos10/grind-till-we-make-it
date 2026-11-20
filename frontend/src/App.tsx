@@ -384,9 +384,11 @@ function App() {
                 ? lastUpdated
                   ? 'Refreshing API data…'
                   : 'Loading API data'
-                : lastUpdated
-                  ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'API unavailable'}
+                : refreshFailed && lastUpdated
+                  ? 'Refresh failed · previous data'
+                  : lastUpdated
+                    ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                    : 'API unavailable'}
             </span>
             <button
               className="icon-button"
@@ -1027,6 +1029,9 @@ function App() {
                     <div className="scenario-no-data" role="status">
                       <b>No schedulable work orders are available.</b>
                       <span>Load the synthetic example from the Flow board before simulating.</span>
+                      <button className="link-button" onClick={() => navigateTo('board')}>
+                        Go to Flow board
+                      </button>
                     </div>
                   )}
                   <div className="scenario-actions">

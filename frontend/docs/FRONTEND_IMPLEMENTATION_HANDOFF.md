@@ -12,6 +12,7 @@
 
 ## Verification completed
 
+- A failed refresh now changes the header status to identify the previous snapshot; a successful retry clears it. The empty Scenario Lab now links back to Flow Board and moves focus to its heading. Component tests and the synthetic Edge flow passed, including failure/recovery and empty-state navigation at 390 and 1280 px.
 - Scenario late-order explanations now stay in a bounded, keyboard-focusable scroll area. An Edge fixture with 30 synthetic explanations verified keyboard access to the final item at 390 px; `screenshots/scenario-late-list-mobile.png` shows the reviewed result.
 - Network failures now explain that the API connection failed, while request cancellation is preserved. Synthetic Edge checks covered loading and offline states at 1440, 1280 and 390 px, including retry focus; actual screen-reader speech remains unverified.
 - Workspace navigation now moves focus to the destination heading, including repeated activation. A component regression and `scripts/keyboard_acceptance.py` passed with synthetic fixtures in headless Edge at 1280 × 800. When the board cannot be loaded, its content heading is unavailable; screen-reader review remains open.

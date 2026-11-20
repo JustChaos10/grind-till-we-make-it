@@ -238,6 +238,8 @@ describe('frontend data states', () => {
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/simulate')),
     ).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to Flow board' }))
+    expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus()
   })
 
   it('shows API failures and recovers on a user refresh without inventing zeros', async () => {
@@ -288,6 +290,7 @@ describe('frontend data states', () => {
     malformed = true
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/response/i)
+    expect(screen.getByText('Refresh failed · previous data')).toHaveAttribute('role', 'status')
     expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
     expect(
       screen.getByText('Showing the last successfully loaded data. Retry to update it.'),
@@ -299,6 +302,7 @@ describe('frontend data states', () => {
     malformed = false
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await waitFor(() => expect(screen.queryByText('Refresh failed')).toBeNull())
+    expect(screen.queryByText('Refresh failed · previous data')).toBeNull()
     expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
   })
 

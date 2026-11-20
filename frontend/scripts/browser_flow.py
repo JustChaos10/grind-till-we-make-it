@@ -72,12 +72,15 @@ with sync_playwright() as playwright:
         fail_refresh = True
         page.get_by_role('button', name='Refresh data').click()
         expect(page.get_by_role('alert')).to_contain_text('Synthetic refresh failure')
+        if width == 1280:
+            expect(page.get_by_text('Refresh failed · previous data')).to_be_visible()
         page.get_by_role('button', name='Dismiss').click()
         expect(page.get_by_text('Showing the last successfully loaded data. Retry to update it.')).to_be_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
         fail_refresh = False
         page.get_by_role('button', name='Refresh data').click()
         expect(page.get_by_text('Refresh failed', exact=True)).to_have_count(0)
+        expect(page.get_by_text('Refresh failed · previous data')).to_have_count(0)
     for width in (320, 390, 768, 1440):
         page.set_viewport_size({'width': width, 'height': 844})
         for button in page.locator('.stage-help').all():
@@ -203,5 +206,15 @@ with sync_playwright() as playwright:
     touch_help.tap()
     expect(touch_help).to_have_attribute('aria-expanded', 'true')
     touch_context.close()
+    responses['/api/flow-board'] = dict(board, total_wip_orders=0, queues=[])
+    responses['/api/catalog'] = dict(resources=[], work_orders=[])
+    for width in (390, 1280):
+        page.set_viewport_size({'width': width, 'height': 844})
+        page.reload(wait_until='networkidle')
+        page.get_by_role('button', name='Scenario lab').click()
+        expect(page.get_by_role('button', name='Run scenario')).to_be_disabled()
+        page.get_by_role('button', name='Go to Flow board').click()
+        expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
+        expect(page.get_by_role('heading', name='No work orders in this database')).to_be_visible()
     browser.close()
 print(f'PASS: board, optimization, hover and scroll dismissal, keyboard selection and focus restore, scenario, reduced motion; synthetic API fixtures; automated walkthrough {elapsed:.2f}s')
