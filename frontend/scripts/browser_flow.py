@@ -111,5 +111,19 @@ with sync_playwright() as playwright:
     assert ('POST', '/api/schedule/simulate', {'down_resource_ids': ['res-1'],
         'rush_order_ids': ['wo-1'], 'demand_spike_pct': 25, 'time_limit_seconds': 3}) in requests
     assert not any(path == '/api/seed' for _, path, _ in requests)
+    touch_context = browser.new_context(viewport={'width': 390, 'height': 844},
+        is_mobile=True, has_touch=True)
+    touch_page = touch_context.new_page()
+    touch_page.route('**/api/**', route_api)
+    touch_page.goto(BASE, wait_until='networkidle')
+    touch_help = touch_page.get_by_role('button', name='About Molding')
+    touch_help.tap()
+    expect(touch_help).to_have_attribute('aria-expanded', 'true')
+    expect(touch_page.get_by_text('Molding forms parts from feedstock.', exact=False)).to_be_visible()
+    touch_help.tap()
+    expect(touch_help).to_have_attribute('aria-expanded', 'false')
+    touch_help.tap()
+    expect(touch_help).to_have_attribute('aria-expanded', 'true')
+    touch_context.close()
     browser.close()
 print(f'PASS: board, optimization, hover and scroll dismissal, keyboard selection and focus restore, scenario, reduced motion; synthetic API fixtures; automated walkthrough {elapsed:.2f}s')

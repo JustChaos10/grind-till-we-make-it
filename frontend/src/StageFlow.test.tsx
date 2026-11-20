@@ -47,6 +47,16 @@ describe('production stage flow', () => {
     expect(help).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('keeps stage help open on the first pointer activation', () => {
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
+    const help = screen.getByRole('button', { name: 'About Molding' })
+    fireEvent.pointerDown(help)
+    fireEvent.focus(help)
+    fireEvent.click(help, { detail: 1 })
+    expect(help).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/Molding forms parts from feedstock/)).toBeInTheDocument()
+  })
+
   it('keeps help open while either focus or hover remains', () => {
     render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
     const help = screen.getByRole('button', { name: 'About Molding' })

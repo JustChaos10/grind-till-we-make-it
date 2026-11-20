@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ArrowRight, Info } from 'lucide-react'
 import { fmt } from './api'
 import type { Queue } from './types'
@@ -28,6 +28,7 @@ export function StageFlow({
   const [focused, setFocused] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<string | null>(null)
+  const wasFocusedOnPointerDown = useRef(false)
   const active =
     (focused !== dismissed ? focused : null) ?? (hovered !== dismissed ? hovered : null)
   const max = Math.max(1, ...queues.map((queue) => queue.queue_depth))
@@ -87,7 +88,14 @@ export function StageFlow({
                   setDismissed(null)
                 }}
                 onBlur={() => setFocused(null)}
-                onClick={() => setDismissed(active === stage.name ? stage.name : null)}
+                onPointerDown={(event) => {
+                  wasFocusedOnPointerDown.current = document.activeElement === event.currentTarget
+                }}
+                onClick={(event) => {
+                  const firstPointerActivation =
+                    event.detail > 0 && !wasFocusedOnPointerDown.current
+                  setDismissed(!firstPointerActivation && active === stage.name ? stage.name : null)
+                }}
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') setDismissed(stage.name)
                 }}
