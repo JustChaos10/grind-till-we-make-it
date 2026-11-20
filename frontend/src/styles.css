@@ -1313,6 +1313,12 @@ a {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px var(--focus);
 }
+@media (forced-colors: active) {
+  .select-wrap:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+}
 .select-wrap select {
   flex: 1;
   min-width: 0;

@@ -40,7 +40,8 @@ def tab_to(page, target, limit=80):
 
 with sync_playwright() as playwright:
     browser = playwright.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
-    page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
+    page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce',
+                            forced_colors=os.environ.get('INDOFLOW_FORCED_COLORS', 'none'))
 
     def route_api(route):
         path = '/' + route.request.url.split('/', 3)[3].split('?', 1)[0]
@@ -66,6 +67,14 @@ with sync_playwright() as playwright:
     page.keyboard.press('Enter')
     expect(page.get_by_role('heading', name='Scenario lab', exact=True)).to_be_focused()
     expect(scenario_nav).to_have_attribute("aria-current", "page")
+    if os.environ.get('INDOFLOW_FORCED_COLORS') == 'active':
+        for label in ('Machine unavailable', 'Priority rush order'):
+            control = page.get_by_label(label)
+            tab_to(page, control)
+            wrapper = control.locator('..')
+            assert wrapper.evaluate("element => { const style = getComputedStyle(element); return style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) >= 2; }"), f'{label} has no visible forced-colors focus outline'
+            if os.environ.get('INDOFLOW_FOCUS_SCREENSHOT'):
+                page.screenshot(path=os.environ['INDOFLOW_FOCUS_SCREENSHOT'])
     board_nav = page.get_by_role('button', name='Flow board').first
     tab_to(page, board_nav)
     page.keyboard.press('Enter')
