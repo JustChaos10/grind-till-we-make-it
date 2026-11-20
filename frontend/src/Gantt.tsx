@@ -508,7 +508,9 @@ export function Gantt({
                               setSelected(item)
                             }}
                           >
-                            <span aria-hidden="true">{item.wo_number}</span>
+                            <span aria-hidden="true">
+                              {item.stage} · {item.wo_number}
+                            </span>
                           </button>
                         )
                       })}

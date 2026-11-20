@@ -148,3 +148,5 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 - Disabled primary and secondary actions now use a muted surface with readable text instead of fading the whole control. The synthetic Edge walkthrough covered an invalid scenario and saved `screenshots/scenario-disabled-mobile.png`; the screenshot was inspected. Other disabled control types still need the full-state contrast review.
 - Gantt filter and pagination buttons now share the readable disabled-control colors. The synthetic Edge walkthrough passed, and the updated `screenshots/gantt-list-mobile.png` was inspected.
+
+- Timeline bars now include the stage in their visible label. Narrow bars expose the full stage in hover and selected details and in the operation list. The Gantt component tests and synthetic Edge flow passed; the hover screenshot was inspected. Full non-color status and contrast coverage remains open.

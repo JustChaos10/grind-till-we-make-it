@@ -30,6 +30,19 @@ const second: ScheduledOperation = {
 afterEach(cleanup)
 
 describe('Gantt controls', () => {
+  it('shows the stage on bars and in details for narrow operations', () => {
+    const narrow = { ...first, end_hour: 0.1 }
+    render(<Gantt operations={[narrow]} maxHour={24} />)
+    const bar = screen.getByRole('button', { name: /^WO-1, A, Sintering,/ })
+    expect(bar).toHaveTextContent('Sintering · WO-1')
+    fireEvent.mouseEnter(bar)
+    expect(document.querySelector('.gantt-detail')).toHaveTextContent('Sintering')
+    fireEvent.click(bar)
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveTextContent(
+      'Sintering',
+    )
+  })
+
   it('shows dismissible hover details without moving focus or replacing an activated selection', async () => {
     render(<Gantt operations={[first, second]} maxHour={24} />)
     const firstBar = screen.getByRole('button', { name: /^WO-1, A/ })
