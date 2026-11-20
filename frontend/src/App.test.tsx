@@ -107,6 +107,23 @@ afterEach(() => {
 })
 
 describe('frontend data states', () => {
+  it('identifies and focuses the selected screen when the API is unavailable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network error')))
+    window.history.replaceState(null, '', '#board')
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Connect to the factory demo' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
+    expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
+    expect(screen.getByText(/load factory data to generate a proposed schedule/)).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
+    expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus()
+    expect(
+      screen.getByText(/load factory data to explore operational what-if scenarios/),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Retry API connection' })).toBeEnabled()
+  })
+
   it('opens a direct screen hash and falls back to the board for an unknown hash', async () => {
     mockApi()
     window.history.replaceState(null, '', '#scenario')

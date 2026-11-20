@@ -484,7 +484,9 @@ function App() {
           )}
           {!board && loading && (
             <section className="welcome-panel" role="status">
-              <h1>Loading factory data</h1>
+              <h1 ref={destinationHeading} tabIndex={-1}>
+                Loading factory data
+              </h1>
               <p>Connecting to the API and loading the latest snapshot.</p>
             </section>
           )}
@@ -493,10 +495,19 @@ function App() {
               <div className="welcome-icon">
                 <Activity size={24} />
               </div>
-              <h1>Connect to the factory demo</h1>
+              <h1 ref={destinationHeading} tabIndex={-1}>
+                {page === 'optimizer'
+                  ? 'Schedule optimizer'
+                  : page === 'scenario'
+                    ? 'Scenario lab'
+                    : 'Connect to the factory demo'}
+              </h1>
               <p className="welcome-copy">
-                Connect to the IndoFlow API and load a synthetic factory dataset to explore WIP,
-                proposed schedules, and operational what-if scenarios.
+                {page === 'optimizer'
+                  ? 'Connect to the IndoFlow API and load factory data to generate a proposed schedule.'
+                  : page === 'scenario'
+                    ? 'Connect to the IndoFlow API and load factory data to explore operational what-if scenarios.'
+                    : 'Connect to the IndoFlow API and load a synthetic factory dataset to explore WIP, proposed schedules, and operational what-if scenarios.'}
               </p>
               <div className="welcome-actions">
                 <button

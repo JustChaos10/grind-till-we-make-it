@@ -2,6 +2,7 @@
 
 ## Current state
 
+- When the API is unavailable, navigation now identifies the selected optimizer or scenario screen, explains what it needs, and moves focus to the destination heading. Edge checks covered both destinations at 390, 768 and 1280 px without document overflow; the 390 px scenario screenshot was visually reviewed. See `screenshots/offline-scenario-390.png`. All 70 frontend tests, build and lint passed; lint retains the existing Gantt effect warning.
 - Branch: `feat/frontend-experience`.
 - Scope: React frontend and frontend documentation only. No backend logic was changed. The feature branch is pushed to origin.
 - The frontend has a clear Flow Board, Schedule Optimizer, and Scenario Lab, with synthetic/demo and read-only messaging.
