@@ -289,10 +289,16 @@ describe('frontend data states', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/response/i)
     expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
+    expect(
+      screen.getByText('Showing the last successfully loaded data. Retry to update it.'),
+    ).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByText('Refresh failed')).toBeTruthy()
 
     malformed = false
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Refresh failed')).toBeNull())
     expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
   })
 

@@ -76,6 +76,7 @@ function App() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
+  const [refreshFailed, setRefreshFailed] = useState(false)
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
   const [demand, setDemand] = useState(0)
@@ -148,10 +149,12 @@ function App() {
       setResources(catalog.resources)
       setOrders(catalog.work_orders)
       setLastUpdated(new Date())
+      setRefreshFailed(false)
       setError('')
     } catch (e) {
       if (sequence !== refreshSequence.current || (e instanceof Error && e.name === 'AbortError'))
         return
+      setRefreshFailed(true)
       setError(e instanceof Error ? e.message : 'Could not connect to the IndoFlow API.')
     } finally {
       if (sequence === refreshSequence.current) setLoading(false)
@@ -397,6 +400,15 @@ function App() {
           </div>
         </header>
         <div className="page-content">
+          {refreshFailed && board && (
+            <div className="error-banner" role="status">
+              <AlertTriangle size={17} aria-hidden="true" />
+              <div>
+                <b>Refresh failed</b>
+                <span>Showing the last successfully loaded data. Retry to update it.</span>
+              </div>
+            </div>
+          )}
           {error && (
             <div className="error-banner" role="alert">
               <AlertTriangle size={17} />

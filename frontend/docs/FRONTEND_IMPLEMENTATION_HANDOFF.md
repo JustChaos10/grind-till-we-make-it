@@ -110,6 +110,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- A failed refresh now leaves a persistent notice that the last successfully loaded snapshot is shown, even after the detailed error is dismissed. The notice clears after a successful refresh. Component tests and the synthetic Edge flow checked failure, dismissal, and recovery; the browser flow checked phone and desktop widths.
 - The board warning icon was darkened to 6.09:1 against its background. The isolated real-API smoke passed and the updated `screenshots/real-api-board.png` was inspected. This does not complete the full-state contrast review.
 - Key explanatory copy on the board, optimizer and scenario screens now uses 13 px text. The 320 px board and 390 px operation list screenshots were refreshed and inspected; the fixture browser flow passed its viewport overflow checks. Other labels and states still need the full legibility review.
 - Operation-list buttons now expose their expanded state and link to the selected details region, matching timeline bars. The Gantt component test covers selection and Escape; screen-reader speech still needs a manual check. The isolated real API walkthrough passed again after the navigation changes.
