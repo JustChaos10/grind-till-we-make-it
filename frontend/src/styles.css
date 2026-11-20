@@ -22,6 +22,15 @@
   --subtle-divider: #f0f2ef;
   --track: #f0f2ef;
   --stage-label: #55655b;
+  --stage-1-surface: #cfe9d5;
+  --stage-2-surface: #e5dfef;
+  --stage-2-ink: #5d4b78;
+  --stage-3-surface: #f4e4bd;
+  --stage-3-ink: #80611d;
+  --stage-4-surface: #d6e7f4;
+  --stage-4-ink: #3c617a;
+  --stage-5-surface: #f0dede;
+  --stage-5-ink: #845456;
   --gantt-label: #546258;
   --control-border: #77847a;
   --green: #13834e;
@@ -1141,27 +1150,27 @@ a {
 }
 .gantt-bar.stage-1,
 .legend-stage.stage-1 {
-  background: #cfe9d5;
+  background: var(--stage-1-surface);
 }
 .gantt-bar.stage-2,
 .legend-stage.stage-2 {
-  background: #e5dfef;
-  color: #5d4b78;
+  background: var(--stage-2-surface);
+  color: var(--stage-2-ink);
 }
 .gantt-bar.stage-3,
 .legend-stage.stage-3 {
-  background: #f4e4bd;
-  color: #80611d;
+  background: var(--stage-3-surface);
+  color: var(--stage-3-ink);
 }
 .gantt-bar.stage-4,
 .legend-stage.stage-4 {
-  background: #d6e7f4;
-  color: #3c617a;
+  background: var(--stage-4-surface);
+  color: var(--stage-4-ink);
 }
 .gantt-bar.stage-5,
 .legend-stage.stage-5 {
-  background: #f0dede;
-  color: #845456;
+  background: var(--stage-5-surface);
+  color: var(--stage-5-ink);
 }
 .gantt-legend {
   display: flex;
@@ -1355,7 +1364,7 @@ a {
   align-items: center;
   gap: 9px;
   background: #f4f7f4;
-  border: 1px solid #edf0ec;
+  border: 1px solid var(--table-divider);
   border-radius: 7px;
   padding: 10px;
   margin-top: 19px;

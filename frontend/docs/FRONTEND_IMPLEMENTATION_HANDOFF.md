@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --run` — 46 tests passed across five files.
+- Frontend unit tests: `npm test -- --run` — 47 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -44,6 +44,8 @@
 - Board shortcuts now move focus to the destination heading. Selecting a Gantt operation moves focus to the named details region, whose description includes the operation fields; Escape or Clear selection returns focus to the control used to open it. Automated checks cannot establish screen-reader announcement quality.
 - The timeline offers a paginated operation list with text labels and 44 px minimum-height controls. It follows the timeline filters and provides a practical target for short bars without changing timeline geometry. Component tests cover pagination, filtering and focus return; the fixture browser flow checks selection at phone width.
 - A skip control moves keyboard focus past all timeline operations. The 1,200-operation component test and an Edge fixture flow check focus movement; the mobile list screenshot includes the new control.
+- Scenario runs announce progress and successful completion in a persistent status region. Tests cover repeat runs and failure feedback; an Edge fixture checks the completion message in the rendered app. Screen-reader speech still needs manual review.
+- Named Gantt stage surface and text color tokens reuse the existing colors; the broader token audit is still open.
 - A desktop Edge sample of the scenario due-date table measured 5.33:1 for its caption and 16.51:1 for its text against white. This does not establish full-app contrast compliance.
 - Extended existing shared tokens to stage and Gantt labels, tracks, and subtle dividers without changing their colors. This is a partial token cleanup, not a completed design-system audit.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.

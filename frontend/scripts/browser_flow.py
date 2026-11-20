@@ -141,6 +141,7 @@ with sync_playwright() as playwright:
     for _ in range(25):
         page.keyboard.press('ArrowRight')
     page.get_by_role('button', name='Run scenario').click()
+    expect(page.get_by_role('status', name='Scenario run status')).to_have_text('Simulation complete. Results are available below.')
     expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
     elapsed = time.perf_counter() - started

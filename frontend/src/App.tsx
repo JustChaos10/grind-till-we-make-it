@@ -70,6 +70,7 @@ function App() {
   const [orders, setOrders] = useState<WorkOrder[]>([])
   const [optimization, setOptimization] = useState<Optimization | null>(null)
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
+  const [scenarioAnnouncement, setScenarioAnnouncement] = useState('')
   const [busy, setBusy] = useState<'seed' | 'optimize' | 'simulate' | null>(null)
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -229,6 +230,7 @@ function App() {
     const submittedInputs = { ...scenarioInputs }
     const submittedRevisions = { ...scenarioFieldRevisions.current }
     setBusy('simulate')
+    setScenarioAnnouncement('Simulating scenario.')
     setError('')
     setFieldErrors({})
     try {
@@ -243,7 +245,9 @@ function App() {
       })
       setScenarioRun({ inputs: submittedInputs, result })
       setScenarioSnapshotStale(snapshotRevision.current !== submittedSnapshot)
+      setScenarioAnnouncement('Simulation complete. Results are available below.')
     } catch (e) {
+      setScenarioAnnouncement('')
       if (e instanceof ApiError && Array.isArray(e.detail)) {
         const errors: Record<string, string> = {}
         for (const entry of e.detail) {
@@ -1011,6 +1015,14 @@ function App() {
                       <ArrowRight size={15} />
                     </button>
                   </div>
+                  <p
+                    className="sr-only"
+                    role="status"
+                    aria-label="Scenario run status"
+                    aria-atomic="true"
+                  >
+                    {scenarioAnnouncement}
+                  </p>
                 </section>
                 <section className="scenario-results">
                   {simulation ? (

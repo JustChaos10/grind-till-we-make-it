@@ -744,6 +744,43 @@ describe('frontend data states', () => {
     expect(JSON.parse(String(request?.[1]?.body))).toEqual({ time_limit_seconds: 3 })
   })
 
+  it('announces scenario progress and completion on each run, and reports failures', async () => {
+    let finish: ((response: Response) => void) | undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('/api/schedule/simulate')) {
+          return await new Promise<Response>((resolve) => {
+            finish = resolve
+          })
+        }
+        return Response.json(
+          String(input).endsWith('/api/catalog')
+            ? makeCatalog()
+            : { ...emptyBoard, total_wip_orders: 1 },
+        )
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    const status = screen.getByRole('status', { name: 'Scenario run status' })
+    expect(status).toBeEmptyDOMElement()
+
+    for (let run = 0; run < 2; run++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Run scenario' }))
+      expect(status).toHaveTextContent('Simulating scenario.')
+      await act(async () => finish?.(Response.json(makeSimulation())))
+      expect(status).toHaveTextContent('Simulation complete. Results are available below.')
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'Run scenario' }))
+    expect(status).toHaveTextContent('Simulating scenario.')
+    await act(async () => finish?.(Response.json({ detail: 'Simulation failed' }, { status: 500 })))
+    expect(status).toBeEmptyDOMElement()
+    expect(screen.getByRole('alert')).toHaveTextContent('Simulation failed')
+  })
+
   it('sends only one scenario request when Run is clicked repeatedly while pending', async () => {
     let finishSimulation: ((response: Response) => void) | undefined
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
