@@ -20,6 +20,23 @@ it('shows a loading state while the first snapshot is pending', async () => {
   expect(screen.queryByText('Connect to the factory demo')).not.toBeInTheDocument()
 })
 
+it('keeps focus on a stable refresh control when retry replaces the connection screen', async () => {
+  let calls = 0
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => {
+      calls += 1
+      return calls <= 2 ? Promise.reject(new Error('Offline')) : new Promise(() => {})
+    }),
+  )
+  render(<App />)
+  const retry = await screen.findByRole('button', { name: 'Retry API connection' })
+  retry.focus()
+  await userEvent.keyboard('{Enter}')
+  expect(screen.getByRole('heading', { name: 'Loading factory data' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Refresh data' })).toHaveFocus()
+})
+
 it('disables schedule actions when there are no schedulable catalog orders', async () => {
   const fetchMock = vi.fn(
     async (input: RequestInfo | URL) =>

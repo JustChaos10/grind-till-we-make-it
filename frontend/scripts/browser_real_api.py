@@ -80,8 +80,11 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             expect(seed_button).to_have_attribute('aria-describedby', 'welcome-seed-help')
             expect(page.locator('#welcome-seed-help')).to_be_visible()
             fail_first[0] = False
-            page.get_by_role('button', name='Retry API connection').click()
+            retry = page.get_by_role('button', name='Retry API connection')
+            retry.focus()
+            page.keyboard.press('Enter')
             expect(page.get_by_role('heading', name='No work orders in this database')).to_be_visible()
+            expect(page.get_by_role('button', name='Refresh data')).to_be_focused()
             page.once('dialog', lambda dialog: dialog.accept())
             page.get_by_role('button', name='Load synthetic example').click()
             expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()

@@ -515,7 +515,13 @@ function App() {
                   <Play size={16} fill="currentColor" />
                   {busy === 'seed' ? 'Loading demo data…' : 'Load synthetic demo data'}
                 </button>
-                <button className="text-button" onClick={() => void refresh()}>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    refreshButton.current?.focus()
+                    void refresh()
+                  }}
+                >
                   <RefreshCw size={15} /> Retry API connection
                 </button>
               </div>
