@@ -24,6 +24,7 @@ import {
 import { api, ApiError, fmt } from './api'
 import { Gantt } from './Gantt'
 import { StageFlow } from './StageFlow'
+import { scheduleEndHour } from './scheduleRange'
 import './Optimizer.css'
 import './Scenario.css'
 export { Gantt } from './Gantt'
@@ -186,7 +187,7 @@ function App() {
     () => [...(optimization?.gantt[scheduleTab] ?? [])].sort((a, b) => a.start_hour - b.start_hour),
     [optimization, scheduleTab],
   )
-  const maxHour = Math.max(24, ...shownOperations.map((item) => item.end_hour))
+  const maxHour = scheduleEndHour(shownOperations)
 
   async function seedDemo() {
     if (!canSeedDemo()) {
@@ -1340,7 +1341,7 @@ function App() {
                         </div>
                         <Gantt
                           operations={simulation.gantt}
-                          maxHour={Math.max(24, ...simulation.gantt.map((item) => item.end_hour))}
+                          maxHour={scheduleEndHour(simulation.gantt)}
                         />
                       </section>
                     </>

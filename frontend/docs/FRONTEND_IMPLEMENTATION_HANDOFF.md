@@ -118,6 +118,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- Timeline range calculation now handles large operation arrays without exceeding the JavaScript argument limit. A regression checks 200,000 synthetic operations; the fixture browser flow covers normal optimization and scenario timelines. Large-chart rendering speed is not verified.
 - The disconnected welcome screen explains why demo loading is disabled and associates that help with the button. The isolated real-API smoke checks the disabled state and help association.
 
 - If a refresh removes a selected scenario machine or work order, the draft retains and labels the unavailable ID, explains the problem, and blocks simulation until the selection is corrected. A component test and synthetic Edge flow cover both fields and recovery.
