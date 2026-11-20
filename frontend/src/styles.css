@@ -504,6 +504,7 @@ a {
 .tiny-status {
   width: 5px;
   height: 5px;
+  flex: 0 0 5px;
   background: #9aa69d;
 }
 .content-grid {
