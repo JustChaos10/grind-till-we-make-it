@@ -78,6 +78,7 @@ export function Gantt({
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const hoveredBar = useRef<HTMLButtonElement | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
+  const timelineEndRef = useRef<HTMLDivElement | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
     filtered.forEach((operation) => {
@@ -267,6 +268,15 @@ export function Gantt({
           )}
         </details>
       )}
+      {filtered.length > 0 && (
+        <button
+          className="gantt-skip"
+          type="button"
+          onClick={() => timelineEndRef.current?.focus()}
+        >
+          Skip timeline operations
+        </button>
+      )}
       <div onMouseLeave={() => setHovered(null)}>
         {filtered.length === 0 ? (
           <div className="gantt-empty">
@@ -377,6 +387,11 @@ export function Gantt({
                 </span>
               </div>
             </div>
+          </div>
+        )}
+        {filtered.length > 0 && (
+          <div className="gantt-end" ref={timelineEndRef} tabIndex={-1}>
+            End of timeline
           </div>
         )}
         {displayedOperation && (

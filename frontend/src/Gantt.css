@@ -29,6 +29,31 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+.gantt-skip {
+  margin: 8px 0;
+  padding: 8px 12px;
+  min-height: 44px;
+  border: 1px solid var(--control-border);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.gantt-end {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.gantt-end:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  padding: 8px;
+}
 .gantt .gantt-axis > div {
   padding-left: 0;
   padding-right: 0;

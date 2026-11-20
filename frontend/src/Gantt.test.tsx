@@ -102,6 +102,8 @@ describe('Gantt controls', () => {
     }))
     const { container } = render(<Gantt operations={operations} maxHour={1200} />)
     expect(container.querySelectorAll('.gantt-bar')).toHaveLength(1200)
+    fireEvent.click(screen.getByRole('button', { name: 'Skip timeline operations' }))
+    expect(screen.getByText('End of timeline')).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: /^WO-1199,/ }))
     expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveTextContent(
       'WO-1199',
