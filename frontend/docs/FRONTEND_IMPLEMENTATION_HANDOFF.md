@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm run test -- --run` — 31 tests passed across five files.
+- Frontend unit tests: `npm run test -- --run` — 32 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -34,6 +34,7 @@
 - Refresh now announces its progress while retaining the prior snapshot. Secondary text contrast was improved in several empty and result states, the scenario border uses the shared token, and unavailable controls no longer show a wait cursor. A headless Edge check at 1280×800 with a delayed synthetic response confirmed the refresh status and the empty-board disabled cursor.
 - Gantt operation details now also open on hover, without moving focus or replacing an activated selection. Escape and timeline scrolling dismiss the hover card. Select and secondary-button borders use a darker control token; sampled borders measured 3.91:1 against white.
 - Hover details now close when the pointer leaves the operation and its card, while remaining available when the pointer moves between them. A fixture browser flow checked those transitions, Escape, zoom, and scroll dismissal. Stage help now uses the shared keyboard focus ring, scenario onboarding guidance uses 14 px text, and disabled Gantt controls use the shared unavailable cursor.
+- Model responses no longer change the current page after a user navigates away; results remain available on their respective screens. Stage help can be dismissed and reopened by keyboard, and a focused late Gantt operation retains its dashed status marker alongside a focus ring. Unit tests and an Edge fixture flow cover these behaviors.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
 ## Final Git record

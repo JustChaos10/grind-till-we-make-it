@@ -34,6 +34,19 @@ describe('production stage flow', () => {
     expect(screen.getByRole('button', { name: /View schedule/ })).toBeDisabled()
   })
 
+  it('lets a focused user close and reopen stage help', () => {
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
+    const help = screen.getByRole('button', { name: 'About Molding' })
+    fireEvent.focus(help)
+    fireEvent.click(help)
+    expect(help).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText(/Molding forms parts from feedstock/)).not.toBeInTheDocument()
+    fireEvent.click(help)
+    expect(help).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.keyDown(help, { key: 'Escape' })
+    expect(help).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('keeps help open while either focus or hover remains', () => {
     render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
     const help = screen.getByRole('button', { name: 'About Molding' })

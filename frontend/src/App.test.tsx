@@ -582,8 +582,9 @@ describe('frontend data states', () => {
         fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/optimize')),
       ).toHaveLength(1),
     )
-    const optimizeButton = screen.getByRole('button', { name: /working/i })
+    const optimizeButton = screen.getByRole('button', { name: /running model/i })
     expect(optimizeButton).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Flow board' }))
 
     const metrics = {
       late_orders: 1,
@@ -597,49 +598,53 @@ describe('frontend data states', () => {
       weighted_tardiness_hours: 4,
     }
     const operations = makeOperations(1)
-    finishOptimize?.({
-      ok: true,
-      status: 200,
-      statusText: 'OK',
-      json: async () => ({
-        comparison: {
-          baseline: {
-            ...metrics,
-            late_orders: 2,
-            avg_wip_age_hours: 12,
-            schedule_version_id: 'baseline-1',
+    await act(async () =>
+      finishOptimize?.({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () => ({
+          comparison: {
+            baseline: {
+              ...metrics,
+              late_orders: 2,
+              avg_wip_age_hours: 12,
+              schedule_version_id: 'baseline-1',
+            },
+            optimized: {
+              ...metrics,
+              late_orders: 1,
+              avg_wip_age_hours: 13,
+              throughput: 2,
+              furnace_batch_efficiency_pct: null,
+              schedule_version_id: 'proposed-1',
+            },
+            delta: {
+              late_orders: -1,
+              avg_wip_age_hours: 1,
+              throughput: 0,
+              furnace_batch_efficiency_pct: null,
+            },
           },
-          optimized: {
-            ...metrics,
-            late_orders: 1,
-            avg_wip_age_hours: 13,
-            throughput: 2,
-            furnace_batch_efficiency_pct: null,
-            schedule_version_id: 'proposed-1',
+          gantt: { baseline: operations, optimized: operations },
+          why_late: {
+            baseline: [],
+            optimized: Array.from({ length: 10 }, (_, index) => ({
+              work_order_id: `wo-${index + 1}`,
+              wo_number: `WO-${String(index + 1).padStart(3, '0')}`,
+              due_date_hours: 24,
+              completion_hours: 30,
+              delay_hours: 6,
+              priority: 2,
+              explanation: 'Capacity constraint',
+            })),
           },
-          delta: {
-            late_orders: -1,
-            avg_wip_age_hours: 1,
-            throughput: 0,
-            furnace_batch_efficiency_pct: null,
-          },
-        },
-        gantt: { baseline: operations, optimized: operations },
-        why_late: {
-          baseline: [],
-          optimized: Array.from({ length: 10 }, (_, index) => ({
-            work_order_id: `wo-${index + 1}`,
-            wo_number: `WO-${String(index + 1).padStart(3, '0')}`,
-            due_date_hours: 24,
-            completion_hours: 30,
-            delay_hours: 6,
-            priority: 2,
-            explanation: 'Capacity constraint',
-          })),
-        },
-      }),
-    } as Response)
+        }),
+      } as Response),
+    )
 
+    expect(screen.getByRole('heading', { name: 'Production flow overview' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
     expect(await screen.findByText('Proposed model schedule ready')).toBeTruthy()
     expect(screen.getByText(/completed within 168 hours/)).toBeTruthy()
     expect(screen.getByText(/not utilization or OEE/)).toBeTruthy()
@@ -700,50 +705,55 @@ describe('frontend data states', () => {
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/simulate')),
     ).toHaveLength(1)
-    finishSimulation?.({
-      ok: true,
-      status: 200,
-      statusText: 'OK',
-      json: async () =>
-        makeSimulation([
-          {
-            work_order_id: 'impact-1',
-            wo_number: 'WO-EARLIER',
-            due_date_before_hours: 24,
-            due_date_scenario_hours: 24,
-            completion_before_hours: 30,
-            completion_scenario_hours: 28,
-            completion_delta_hours: -2,
-            late_before: true,
-            late_scenario: true,
-            delay_delta_hours: -2,
-          },
-          {
-            work_order_id: 'impact-2',
-            wo_number: 'WO-LATER',
-            due_date_before_hours: 24,
-            due_date_scenario_hours: 24,
-            completion_before_hours: 22,
-            completion_scenario_hours: 25,
-            completion_delta_hours: 3,
-            late_before: false,
-            late_scenario: true,
-            delay_delta_hours: 1,
-          },
-          {
-            work_order_id: 'impact-3',
-            wo_number: 'WO-UNCHANGED',
-            due_date_before_hours: 24,
-            due_date_scenario_hours: 24,
-            completion_before_hours: 22,
-            completion_scenario_hours: 22,
-            completion_delta_hours: 0,
-            late_before: false,
-            late_scenario: false,
-            delay_delta_hours: 0,
-          },
-        ]),
-    } as Response)
+    fireEvent.click(screen.getByRole('button', { name: 'Flow board' }))
+    await act(async () =>
+      finishSimulation?.({
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        json: async () =>
+          makeSimulation([
+            {
+              work_order_id: 'impact-1',
+              wo_number: 'WO-EARLIER',
+              due_date_before_hours: 24,
+              due_date_scenario_hours: 24,
+              completion_before_hours: 30,
+              completion_scenario_hours: 28,
+              completion_delta_hours: -2,
+              late_before: true,
+              late_scenario: true,
+              delay_delta_hours: -2,
+            },
+            {
+              work_order_id: 'impact-2',
+              wo_number: 'WO-LATER',
+              due_date_before_hours: 24,
+              due_date_scenario_hours: 24,
+              completion_before_hours: 22,
+              completion_scenario_hours: 25,
+              completion_delta_hours: 3,
+              late_before: false,
+              late_scenario: true,
+              delay_delta_hours: 1,
+            },
+            {
+              work_order_id: 'impact-3',
+              wo_number: 'WO-UNCHANGED',
+              due_date_before_hours: 24,
+              due_date_scenario_hours: 24,
+              completion_before_hours: 22,
+              completion_scenario_hours: 22,
+              completion_delta_hours: 0,
+              late_before: false,
+              late_scenario: false,
+              delay_delta_hours: 0,
+            },
+          ]),
+      } as Response),
+    )
+    expect(screen.getByRole('heading', { name: 'Production flow overview' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
     expect(await screen.findByRole('heading', { name: 'Scenario schedule' })).toBeTruthy()
     const impact = screen.getByRole('region', { name: 'Due-date impact by work order' })
     expect(impact).toHaveAttribute('tabindex', '0')

@@ -2005,8 +2005,9 @@ a {
   outline-offset: -2px;
 }
 .gantt-bar.is-late:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
+  box-shadow:
+    inset 0 0 0 1px var(--surface),
+    0 0 0 3px var(--ink);
 }
 .gantt-summary,
 .gantt-detail {

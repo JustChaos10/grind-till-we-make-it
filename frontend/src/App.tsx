@@ -176,6 +176,7 @@ function App() {
     if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
     const submittedSnapshot = snapshotRevision.current
+    setPage('optimizer')
     setBusy('optimize')
     setError('')
     try {
@@ -186,7 +187,6 @@ function App() {
         }),
       )
       setOptimizationSnapshotStale(snapshotRevision.current !== submittedSnapshot)
-      setPage('optimizer')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Schedule optimization failed.')
     } finally {
@@ -216,7 +216,6 @@ function App() {
       })
       setScenarioRun({ inputs: submittedInputs, result })
       setScenarioSnapshotStale(snapshotRevision.current !== submittedSnapshot)
-      setPage('scenario')
     } catch (e) {
       if (e instanceof ApiError && Array.isArray(e.detail)) {
         const errors: Record<string, string> = {}

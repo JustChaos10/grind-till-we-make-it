@@ -27,7 +27,9 @@ export function StageFlow({
 }) {
   const [focused, setFocused] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
-  const active = focused ?? hovered
+  const [dismissed, setDismissed] = useState<string | null>(null)
+  const active =
+    (focused !== dismissed ? focused : null) ?? (hovered !== dismissed ? hovered : null)
   const max = Math.max(1, ...queues.map((queue) => queue.queue_depth))
   const detail = stages.find((stage) => stage.name === active)
   return (
@@ -75,11 +77,20 @@ export function StageFlow({
                 aria-label={`About ${stage.name}`}
                 aria-expanded={active === stage.name}
                 aria-controls="stage-help-detail"
-                onMouseEnter={() => setHovered(stage.name)}
+                onMouseEnter={() => {
+                  setHovered(stage.name)
+                  setDismissed(null)
+                }}
                 onMouseLeave={() => setHovered(null)}
-                onFocus={() => setFocused(stage.name)}
+                onFocus={() => {
+                  setFocused(stage.name)
+                  setDismissed(null)
+                }}
                 onBlur={() => setFocused(null)}
-                onClick={() => setFocused(stage.name)}
+                onClick={() => setDismissed(active === stage.name ? stage.name : null)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setDismissed(stage.name)
+                }}
               >
                 <Info size={14} /> Help
               </button>

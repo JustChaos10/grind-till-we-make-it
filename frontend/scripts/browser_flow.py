@@ -13,7 +13,7 @@ BASE = os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5173')
 operation = dict(work_order_id='wo-1', wo_number='WO-001', sku_code='SKU-1',
     resource_id='res-1', resource_name='Molding Cell 1', plant='Synthetic plant',
     stage='Molding', batch_id='B-42', start_hour=0, end_hour=1,
-    is_late=False, delay_reason=None)
+    is_late=True, delay_reason=None)
 metrics = dict(late_orders=1, avg_wip_age_hours=12, throughput=2,
     throughput_horizon_hours=168, furnace_batch_efficiency_pct=72, makespan_hours=42,
     bottleneck_resource_id='res-1', resource_busy_hours={'res-1': 18},
@@ -51,9 +51,18 @@ with sync_playwright() as playwright:
     page.goto(BASE, wait_until='networkidle')
     assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    help_button = page.get_by_role('button', name='About Molding')
+    help_button.focus()
+    expect(help_button).to_have_attribute('aria-expanded', 'true')
+    page.keyboard.press('Space')
+    expect(help_button).to_have_attribute('aria-expanded', 'false')
+    page.keyboard.press('Space')
+    expect(help_button).to_have_attribute('aria-expanded', 'true')
+    page.keyboard.press('Escape')
+    expect(help_button).to_have_attribute('aria-expanded', 'false')
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
-    bar = page.get_by_role('button', name='WO-001, SKU-1, Molding, Molding Cell 1, 0 to 1 hours, on time, batch B-42')
+    bar = page.get_by_role('button', name='WO-001, SKU-1, Molding, Molding Cell 1, 0 to 1 hours, late, batch B-42')
     bar.hover()
     hover_detail = page.locator('.gantt-detail[aria-hidden="true"]')
     expect(hover_detail).to_be_visible()
@@ -79,6 +88,8 @@ with sync_playwright() as playwright:
     expect(hover_detail).to_have_count(0)
     assert timeline.evaluate('(element) => element.scrollLeft > 0')
     bar.focus()
+    assert bar.evaluate("element => getComputedStyle(element).outlineStyle") == 'dashed'
+    assert bar.evaluate("element => getComputedStyle(element).boxShadow") != 'none'
     page.keyboard.press('Enter')
     expect(page.get_by_text('Batch B-42')).to_be_visible()
     expect(page.get_by_role('button', name='Clear selection')).to_be_focused()
