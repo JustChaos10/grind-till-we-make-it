@@ -76,7 +76,7 @@
 - [x] Scenario comparison shows returned results, including no change; regression display reviewed in API-derived UI code (component test and source review).
 - [x] Due-date impact list is a labeled, keyboard-focusable region; regression test covers earlier/later/unchanged values, signed hours and late-state text.
 - [x] Scenario Gantt uses actual scenario response, not a reused optimization timeline (component test and source review).
-- [x] Reset works and doesn't silently mutate factory data (source review; local smoke did not invoke a seed/reset).
+- [x] Reset works and doesn't silently mutate factory data (source review and isolated real-API smoke, which reset the scenario inputs before a zero-input run).
 - [x] Scenario lock-state mapping reviewed; source omission is documented for backend follow-up in `BACKEND_REQUESTS.md` (not changed or run against backend).
 
 ## 5. Design and responsiveness

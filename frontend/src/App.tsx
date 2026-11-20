@@ -336,11 +336,13 @@ function App() {
               <i /> Synthetic demo · no live ERP
             </span>
             <span className="top-divider" />
-            <span className="updated">
-              {lastUpdated
-                ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : loading
-                  ? 'Loading API data'
+            <span className="updated" role="status">
+              {loading
+                ? lastUpdated
+                  ? 'Refreshing API data…'
+                  : 'Loading API data'
+                : lastUpdated
+                  ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : 'API unavailable'}
             </span>
             <button
@@ -349,7 +351,7 @@ function App() {
               aria-label="Refresh data"
               title="Refresh data"
             >
-              <RefreshCw size={16} />
+              <RefreshCw size={16} className={loading ? 'spin' : ''} />
             </button>
             <div className="avatar top-avatar">IF</div>
           </div>

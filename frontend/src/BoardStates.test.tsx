@@ -14,7 +14,9 @@ it('shows a loading state while the first snapshot is pending', async () => {
     vi.fn(() => new Promise(() => {})),
   )
   render(<App />)
-  expect(screen.getByRole('status')).toHaveTextContent('Loading factory data')
+  expect(
+    screen.getByRole('heading', { name: 'Loading factory data' }).closest('[role="status"]'),
+  ).toBeTruthy()
   expect(screen.queryByText('Connect to the factory demo')).not.toBeInTheDocument()
 })
 

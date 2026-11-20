@@ -52,7 +52,7 @@ button {
   cursor: pointer;
 }
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.62;
 }
 a {
@@ -105,7 +105,7 @@ a {
     600 12px 'DM Sans',
     sans-serif;
   letter-spacing: 1.5px;
-  color: #89948d;
+  color: var(--text-secondary);
 }
 .side-label,
 .eyebrow {
@@ -157,7 +157,7 @@ a {
 }
 .beta {
   margin-left: auto;
-  color: #668470;
+  color: var(--text-secondary);
   font-size: 12px;
   letter-spacing: 0.7px;
   font-weight: 700;
@@ -852,7 +852,7 @@ a {
 }
 .welcome-copy {
   max-width: 470px;
-  color: #7e8b82;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   margin: 16px 0 23px;
@@ -868,7 +868,7 @@ a {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #8a968e;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .welcome-note svg {
@@ -1170,7 +1170,7 @@ a {
 }
 .gantt-empty {
   font-size: 12px;
-  color: #8d9890;
+  color: var(--text-secondary);
   padding: 24px;
   text-align: center;
 }
@@ -1199,7 +1199,7 @@ a {
 .late-row {
   padding: 9px 0;
   border-bottom: 1px solid #f1f3f0;
-  color: #78847b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .late-row > b {
@@ -1284,7 +1284,7 @@ a {
   font-size: 12px;
 }
 .select-wrap select:invalid {
-  color: #99a39b;
+  color: var(--text-secondary);
 }
 .field-help {
   font-size: 12px;
@@ -1488,7 +1488,7 @@ a {
 .impact-row small {
   text-align: right;
   font-size: 12px;
-  color: #728077;
+  color: var(--text-secondary);
 }
 .impact-time {
   font-weight: 700;
@@ -1554,7 +1554,7 @@ a {
   margin-bottom: 20px;
 }
 .scenario-placeholder .eyebrow {
-  color: #887aa1;
+  color: #655482;
 }
 .scenario-placeholder h2 {
   font-size: 23px;
@@ -1578,7 +1578,7 @@ a {
   gap: 8px;
 }
 .placeholder-steps b {
-  color: #8c79ac;
+  color: #655482;
   font-size: 12px;
 }
 .read-only-tag {
@@ -1597,7 +1597,7 @@ a {
   display: flex;
   align-items: center;
   gap: 5px;
-  color: #897448;
+  color: #6a5a37;
   font-size: 12px;
   margin-top: 13px;
 }

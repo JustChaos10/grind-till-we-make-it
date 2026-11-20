@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --reporter=dot` — 29 tests passed across five files.
+- Frontend unit tests: `npm test -- --reporter=dot` — 30 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -31,6 +31,7 @@
 - Expanded regression tests for empty-database onboarding, seed confirmation, demand bounds, disabled empty scenarios, dense/long-horizon Gantt operations, operation details and Escape focus restoration, submitted scenario snapshots, Pydantic error arrays, and unavailable metric formatting.
 - At 1280×800 in Edge with synthetic fixtures, the refresh notices were rendered and inspected on both model result screens; mixed pointer and focus use of stage help was also checked. Screenshots are `C:/IndoFlow/stale-optimizer-review.png` and `C:/IndoFlow/stale-scenario-review.png`.
 - Scenario field errors clear when their values change; late validation errors do not attach to edited values. A successful board refresh marks earlier model results for rerun, including when refresh overlaps a model request. Stage help remains available across mixed pointer and keyboard use.
+- Refresh now announces its progress while retaining the prior snapshot. Secondary text contrast was improved in several empty and result states, the scenario border uses the shared token, and unavailable controls no longer show a wait cursor. A headless Edge check at 1280×800 with a delayed synthetic response confirmed the refresh status and the empty-board disabled cursor.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
 ## Final Git record
@@ -82,3 +83,4 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Have a plant planner validate routings, order data, calendars, and model assumptions before using the results for shop-floor decisions.
 - Production use requires a trusted authentication/proxy design. Keep shared API credentials on the server.
 - Screen-reader review, full state contrast, and visible focus remain open. Scenario field-error associations are covered by component tests and a source audit; they have not been checked with a screen reader. The five-minute founder presentation requires a spoken rehearsal using `docs/CEO_DEMO.md`.
+- A full token audit remains open: colors, spacing, and radii still include literal values across the stylesheets. Review all control states and affordances as listed in the acceptance checklist before calling the design complete.

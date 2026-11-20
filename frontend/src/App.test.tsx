@@ -173,7 +173,9 @@ describe('frontend data states', () => {
     await screen.findByRole('heading', { name: 'No work orders in this database' })
     fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
 
-    expect(screen.getByRole('status').textContent).toContain('No schedulable work orders')
+    expect(
+      screen.getByText('No schedulable work orders are available.').closest('[role="status"]'),
+    ).toBeTruthy()
     expect(screen.getByRole('button', { name: /run scenario/i })).toBeDisabled()
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/simulate')),
@@ -267,6 +269,35 @@ describe('frontend data states', () => {
     await waitFor(() =>
       expect(screen.queryByText(/Run the scenario again after refreshing/)).toBeNull(),
     )
+  })
+
+  it('shows progress while refreshing an existing snapshot', async () => {
+    let resolveRefresh: ((response: Response) => void) | undefined
+    let flowRequests = 0
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith('/api/flow-board')) {
+          flowRequests += 1
+          if (flowRequests === 2) {
+            return await new Promise<Response>((resolve) => {
+              resolveRefresh = resolve
+            })
+          }
+          return { ok: true, json: async () => emptyBoard } as Response
+        }
+        return { ok: true, json: async () => ({ resources: [], work_orders: [] }) } as Response
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(screen.getByText('Refreshing API data…')).toHaveAttribute('role', 'status')
+    await act(async () => {
+      resolveRefresh?.({ ok: true, json: async () => emptyBoard } as Response)
+    })
+    expect(screen.queryByText('Refreshing API data…')).toBeNull()
+    expect(screen.getByText(/^Updated /)).toBeTruthy()
   })
 
   it('does not let an older refresh replace a newer API snapshot', async () => {
@@ -518,7 +549,9 @@ describe('frontend data states', () => {
     expect(screen.getByRole('slider', { name: 'Increase quantities in this model' })).toHaveValue(
       '0',
     )
-    expect(screen.getByRole('status')).toHaveTextContent('Inputs changed since this run')
+    expect(
+      screen.getByText(/Inputs changed since this run/).closest('[role="status"]'),
+    ).toBeTruthy()
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).endsWith('/api/schedule/simulate')),
     ).toHaveLength(1)
