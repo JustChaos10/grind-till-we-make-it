@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- Mobile keyboard focus could be hidden behind the fixed bottom navigation. Mobile scroll padding now keeps focused controls clear. `scripts/mobile_focus_visibility.py` passed at 390×844 for optimizer and scenario timeline controls in normal and forced colors; removing the padding reproduced the failure. Lint passed with the existing Gantt effect warning. This does not replace a full assistive-technology review.
+
 - Throughput captions now use both reported horizons. When a horizon is missing or differs, the UI withholds the change and optimizer comparison bar. Scenario copy describes modeled quantities. Component checks cover matching and differing horizons; the synthetic Edge walkthrough passed before the final bar-only adjustment. Frontend tests: 63 passed; build passed; lint passed with the existing Gantt effect warning.
 
 - The optimizer now describes an empty late-order explanation list without claiming that no orders are late. Its count is labeled as explanations. A fixture with one late order and no explanations passed the component and Edge browser checks. The frontend suite passed 63 tests, build passed, and lint passed with the existing Gantt effect warning.

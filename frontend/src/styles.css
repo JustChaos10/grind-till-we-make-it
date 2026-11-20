@@ -1747,6 +1747,9 @@ a {
   }
 }
 @media (max-width: 620px) {
+  html {
+    scroll-padding-bottom: 80px;
+  }
   body {
     min-width: 320px;
   }
