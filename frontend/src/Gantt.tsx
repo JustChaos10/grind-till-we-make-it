@@ -55,9 +55,11 @@ export function Gantt({
     setFilterState({ filters: { ...filters, [name]: value }, sequence: requestSequence })
   const activeFilters = Object.values(filters).filter(Boolean).length
   const [selected, setSelected] = useState<Operation | null>(null)
+  const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const detailClose = useRef<HTMLButtonElement | null>(null)
+  const detailRef = useRef<HTMLDivElement | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
     filtered.forEach((operation) => {
@@ -69,9 +71,34 @@ export function Gantt({
     return [...grouped.entries()]
   }, [filtered])
   const selectedOperation = selected && filtered.includes(selected) ? selected : null
+  const hoveredOperation = hovered && filtered.includes(hovered.item) ? hovered.item : null
+  const displayedOperation = selectedOperation ?? hoveredOperation
+  const spaceBelow = hovered ? window.innerHeight - hovered.rect.bottom : 0
+  const showBelow = hovered ? spaceBelow >= hovered.rect.top : true
   useEffect(() => {
     if (selectedOperation) detailClose.current?.focus()
   }, [selectedOperation])
+  useEffect(() => {
+    if (!hoveredOperation || selectedOperation) return
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setHovered(null)
+    }
+    window.addEventListener('keydown', dismiss)
+    return () => window.removeEventListener('keydown', dismiss)
+  }, [hoveredOperation, selectedOperation])
+  useEffect(() => {
+    if (!hoveredOperation) return
+    const dismiss = (event: Event) => {
+      if (event.target instanceof Node && detailRef.current?.contains(event.target)) return
+      setHovered(null)
+    }
+    window.addEventListener('scroll', dismiss, true)
+    window.addEventListener('resize', dismiss)
+    return () => {
+      window.removeEventListener('scroll', dismiss, true)
+      window.removeEventListener('resize', dismiss)
+    }
+  }, [hoveredOperation])
   useEffect(() => {
     if (!selectedOperation) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -163,136 +190,173 @@ export function Gantt({
         {filtered.length.toLocaleString()} operations across {rows.length} resources · Timeline: 0–
         {fmt(maxHour, 0)}h
       </div>
-      {filtered.length === 0 ? (
-        <div className="gantt-empty">
-          {operations.length
-            ? 'No operations match these filters. Clear filters to see the full schedule.'
-            : 'No operations are available for this schedule.'}
-        </div>
-      ) : (
-        <div
-          className="gantt"
-          role="region"
-          tabIndex={0}
-          aria-label="Schedule timeline. Use the scroll area to review all resources and hours."
-        >
-          <div className="gantt-canvas" style={{ width: `${zoom * 100}%` }}>
-            <div className="gantt-axis">
-              <span>RESOURCE / MACHINE</span>
-              <div>
-                {[0, 0.25, 0.5, 0.75, 1].map((point) => (
-                  <span key={point}>{fmt(maxHour * point, 0)}h</span>
+      <div onMouseLeave={() => setHovered(null)}>
+        {filtered.length === 0 ? (
+          <div className="gantt-empty">
+            {operations.length
+              ? 'No operations match these filters. Clear filters to see the full schedule.'
+              : 'No operations are available for this schedule.'}
+          </div>
+        ) : (
+          <div
+            className="gantt"
+            role="region"
+            tabIndex={0}
+            aria-label="Schedule timeline. Use the scroll area to review all resources and hours."
+          >
+            <div className="gantt-canvas" style={{ width: `${zoom * 100}%` }}>
+              <div className="gantt-axis">
+                <span>RESOURCE / MACHINE</span>
+                <div>
+                  {[0, 0.25, 0.5, 0.75, 1].map((point) => (
+                    <span key={point}>{fmt(maxHour * point, 0)}h</span>
+                  ))}
+                </div>
+              </div>
+              {rows.map(([resourceId, items]) => {
+                const ends: number[] = []
+                const slots = [...items]
+                  .sort((a, b) => a.start_hour - b.start_hour || a.end_hour - b.end_hour)
+                  .map((item) => {
+                    let slot = ends.findIndex((end) => end <= item.start_hour)
+                    if (slot < 0) slot = ends.length
+                    ends[slot] = item.end_hour
+                    return { item, slot }
+                  })
+                return (
+                  <div className="gantt-row" key={resourceId}>
+                    <div className="gantt-resource">
+                      <span className="machine-icon">
+                        <Wrench size={13} />
+                      </span>
+                      <span>
+                        {items[0].resource_name}
+                        <small>{items[0].plant}</small>
+                      </span>
+                    </div>
+                    <div
+                      className="gantt-lane"
+                      style={{ height: `${Math.max(25, ends.length * 25)}px` }}
+                    >
+                      {slots.map(({ item, slot }, index) => {
+                        const left = Math.max(0, (item.start_hour / maxHour) * 100)
+                        const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
+                        const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
+                        return (
+                          <button
+                            type="button"
+                            className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
+                            key={`${item.work_order_id}-${item.stage}-${index}`}
+                            style={{
+                              left: `${left}%`,
+                              width: `${Math.min(width, 100 - left)}%`,
+                              top: `${slot * 25 + 3}px`,
+                            }}
+                            aria-label={accessibleName}
+                            aria-expanded={selectedOperation === item}
+                            aria-controls={selectedOperation === item ? detailId : undefined}
+                            title={accessibleName}
+                            onMouseEnter={(event) => {
+                              if (!selectedOperation)
+                                setHovered({
+                                  item,
+                                  rect: event.currentTarget.getBoundingClientRect(),
+                                })
+                            }}
+                            onClick={(event) => {
+                              selectedBar.current = event.currentTarget
+                              setHovered(null)
+                              setSelected(item)
+                            }}
+                          >
+                            <span aria-hidden="true">{item.wo_number}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="gantt-legend">
+                {stages.map((stage, index) => (
+                  <span key={stage}>
+                    <i className={`legend-stage stage-${index + 1}`} />
+                    {stage}
+                  </span>
                 ))}
+                <span>
+                  <i className="legend-late" />
+                  Late at scheduled completion
+                </span>
               </div>
             </div>
-            {rows.map(([resourceId, items]) => {
-              const ends: number[] = []
-              const slots = [...items]
-                .sort((a, b) => a.start_hour - b.start_hour || a.end_hour - b.end_hour)
-                .map((item) => {
-                  let slot = ends.findIndex((end) => end <= item.start_hour)
-                  if (slot < 0) slot = ends.length
-                  ends[slot] = item.end_hour
-                  return { item, slot }
-                })
-              return (
-                <div className="gantt-row" key={resourceId}>
-                  <div className="gantt-resource">
-                    <span className="machine-icon">
-                      <Wrench size={13} />
-                    </span>
-                    <span>
-                      {items[0].resource_name}
-                      <small>{items[0].plant}</small>
-                    </span>
-                  </div>
-                  <div
-                    className="gantt-lane"
-                    style={{ height: `${Math.max(25, ends.length * 25)}px` }}
-                  >
-                    {slots.map(({ item, slot }, index) => {
-                      const left = Math.max(0, (item.start_hour / maxHour) * 100)
-                      const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
-                      const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
-                      return (
-                        <button
-                          type="button"
-                          className={`gantt-bar stage-${stages.indexOf(item.stage) + 1}${item.is_late ? ' is-late' : ''}`}
-                          key={`${item.work_order_id}-${item.stage}-${index}`}
-                          style={{
-                            left: `${left}%`,
-                            width: `${Math.min(width, 100 - left)}%`,
-                            top: `${slot * 25 + 3}px`,
-                          }}
-                          aria-label={accessibleName}
-                          aria-expanded={selectedOperation === item}
-                          aria-controls={selectedOperation === item ? detailId : undefined}
-                          title={accessibleName}
-                          onClick={(event) => {
-                            selectedBar.current = event.currentTarget
-                            setSelected(item)
-                          }}
-                        >
-                          <span aria-hidden="true">{item.wo_number}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="gantt-legend">
-              {stages.map((stage, index) => (
-                <span key={stage}>
-                  <i className={`legend-stage stage-${index + 1}`} />
-                  {stage}
-                </span>
-              ))}
-              <span>
-                <i className="legend-late" />
-                Late at scheduled completion
-              </span>
-            </div>
           </div>
-        </div>
-      )}
-      {selectedOperation && (
-        <div
-          className="gantt-detail"
-          id={detailId}
-          role="region"
-          aria-label="Selected operation details"
-        >
-          <strong>{selectedOperation.wo_number}</strong>
-          <span>{selectedOperation.sku_code}</span>
-          <span>{selectedOperation.stage}</span>
-          {selectedOperation.batch_id && <span>Batch {selectedOperation.batch_id}</span>}
-          <span>
-            {selectedOperation.resource_name} · {selectedOperation.plant}
-          </span>
-          <span>
-            {fmt(selectedOperation.start_hour)}–{fmt(selectedOperation.end_hour)}h
-          </span>
-          {selectedOperation.is_late ? (
-            <span className="delay-tag">
-              Late{selectedOperation.delay_reason ? ` · ${selectedOperation.delay_reason}` : ''}
-            </span>
-          ) : (
-            <span className="on-time-tag">On time at scheduled completion</span>
-          )}
-          <button
-            ref={detailClose}
-            type="button"
-            className="link-button"
-            onClick={() => {
-              setSelected(null)
-              requestAnimationFrame(() => selectedBar.current?.focus())
-            }}
+        )}
+        {displayedOperation && (
+          <div
+            ref={detailRef}
+            className="gantt-detail"
+            id={selectedOperation ? detailId : undefined}
+            role={selectedOperation ? 'region' : undefined}
+            aria-label={selectedOperation ? 'Selected operation details' : undefined}
+            aria-hidden={selectedOperation ? undefined : true}
+            style={
+              !selectedOperation && hovered
+                ? {
+                    position: 'fixed',
+                    zIndex: 20,
+                    left: Math.max(8, Math.min(hovered.rect.left, window.innerWidth - 328)),
+                    ...(showBelow
+                      ? { top: hovered.rect.bottom }
+                      : { bottom: window.innerHeight - hovered.rect.top }),
+                    width: 'min(320px, calc(100vw - 16px))',
+                    maxHeight: Math.max(
+                      0,
+                      Math.min(200, (showBelow ? spaceBelow : hovered.rect.top) - 8),
+                    ),
+                    overflowY: 'auto',
+                    padding: '12px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
+                    borderRadius: '6px',
+                    boxShadow: '0 4px 18px #0003',
+                  }
+                : undefined
+            }
           >
-            Clear selection
-          </button>
-        </div>
-      )}
+            <strong>{displayedOperation.wo_number}</strong>
+            <span>{displayedOperation.sku_code}</span>
+            <span>{displayedOperation.stage}</span>
+            {displayedOperation.batch_id && <span>Batch {displayedOperation.batch_id}</span>}
+            <span>
+              {displayedOperation.resource_name} · {displayedOperation.plant}
+            </span>
+            <span>
+              {fmt(displayedOperation.start_hour)}–{fmt(displayedOperation.end_hour)}h
+            </span>
+            {displayedOperation.is_late ? (
+              <span className="delay-tag">
+                Late{displayedOperation.delay_reason ? ` · ${displayedOperation.delay_reason}` : ''}
+              </span>
+            ) : (
+              <span className="on-time-tag">On time at scheduled completion</span>
+            )}
+            {selectedOperation && (
+              <button
+                ref={detailClose}
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  setSelected(null)
+                  requestAnimationFrame(() => selectedBar.current?.focus())
+                }}
+              >
+                Clear selection
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </>
   )
 }

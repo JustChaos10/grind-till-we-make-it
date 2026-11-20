@@ -30,6 +30,31 @@ const second: ScheduledOperation = {
 afterEach(cleanup)
 
 describe('Gantt controls', () => {
+  it('shows dismissible hover details without moving focus or replacing an activated selection', () => {
+    render(<Gantt operations={[first, second]} maxHour={24} />)
+    const firstBar = screen.getByRole('button', { name: /^WO-1, A/ })
+    const secondBar = screen.getByRole('button', { name: /^WO-2, B/ })
+    const status = screen.getByLabelText('Status')
+    status.focus()
+    fireEvent.mouseEnter(firstBar)
+    expect(status).toHaveFocus()
+    expect(screen.getByText('Batch B1')).toBeInTheDocument()
+    expect(screen.getByText('Batch B1').closest('.gantt-detail')).toHaveStyle({ position: 'fixed' })
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByText('Batch B1')).not.toBeInTheDocument()
+    expect(status).toHaveFocus()
+
+    fireEvent.click(firstBar)
+    const detail = screen.getByRole('region', { name: 'Selected operation details' })
+    expect(detail).toHaveTextContent('WO-1')
+    expect(screen.getByRole('button', { name: 'Clear selection' })).toHaveFocus()
+    fireEvent.mouseEnter(secondBar)
+    fireEvent.mouseLeave(secondBar.closest('.gantt')!.parentElement!)
+    expect(detail).toHaveTextContent('WO-1')
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+  })
+
   it('filters, reports empty matches, and clears filters without changing the timeline scale', () => {
     render(<Gantt operations={[first, second]} maxHour={24} />)
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'late' } })

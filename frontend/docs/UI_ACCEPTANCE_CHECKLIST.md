@@ -59,6 +59,7 @@
 - [x] Stage legend readable and status not dependent on color alone (source review).
 - [x] Operation details show WO, SKU, stage, resource, plant, relative time, batch ID if present, late status, reason (component test and source review).
 - [x] Operation details are keyboard-focusable and Escape restores focus (component test and Edge keyboard-only walkthrough).
+- [x] Hover opens operation details without moving focus; Escape and horizontal scrolling dismiss the hover card (synthetic Edge browser check; `docs/screenshots/gantt-hover-desktop.png`).
 - [x] Gantt filters use returned stage, plant, resource, work order, and late status values. Tests cover status and order filters, no matches, reset, consistent time scale, zoom, and work-order drill-down.
 - [x] Late orders beyond first eight accessible via a labeled, keyboard-focusable scroll region (10-row component regression test includes WO-010).
 - [x] No unsupported optimality or scheduling-feasibility claim (copy/source review).
@@ -96,7 +97,7 @@
 - [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
 - [x] Form controls have accessible names, help, and error associations. Source review covered all nine native controls; browser checks confirmed scenario labels and help, and component tests cover errors and clearing for all three scenario fields. Screen-reader review remains open.
 - [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details.
-- [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; coverage of all states remains open).
+- [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; control borders measured 3.91:1 against white; coverage of all states remains open).
 
 ## 6. Engineering and tests
 

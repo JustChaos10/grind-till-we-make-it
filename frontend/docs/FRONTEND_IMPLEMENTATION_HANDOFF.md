@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --reporter=dot` — 30 tests passed across five files.
+- Frontend unit tests: `npm run test -- --run` — 31 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -32,6 +32,7 @@
 - At 1280×800 in Edge with synthetic fixtures, the refresh notices were rendered and inspected on both model result screens; mixed pointer and focus use of stage help was also checked. Screenshots are `C:/IndoFlow/stale-optimizer-review.png` and `C:/IndoFlow/stale-scenario-review.png`.
 - Scenario field errors clear when their values change; late validation errors do not attach to edited values. A successful board refresh marks earlier model results for rerun, including when refresh overlaps a model request. Stage help remains available across mixed pointer and keyboard use.
 - Refresh now announces its progress while retaining the prior snapshot. Secondary text contrast was improved in several empty and result states, the scenario border uses the shared token, and unavailable controls no longer show a wait cursor. A headless Edge check at 1280×800 with a delayed synthetic response confirmed the refresh status and the empty-board disabled cursor.
+- Gantt operation details now also open on hover, without moving focus or replacing an activated selection. Escape and timeline scrolling dismiss the hover card. Select and secondary-button borders use a darker control token; sampled borders measured 3.91:1 against white.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
 ## Final Git record
@@ -64,7 +65,7 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 
 ## Repeatable browser verification
 
-From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed optimization, opening Gantt details by keyboard, Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 2.38 seconds with reduced motion emulated.
+From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed optimization, Gantt hover and horizontal-scroll dismissal, keyboard details and Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 1.44 seconds with reduced motion emulated; it is not a timed spoken rehearsal.
 
 Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 
@@ -75,6 +76,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - `screenshots/baseline-board.png` records the board before the current design pass.
 - `screenshots/{board,optimizer,scenario}-{desktop,tablet,mobile}.png` record all three screens at desktop, tablet and mobile sizes.
 - `screenshots/real-api-{board,optimizer,scenario}.png` document the isolated API flow.
+- `screenshots/gantt-hover-desktop.png` shows the inspected hover card with synthetic fixture data at 1280×800.
 - `screenshots/flow-*.png` preserve the earlier Flow Board viewport review.
 
 ## Follow-up
