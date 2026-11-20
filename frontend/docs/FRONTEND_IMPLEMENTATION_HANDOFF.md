@@ -111,6 +111,8 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- The disconnected welcome screen explains why demo loading is disabled and associates that help with the button. The isolated real-API smoke checks the disabled state and help association.
+
 - If a refresh removes a selected scenario machine or work order, the draft retains and labels the unavailable ID, explains the problem, and blocks simulation until the selection is corrected. A component test and synthetic Edge flow cover both fields and recovery.
 - A failed refresh now leaves a persistent notice that the last successfully loaded snapshot is shown, even after the detailed error is dismissed. The notice clears after a successful refresh. Component tests and the synthetic Edge flow checked failure, dismissal, and recovery; the browser flow checked phone and desktop widths.
 - The board warning icon was darkened to 6.09:1 against its background. The isolated real-API smoke passed and the updated `screenshots/real-api-board.png` was inspected. This does not complete the full-state contrast review.
