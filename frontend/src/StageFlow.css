@@ -10,10 +10,6 @@
   cursor: pointer;
   font-size: 12px;
 }
-.stage-help:focus-visible {
-  outline: 2px solid #355d40;
-  outline-offset: 2px;
-}
 .stage-route-note,
 .stage-help-detail {
   margin: 12px 0 0;

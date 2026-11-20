@@ -58,6 +58,7 @@ export function Gantt({
   const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
   const selectedBar = useRef<HTMLButtonElement | null>(null)
+  const hoveredBar = useRef<HTMLButtonElement | null>(null)
   const detailClose = useRef<HTMLButtonElement | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
   const rows = useMemo(() => {
@@ -257,11 +258,20 @@ export function Gantt({
                             aria-controls={selectedOperation === item ? detailId : undefined}
                             title={accessibleName}
                             onMouseEnter={(event) => {
-                              if (!selectedOperation)
+                              if (!selectedOperation) {
+                                hoveredBar.current = event.currentTarget
                                 setHovered({
                                   item,
                                   rect: event.currentTarget.getBoundingClientRect(),
                                 })
+                              }
+                            }}
+                            onMouseLeave={(event) => {
+                              if (
+                                !(event.relatedTarget instanceof Node) ||
+                                !detailRef.current?.contains(event.relatedTarget)
+                              )
+                                setHovered(null)
                             }}
                             onClick={(event) => {
                               selectedBar.current = event.currentTarget
@@ -300,6 +310,14 @@ export function Gantt({
             role={selectedOperation ? 'region' : undefined}
             aria-label={selectedOperation ? 'Selected operation details' : undefined}
             aria-hidden={selectedOperation ? undefined : true}
+            onMouseLeave={(event) => {
+              if (
+                !selectedOperation &&
+                (!(event.relatedTarget instanceof Node) ||
+                  !hoveredBar.current?.contains(event.relatedTarget))
+              )
+                setHovered(null)
+            }}
             style={
               !selectedOperation && hovered
                 ? {

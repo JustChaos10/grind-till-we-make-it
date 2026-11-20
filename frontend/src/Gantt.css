@@ -27,7 +27,7 @@
 }
 .gantt-controls button:disabled {
   opacity: 0.55;
-  cursor: default;
+  cursor: not-allowed;
 }
 .gantt .gantt-axis > div {
   padding-left: 0;
