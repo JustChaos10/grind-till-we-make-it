@@ -868,6 +868,7 @@ function App() {
                       after={optimization.comparison.optimized.furnace_batch_efficiency_pct}
                       delta={optimization.comparison.delta.furnace_batch_efficiency_pct}
                       unit="pp"
+                      valueUnit="%"
                       goodDown={false}
                     />
                   </div>
@@ -1501,6 +1502,7 @@ function CompareCard({
   after,
   delta,
   unit,
+  valueUnit = unit,
   goodDown,
   comparable = true,
 }: {
@@ -1509,6 +1511,7 @@ function CompareCard({
   after: number | null | undefined
   delta: number | null | undefined
   unit: string
+  valueUnit?: string
   goodDown: boolean
   comparable?: boolean
 }) {
@@ -1541,7 +1544,7 @@ function CompareCard({
           <small>REFERENCE</small>
           <b>
             {fmt(before)}
-            <i>{before == null ? '' : unit}</i>
+            <i>{before == null ? '' : valueUnit}</i>
           </b>
         </div>
         <ArrowRight size={15} />
@@ -1549,7 +1552,7 @@ function CompareCard({
           <small>PROPOSED</small>
           <b className={improved ? 'better-number' : ''}>
             {fmt(after)}
-            <i>{after == null ? '' : unit}</i>
+            <i>{after == null ? '' : valueUnit}</i>
           </b>
         </div>
       </div>

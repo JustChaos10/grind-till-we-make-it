@@ -131,6 +131,9 @@ with sync_playwright() as playwright:
     page.get_by_role('button', name='Flow board').first.click()
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
+    furnace_card = page.locator('article').filter(has_text='Furnace batch fill')
+    expect(furnace_card).to_contain_text('72%')
+    expect(furnace_card).to_contain_text('0 pp')
     expect(page.get_by_text('No late-order explanations were returned for this schedule.')).to_be_visible()
     expect(page.get_by_text('0 EXPLANATIONS')).to_be_visible()
     assert page.get_by_text('No late orders projected').count() == 0

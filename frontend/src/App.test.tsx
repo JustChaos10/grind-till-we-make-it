@@ -406,12 +406,12 @@ describe('frontend data states', () => {
     const comparison = {
       comparison: {
         baseline: metrics,
-        optimized: metrics,
+        optimized: { ...metrics, furnace_batch_efficiency_pct: 77 },
         delta: {
           late_orders: 0,
           avg_wip_age_hours: 0,
           throughput: 0,
-          furnace_batch_efficiency_pct: 0,
+          furnace_batch_efficiency_pct: 5,
         },
       },
       gantt: { baseline: [], optimized: [] },
@@ -435,6 +435,10 @@ describe('frontend data states', () => {
     await screen.findByRole('heading', { name: 'Production flow overview' })
     fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }))
     await screen.findByText('Proposed model schedule ready')
+    const furnaceCard = screen.getByText('Furnace batch fill').closest('article')!
+    expect(furnaceCard).toHaveTextContent('72%')
+    expect(furnaceCard).toHaveTextContent('77%')
+    expect(furnaceCard).toHaveTextContent('+5 pp')
     expect(
       screen.getByText('No late-order explanations were returned for this schedule.'),
     ).toBeTruthy()
