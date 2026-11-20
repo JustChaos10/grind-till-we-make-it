@@ -408,6 +408,11 @@ describe('frontend data states', () => {
     await screen.findByRole('heading', { name: 'Production flow overview' })
     fireEvent.click(screen.getByRole('button', { name: 'Run comparison' }))
     await screen.findByText('Proposed model schedule ready')
+    expect(
+      screen.getByText('No late-order explanations were returned for this schedule.'),
+    ).toBeTruthy()
+    expect(screen.getByText('0 EXPLANATIONS')).toBeTruthy()
+    expect(screen.queryByText('No late orders projected')).toBeNull()
     expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
     expect(screen.queryByText(/Data was refreshed since this model run/)).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))

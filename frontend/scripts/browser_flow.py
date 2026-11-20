@@ -131,6 +131,9 @@ with sync_playwright() as playwright:
     page.get_by_role('button', name='Flow board').first.click()
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
+    expect(page.get_by_text('No late-order explanations were returned for this schedule.')).to_be_visible()
+    expect(page.get_by_text('0 EXPLANATIONS')).to_be_visible()
+    assert page.get_by_text('No late orders projected').count() == 0
     expect(page.get_by_role('heading', name='Schedule optimizer', exact=True)).to_be_focused()
     expect(page.get_by_text('All returned operations · hours from the model planning origin')).to_be_visible()
     expect(page.get_by_role('status', name='Optimization run status')).to_have_text('Optimization complete. Results are available below.')

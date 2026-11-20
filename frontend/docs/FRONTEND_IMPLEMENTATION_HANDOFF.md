@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- The optimizer now describes an empty late-order explanation list without claiming that no orders are late. Its count is labeled as explanations. A fixture with one late order and no explanations passed the component and Edge browser checks. The frontend suite passed 63 tests, build passed, and lint passed with the existing Gantt effect warning.
+
 - The timeline renders at most 100 operations per page. Its count and time axis cover the full filtered schedule, and a notice warns that overlaps may occur on other pages. Page changes clear the selected detail and preserve usable navigation focus. Tests cover 1,200 operations, filtering and shrinking data. Synthetic Edge checks covered 120 operations and the last page at 1280 and 390 px; see `screenshots/gantt-pages-mobile.png`. The full suite passed 61 tests, the build passed, and lint passed with one Gantt effect warning. The filter menus still render all distinct options, so this is not a complete large-data performance guarantee. Screen-reader speech and a founder rehearsal remain open.
 
 - A missing or null WIP age now displays as unavailable without an hours suffix; zero remains a valid measured value. The board response types match the validator's optional fields. A component test and synthetic Edge checks at 390 and 1280 px cover the missing-age state. Frontend tests: 57 passed; build passed; lint passed with the existing Gantt effect warning.

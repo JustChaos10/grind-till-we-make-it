@@ -855,7 +855,7 @@ function App() {
                         </p>
                       </div>
                       <span className="neutral-pill">
-                        {optimization.why_late.optimized.length} ORDERS
+                        {optimization.why_late.optimized.length} EXPLANATIONS
                       </span>
                     </div>
                     {optimization.why_late.optimized.length ? (
@@ -914,18 +914,7 @@ function App() {
                         </table>
                       </div>
                     ) : (
-                      <div className="empty-alert">
-                        <span>
-                          <Check size={18} />
-                        </span>
-                        <div>
-                          <b>No late orders projected</b>
-                          <small>
-                            The optimized schedule places all currently schedulable orders before
-                            their due dates.
-                          </small>
-                        </div>
-                      </div>
+                      <p>No late-order explanations were returned for this schedule.</p>
                     )}
                   </section>
                 </>
