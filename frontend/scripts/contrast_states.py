@@ -52,7 +52,7 @@ MEASURE = r'''root => {
     const color=parse(style.color); const fg=blend(color,bg);
     const a=lum(fg), b=lum(bg), ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
     const large=parseFloat(style.fontSize)>=24 || (parseFloat(style.fontSize)>=18.6667 && parseInt(style.fontWeight)>=700);
-    out.push({text:direct.slice(0,100), ratio:+ratio.toFixed(2), required:large?3:4.5, unsupported});
+    out.push({text:direct.slice(0,100), ratio, required:large?3:4.5, unsupported});
   }
   return out;
 }'''

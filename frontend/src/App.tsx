@@ -559,10 +559,10 @@ function App() {
               </div>
               <div className="stat-grid">
                 <StatCard
-                  label="Active work orders"
+                  label="Open work orders"
                   value={fmt(board.total_wip_orders, 0)}
                   icon={<Boxes size={18} />}
-                  foot="Open across all stages"
+                  foot="Includes quality holds"
                   tone="blue"
                 />
                 <StatCard
