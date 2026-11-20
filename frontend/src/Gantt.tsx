@@ -117,7 +117,9 @@ export function Gantt({
   const timelineEndRef = useRef<HTMLDivElement | null>(null)
   const restoreSelectionFocus = useCallback(() => {
     requestAnimationFrame(() => {
-      const target = selectedBar.current?.isConnected ? selectedBar.current : listSummary.current
+      const button = selectedBar.current
+      const target =
+        button?.isConnected && !button.closest('details:not([open])') ? button : listSummary.current
       ;(target ?? stageFilter.current)?.focus()
     })
   }, [])
