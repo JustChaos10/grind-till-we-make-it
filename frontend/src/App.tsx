@@ -88,6 +88,20 @@ function App() {
   const scheduleRequestInFlight = useRef(false)
   const scenarioFieldRevisions = useRef<Record<string, number>>({})
   const simulation = scenarioRun?.result ?? null
+  const describeResources = (ids: string[]) =>
+    ids
+      .map((id) => {
+        const resource = resources.find((item) => item.id === id)
+        return resource ? `${resource.name} (${id})` : id
+      })
+      .join(', ') || 'none'
+  const describeOrders = (ids: string[]) =>
+    ids
+      .map((id) => {
+        const order = orders.find((item) => item.id === id)
+        return order ? `${order.wo_number} (${id})` : id
+      })
+      .join(', ') || 'none'
   const scenarioInputs = { downId, rushId, demand }
   const scenarioIsStale = Boolean(
     scenarioRun &&
@@ -1018,11 +1032,24 @@ function App() {
                           <Activity size={16} />
                         </span>
                         <div>
-                          <b>Submitted scenario inputs</b>
+                          <b>Scenario inputs returned by the API</b>
                           <small>
-                            Resource outage: {scenarioRun?.inputs.downId || 'none'} · Priority
-                            order: {scenarioRun?.inputs.rushId || 'none'} · Demand increase:{' '}
-                            {scenarioRun?.inputs.demand ?? 0}%
+                            Resource outages:{' '}
+                            {describeResources(simulation.scenario_inputs.down_resource_ids)} ·
+                            Priority orders:{' '}
+                            {describeOrders(simulation.scenario_inputs.rush_order_ids)} · Demand
+                            increase: {simulation.scenario_inputs.demand_spike_pct}%
+                          </small>
+                          <small>
+                            Submitted inputs: Resource outage:{' '}
+                            {describeResources(
+                              scenarioRun?.inputs.downId ? [scenarioRun.inputs.downId] : [],
+                            )}{' '}
+                            · Priority order:{' '}
+                            {describeOrders(
+                              scenarioRun?.inputs.rushId ? [scenarioRun.inputs.rushId] : [],
+                            )}{' '}
+                            · Demand increase: {scenarioRun?.inputs.demand ?? 0}%
                           </small>
                         </div>
                       </div>
@@ -1165,9 +1192,9 @@ function App() {
                         <div>
                           <b>How to read this</b>
                           <small>
-                            {scenarioRun?.inputs.downId
-                              ? 'The selected resource is excluded from the scenario schedule. '
-                              : 'No resource outage is applied. '}
+                            {simulation.scenario_inputs.down_resource_ids.length
+                              ? 'The API reports resource outages for this scenario. '
+                              : 'The API reports no resource outage for this scenario. '}
                             The simulation does not update source work orders.
                           </small>
                         </div>

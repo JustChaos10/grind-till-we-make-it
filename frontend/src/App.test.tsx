@@ -212,6 +212,32 @@ describe('frontend data states', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('keeps the last snapshot when a refresh returns a malformed catalog and recovers', async () => {
+    let malformed = false
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      const body = path.endsWith('/api/flow-board')
+        ? emptyBoard
+        : malformed
+          ? { resources: {} }
+          : { resources: [], work_orders: [] }
+      return { ok: true, status: 200, statusText: 'OK', json: async () => body } as Response
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'No work orders in this database' })
+
+    malformed = true
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(/response/i)
+    expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
+
+    malformed = false
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
+  })
+
   it('marks model results as potentially out of date after a successful refresh', async () => {
     const metrics = {
       late_orders: 1,
@@ -497,7 +523,7 @@ describe('frontend data states', () => {
     expect(slider).not.toHaveAccessibleDescription(/Invalid demand/)
   })
 
-  it('submits and labels the exact scenario inputs that produced the returned Gantt', async () => {
+  it('distinguishes returned scenario inputs from the submitted request', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input)
       const body = path.endsWith('/api/flow-board')
@@ -508,9 +534,9 @@ describe('frontend data states', () => {
             ? {
                 ...makeSimulation(),
                 scenario_inputs: {
-                  down_resource_ids: ['res-1'],
-                  rush_order_ids: ['wo-1'],
-                  demand_spike_pct: 25,
+                  down_resource_ids: ['res-1', 'unknown-resource'],
+                  rush_order_ids: ['unknown-order'],
+                  demand_spike_pct: 10,
                 },
               }
             : { message: 'ok' }
@@ -529,7 +555,12 @@ describe('frontend data states', () => {
 
     expect(
       await screen.findByText(
-        /Resource outage: res-1 · Priority order: wo-1 · Demand increase: 25%/,
+        /Resource outages: Furnace 1 \(res-1\), unknown-resource · Priority orders: unknown-order · Demand increase: 10%/,
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.getByText(
+        /Submitted inputs: Resource outage: Furnace 1 \(res-1\) · Priority order: WO-001 \(wo-1\) · Demand increase: 25%/,
       ),
     ).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Scenario schedule' })).toBeTruthy()
