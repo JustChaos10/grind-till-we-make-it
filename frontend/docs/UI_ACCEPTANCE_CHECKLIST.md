@@ -92,9 +92,9 @@
 - [x] Dense chart and tables use intentional scroll in reviewed browser views.
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
-- [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); behavior under an OS reduced-motion setting still needs browser verification.
+- [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); the synthetic Edge walkthrough also passed with reduced motion emulated; an OS setting has not been checked.
 - [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
-- [ ] Form controls have accessible names, help, and error associations. Browser checks confirmed labeled scenario inputs and linked help text. Field-error association remains open.
+- [x] Form controls have accessible names, help, and error associations. Source review covered all nine native controls; browser checks confirmed scenario labels and help, and component tests cover errors and clearing for all three scenario fields. Screen-reader review remains open.
 - [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details.
 - [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; coverage of all states remains open).
 

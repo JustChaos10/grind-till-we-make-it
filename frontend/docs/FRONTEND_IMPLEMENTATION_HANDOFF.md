@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm test -- --reporter=dot` — 25 tests passed across five files.
+- Frontend unit tests: `npm test -- --reporter=dot` — 29 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -29,6 +29,7 @@
 - Classified board alerts by message content, with distinct labels for stage queues and modeled busy-hours signals and a general label for other alerts (`fe3ad6b`).
 - Added shared typed API response definitions in `src/types.ts` and hardened the Flow Board, optimizer, and scenario interactions around supported response data.
 - Expanded regression tests for empty-database onboarding, seed confirmation, demand bounds, disabled empty scenarios, dense/long-horizon Gantt operations, operation details and Escape focus restoration, submitted scenario snapshots, Pydantic error arrays, and unavailable metric formatting.
+- Scenario field errors clear when their values change; late validation errors do not attach to edited values. A successful board refresh marks earlier model results for rerun, including when refresh overlaps a model request. Stage help remains available across mixed pointer and keyboard use.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
 ## Final Git record
@@ -79,4 +80,4 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - See `BACKEND_REQUESTS.md` for requests and `UI_ACCEPTANCE_CHECKLIST.md` for the open acceptance items.
 - Have a plant planner validate routings, order data, calendars, and model assumptions before using the results for shop-floor decisions.
 - Production use requires a trusted authentication/proxy design. Keep shared API credentials on the server.
-- Screen-reader review, full state contrast, visible focus, and field-error association remain open. The five-minute founder presentation requires a spoken rehearsal using `docs/CEO_DEMO.md`.
+- Screen-reader review, full state contrast, and visible focus remain open. Scenario field-error associations are covered by component tests and a source audit; they have not been checked with a screen reader. The five-minute founder presentation requires a spoken rehearsal using `docs/CEO_DEMO.md`.
