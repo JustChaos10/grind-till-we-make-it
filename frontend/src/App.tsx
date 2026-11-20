@@ -1340,6 +1340,7 @@ function App() {
                                   <th scope="col">Status before</th>
                                   <th scope="col">Status scenario</th>
                                   <th scope="col">Completion change</th>
+                                  <th scope="col">Delay change</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -1355,6 +1356,10 @@ function App() {
                                     <td>
                                       {row.completion_delta_hours > 0 ? '+' : ''}
                                       {fmt(row.completion_delta_hours)}h
+                                    </td>
+                                    <td>
+                                      {row.delay_delta_hours > 0 ? '+' : ''}
+                                      {fmt(row.delay_delta_hours)}h
                                     </td>
                                   </tr>
                                 ))}

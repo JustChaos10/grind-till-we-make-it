@@ -1119,15 +1119,15 @@ describe('frontend data states', () => {
             },
             {
               work_order_id: 'impact-3',
-              wo_number: 'WO-UNCHANGED',
+              wo_number: 'WO-DUE-CHANGE',
               due_date_before_hours: 24,
-              due_date_scenario_hours: 24,
+              due_date_scenario_hours: 20,
               completion_before_hours: 22,
               completion_scenario_hours: 22,
               completion_delta_hours: 0,
               late_before: false,
-              late_scenario: false,
-              delay_delta_hours: 0,
+              late_scenario: true,
+              delay_delta_hours: 2,
             },
           ]),
       } as Response),
@@ -1142,9 +1142,9 @@ describe('frontend data states', () => {
       Array.from(row.querySelectorAll('th, td')).map((cell) => cell.textContent),
     )
     expect(rows).toEqual([
-      ['WO-EARLIER', '24h', '24h', '30h', '28h', 'Late', 'Late', '-2h'],
-      ['WO-LATER', '24h', '24h', '22h', '25h', 'On track', 'Late', '+3h'],
-      ['WO-UNCHANGED', '24h', '24h', '22h', '22h', 'On track', 'On track', '0h'],
+      ['WO-EARLIER', '24h', '24h', '30h', '28h', 'Late', 'Late', '-2h', '-2h'],
+      ['WO-LATER', '24h', '24h', '22h', '25h', 'On track', 'Late', '+3h', '+1h'],
+      ['WO-DUE-CHANGE', '24h', '20h', '22h', '22h', 'On track', 'Late', '0h', '+2h'],
     ])
   })
 })
