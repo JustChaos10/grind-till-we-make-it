@@ -12,7 +12,8 @@
 
 ## Verification completed
 
-- Gantt selection remains visible when the same operation is supplied as a cloned object, without moving focus back from another control. The component test covers both cases. An operation whose data actually changes has no stable API operation ID; selection continuity and focus for that case remain open.
+- Gantt selection remains visible when the same operation is supplied as a cloned object. If the selected operation changes or disappears, the selection is cleared and a status message explains why; focus returns to Stage only when it was inside the removed details. Component tests cover both focus paths. The API has no stable operation ID, so selection continuity across changed data is not available. A synthetic Edge component check also verified focus return and the status message when the operation disappears.
+- Added the missing screen-reader-only utility used by existing labels and the new status message. The synthetic Edge walkthrough passed, and the refreshed 320 px board and mobile Gantt screenshots were inspected. Screen-reader speech still needs a manual review.
 - The error, empty and loading state colors were reviewed in source; sampled normal text meets 4.5:1 and sampled select and machine icons meet 3:1. This is not a full rendered-state contrast audit.
 
 - Headings and metric values now use the documented sans font stack consistently. The synthetic Edge walkthrough passed after the font change; the 320 px board and mobile Gantt captures were inspected. A singular timeline count wording issue found in that review was corrected and covered by Gantt tests. Full visual-state and token audits remain open.

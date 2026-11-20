@@ -119,6 +119,36 @@ describe('Gantt controls', () => {
     expect(status).toHaveFocus()
   })
 
+  it('returns focus and announces when a selected operation disappears', async () => {
+    const { rerender } = render(<Gantt operations={[first]} maxHour={24} />)
+    fireEvent.click(screen.getByRole('button', { name: /^WO-1, A/ }))
+    expect(screen.getByRole('region', { name: 'Selected operation details' })).toHaveFocus()
+
+    rerender(<Gantt operations={[]} maxHour={24} />)
+
+    await waitFor(() => expect(screen.getByLabelText('Stage')).toHaveFocus())
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'selected operation is no longer available',
+    )
+    rerender(<Gantt operations={[first]} maxHour={24} />)
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+  })
+
+  it('does not move focus when an operation changes after the user leaves its details', async () => {
+    const { rerender } = render(<Gantt operations={[first]} maxHour={24} />)
+    fireEvent.click(screen.getByRole('button', { name: /^WO-1, A/ }))
+    const status = screen.getByLabelText('Status')
+    status.focus()
+    rerender(<Gantt operations={[{ ...first, end_hour: 12 }]} maxHour={24} />)
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'selected operation is no longer available',
+      ),
+    )
+    expect(status).toHaveFocus()
+  })
+
   it('keeps overlapping operations discoverable and supports zoom and table selection', () => {
     const { container, rerender } = render(<Gantt operations={[first, second]} maxHour={24} />)
     const bars = container.querySelectorAll<HTMLButtonElement>('.gantt-bar')

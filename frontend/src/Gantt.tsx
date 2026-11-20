@@ -86,12 +86,14 @@ export function Gantt({
   }
   const activeFilters = Object.values(filters).filter(Boolean).length
   const [selected, setSelected] = useState<Operation | null>(null)
+  const [selectionNotice, setSelectionNotice] = useState('')
   const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
   const focusedSelection = useRef<Operation | null>(null)
   const selectedBar = useRef<HTMLButtonElement | null>(null)
   const hoveredBar = useRef<HTMLButtonElement | null>(null)
   const detailRef = useRef<HTMLDivElement | null>(null)
+  const detailHasFocus = useRef(false)
   const timelineEndRef = useRef<HTMLDivElement | null>(null)
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
@@ -130,6 +132,13 @@ export function Gantt({
     focusedSelection.current = selected
   }, [selected, selectedOperation])
   useEffect(() => {
+    if (!selected || selectedOperation) return
+    if (detailHasFocus.current) stageFilter.current?.focus()
+    detailHasFocus.current = false
+    setSelected(null)
+    setSelectionNotice('The selected operation is no longer available in this schedule.')
+  }, [selected, selectedOperation])
+  useEffect(() => {
     if (!hoveredOperation || selectedOperation) return
     const dismiss = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setHovered(null)
@@ -164,6 +173,9 @@ export function Gantt({
   }, [selectedOperation])
   return (
     <>
+      <div className="sr-only" role="status">
+        {selectionNotice}
+      </div>
       <div className="gantt-controls" aria-label="Timeline filters">
         <label>
           Stage
@@ -276,6 +288,7 @@ export function Gantt({
                       onClick={(event) => {
                         selectedBar.current = event.currentTarget
                         setHovered(null)
+                        setSelectionNotice('')
                         setSelected(item)
                         if (selectedOperation === item) detailRef.current?.focus()
                       }}
@@ -411,6 +424,7 @@ export function Gantt({
                             onClick={(event) => {
                               selectedBar.current = event.currentTarget
                               setHovered(null)
+                              setSelectionNotice('')
                               setSelected(item)
                             }}
                           >
@@ -446,6 +460,16 @@ export function Gantt({
           <div
             ref={detailRef}
             className="gantt-detail"
+            onFocusCapture={() => {
+              detailHasFocus.current = true
+            }}
+            onBlurCapture={(event) => {
+              if (
+                !(event.relatedTarget instanceof Node) ||
+                !event.currentTarget.contains(event.relatedTarget)
+              )
+                detailHasFocus.current = false
+            }}
             id={selectedOperation ? detailId : undefined}
             role={selectedOperation ? 'region' : undefined}
             aria-label={selectedOperation ? 'Selected operation details' : undefined}
