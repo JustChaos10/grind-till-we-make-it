@@ -41,6 +41,12 @@
   --status-negative-surface: #fbefed;
   --status-late: #a33c34;
   --scenario-accent: #655482;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
   --serif: Georgia, 'Times New Roman', serif;
 }
 * {
@@ -142,7 +148,7 @@ a {
   align-items: center;
   gap: 11px;
   padding: 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   text-align: left;
   font-size: 12px;
   color: #637068;
@@ -359,7 +365,7 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   border-radius: 7px;
   font-size: 12px;
   font-weight: 700;
@@ -392,7 +398,7 @@ a {
   border: 0;
   background: transparent;
   color: #39734b;
-  padding: 8px;
+  padding: var(--space-2);
 }
 .link-button {
   font-size: 12px;
@@ -414,7 +420,7 @@ a {
 .compare-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 .stat-card {
   min-height: 119px;
@@ -431,7 +437,7 @@ a {
 .stat-icon {
   height: 28px;
   width: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
 }
@@ -638,7 +644,7 @@ a {
   display: grid;
   grid-template-columns: 26px 1fr 15px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 8px 0;
   border-top: 1px solid #f1f2ef;
 }
@@ -738,7 +744,7 @@ a {
 }
 .capability-panel {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
   padding: 15px 17px;
 }
@@ -774,7 +780,7 @@ a {
   gap: 9px;
   background: #f0f5f0;
   border-radius: 9px;
-  padding: 12px;
+  padding: var(--space-3);
   color: #6d9276;
 }
 .trust-note > span {
@@ -809,7 +815,7 @@ a {
   background: #fff8eb;
   color: #926319;
   border: 1px solid #f3e4c5;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 12px 13px;
   margin-bottom: 17px;
 }
@@ -887,7 +893,7 @@ a {
 .comparison-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
   margin: 13px 0;
 }
 .metric-caption {
@@ -903,7 +909,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   color: var(--muted);
   font-size: 12px;
   font-weight: 600;
@@ -985,12 +991,12 @@ a {
   padding: 11px 13px;
   background: #f0f7f0;
   border: 1px solid #dfedde;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 .result-icon {
   height: 28px;
   width: 28px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #dcefe0;
   color: #367c4b;
   display: grid;
@@ -1236,7 +1242,7 @@ a {
   place-items: center;
   background: #e8f4eb;
   color: var(--status-positive);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 .empty-run p {
   max-width: 345px;
@@ -1424,7 +1430,7 @@ a {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 9px;
-  padding: 12px;
+  padding: var(--space-3);
 }
 .impact-kpi > small {
   font-size: 12px;
@@ -1473,7 +1479,7 @@ a {
   display: grid;
   grid-template-columns: 8px minmax(75px, 1fr) minmax(108px, 1.1fr) minmax(95px, 0.8fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 9px 0;
   border-top: 1px solid var(--subtle-divider);
   font-size: 12px;
@@ -1522,7 +1528,7 @@ a {
   padding: 11px 12px;
   background: #f4f0fa;
   border: 1px solid #ede7f5;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: #806ca2;
 }
 .scenario-insight > div {
@@ -1577,7 +1583,7 @@ a {
 .placeholder-steps span {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .placeholder-steps b {
   color: var(--scenario-accent);
@@ -1782,11 +1788,11 @@ a {
     font-size: 12px;
   }
   .stat-grid {
-    gap: 8px;
+    gap: var(--space-2);
   }
   .stat-card {
     min-height: 109px;
-    padding: 12px;
+    padding: var(--space-3);
   }
   .stat-value {
     font-size: 22px;
@@ -1887,7 +1893,7 @@ a {
     font-size: 15px;
   }
   .comparison-grid {
-    gap: 8px;
+    gap: var(--space-2);
   }
   .scenario-kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1952,7 +1958,7 @@ a {
 .gantt-axis,
 .gantt-row {
   grid-template-columns: 190px minmax(650px, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 .gantt-axis {
   position: sticky;
@@ -2021,7 +2027,7 @@ a {
 .gantt-detail {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   padding: 10px 0 2px;
 }
