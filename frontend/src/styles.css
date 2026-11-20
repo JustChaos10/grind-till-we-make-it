@@ -1,13 +1,8 @@
 :root {
-  font-family:
-    'DM Sans',
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
+  --font-sans:
+    'DM Sans', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
+  font-family: var(--font-sans);
   color: var(--ink);
   background: var(--canvas);
   font-synthesis: none;
@@ -106,7 +101,7 @@ a {
   place-items: center;
 }
 .brand-name {
-  font-family: Manrope, sans-serif;
+  font-family: var(--font-sans);
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.8px;
@@ -343,9 +338,7 @@ a {
 .page-heading h1,
 .welcome-panel h1 {
   margin: 0;
-  font:
-    700 29px Manrope,
-    sans-serif;
+  font: 700 29px var(--font-sans);
   letter-spacing: -1.35px;
   color: #17241c;
 }
@@ -459,9 +452,7 @@ a {
   color: #40875a;
 }
 .stat-value {
-  font:
-    700 25px Manrope,
-    sans-serif;
+  font: 700 25px var(--font-sans);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.8px;
   color: #203027;
@@ -504,9 +495,7 @@ a {
 .impact-panel h2 {
   margin: 0;
   color: #26352c;
-  font:
-    700 13px Manrope,
-    sans-serif;
+  font: 700 13px var(--font-sans);
   letter-spacing: -0.25px;
 }
 .panel-heading p {
@@ -568,9 +557,7 @@ a {
   justify-content: flex-end;
 }
 .stage-count {
-  font:
-    700 23px Manrope,
-    sans-serif;
+  font: 700 23px var(--font-sans);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.7px;
   margin: 8px 0 1px;
@@ -960,9 +947,7 @@ a {
   letter-spacing: 0.4px;
 }
 .compare-numbers b {
-  font:
-    700 17px Manrope,
-    sans-serif;
+  font: 700 17px var(--font-sans);
   font-variant-numeric: tabular-nums;
   color: #47554b;
 }
@@ -1343,9 +1328,7 @@ a {
   margin: 0;
 }
 .slider-head b {
-  font:
-    700 12px Manrope,
-    sans-serif;
+  font: 700 12px var(--font-sans);
   color: #328052;
 }
 .range-input {
@@ -1426,9 +1409,7 @@ a {
 }
 .scenario-result-top h2,
 .scenario-placeholder h2 {
-  font:
-    700 19px Manrope,
-    sans-serif;
+  font: 700 19px var(--font-sans);
   letter-spacing: -0.6px;
   margin: 0;
   color: #26352c;
@@ -1457,9 +1438,7 @@ a {
   gap: 5px;
 }
 .impact-kpi b {
-  font:
-    700 19px Manrope,
-    sans-serif;
+  font: 700 19px var(--font-sans);
   font-variant-numeric: tabular-nums;
   color: #334239;
   white-space: nowrap;

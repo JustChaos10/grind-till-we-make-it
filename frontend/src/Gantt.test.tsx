@@ -78,12 +78,12 @@ describe('Gantt controls', () => {
   it('filters, reports empty matches, and clears filters without changing the timeline scale', () => {
     render(<Gantt operations={[first, second]} maxHour={24} />)
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'late' } })
-    expect(screen.getByText(/1 operations across 1 resources/)).toBeTruthy()
+    expect(screen.getByText(/1 operation across 1 resource/)).toBeTruthy()
     expect(screen.getByRole('button', { name: /WO-2, B/ })).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Work order'), { target: { value: 'WO-1' } })
     expect(screen.getByText(/No operations match/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters (2)' }))
-    expect(screen.getByText(/2 operations across 1 resources · Timeline: 0–24h/)).toBeTruthy()
+    expect(screen.getByText(/2 operations across 1 resource · Timeline: 0–24h/)).toBeTruthy()
   })
 
   it('keeps overlapping operations discoverable and supports zoom and table selection', () => {

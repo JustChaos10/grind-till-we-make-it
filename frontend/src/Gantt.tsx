@@ -212,7 +212,8 @@ export function Gantt({
         </label>
       </div>
       <div className="gantt-summary" aria-live="polite">
-        {filtered.length.toLocaleString()} operations across {rows.length} resources · Timeline: 0–
+        {filtered.length.toLocaleString()} {filtered.length === 1 ? 'operation' : 'operations'}{' '}
+        across {rows.length} {rows.length === 1 ? 'resource' : 'resources'} · Timeline: 0–
         {fmt(maxHour, 0)}h
       </div>
       {filtered.length > 0 && (

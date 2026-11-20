@@ -12,6 +12,7 @@
 
 ## Verification completed
 
+- Headings and metric values now use the documented sans font stack consistently. The synthetic Edge walkthrough passed after the font change; the 320 px board and mobile Gantt captures were inspected. A singular timeline count wording issue found in that review was corrected and covered by Gantt tests. Full visual-state and token audits remain open.
 - A failed optimization or scenario rerun now leaves a persistent notice beside the last successful result, even after the error is dismissed. A successful rerun clears the notice. Component tests and the synthetic Edge browser flow cover both recovery paths.
 - A failed refresh now changes the header status to identify the previous snapshot; a successful retry clears it. The empty Scenario Lab now links back to Flow Board and moves focus to its heading. Component tests and the synthetic Edge flow passed, including failure/recovery and empty-state navigation at 390 and 1280 px.
 - Scenario late-order explanations now stay in a bounded, keyboard-focusable scroll area. An Edge fixture with 30 synthetic explanations verified keyboard access to the final item at 390 px; `screenshots/scenario-late-list-mobile.png` shows the reviewed result.
