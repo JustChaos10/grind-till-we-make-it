@@ -12,7 +12,7 @@
 
 ## Verification completed
 
-- Frontend unit tests: `npm run test -- --run` — 33 tests passed across five files.
+- Frontend unit tests: `npm run test -- --run` — 43 tests passed across five files.
 - Production build: `npm run build` — passed.
 - Lint and formatting: `npm run lint` — passed.
 - `git diff --check` — passed.
@@ -36,6 +36,10 @@
 - Hover details now close when the pointer leaves the operation and its card, while remaining available when the pointer moves between them. A fixture browser flow checked those transitions, Escape, zoom, and scroll dismissal. Stage help now uses the shared keyboard focus ring, scenario onboarding guidance uses 14 px text, and disabled Gantt controls use the shared unavailable cursor.
 - Model responses no longer change the current page after a user navigates away; results remain available on their respective screens. Stage help can be dismissed and reopened by keyboard, and a focused late Gantt operation retains its dashed status marker alongside a focus ring. Unit tests and an Edge fixture flow cover these behaviors.
 - Stage help remains open on the first touch and toggles on later taps. A touch-enabled Edge fixture flow checked opening, closing, and reopening at 390 × 844. A separate computed text-contrast sample found no definite failures on populated, empty, unavailable, validation-error, and optimization-error screens at 1280 × 800; it did not cover all control, focus, or assistive-technology states.
+- Successful board, catalog, optimization, and scenario responses now receive structural validation before use. Invalid data or JSON reports a recoverable error; a malformed refresh preserves the previous snapshot. Missing metrics remain unavailable rather than becoming zero.
+- Scenario results distinguish API-returned inputs from submitted inputs, with names and IDs where known and ID fallback for unknown entries. A regression test covers a response that differs from the request.
+- Focusing a Gantt operation scrolls it clear of the sticky resource label. `python scripts/gantt_focus_check.py` passed with Edge at 390 × 844 after horizontal scrolling, including selection and Escape. The shared focus color measured at least 4.34:1 against sampled backgrounds; this is not a full focus audit.
+- Reused shared color tokens for matching surface, divider, and positive-status values. A full token audit remains open.
 - Updated the UI acceptance ledger, implementation audit, backend request list, and founder demo copy to match observed behavior and remaining verification limits.
 
 ## Final Git record
@@ -69,6 +73,8 @@ Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in 
 ## Repeatable browser verification
 
 From `frontend`, with Vite running at `127.0.0.1:5173`, run `python scripts/browser_flow.py`. The script uses Microsoft Edge, Python Playwright, and synthetic API fixtures. It passed optimization, Gantt hover and horizontal-scroll dismissal, keyboard details and Escape focus restoration, and scenario inputs. The automated fixture walkthrough took 1.44 seconds with reduced motion emulated; it is not a timed spoken rehearsal.
+
+With Vite on `127.0.0.1:5187`, run `python scripts/gantt_focus_check.py` to repeat the mobile keyboard focus check.
 
 Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
 

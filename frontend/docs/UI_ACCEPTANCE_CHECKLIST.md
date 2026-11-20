@@ -73,7 +73,7 @@
 - [x] Form clearly explains how rush orders and quantity increases are modeled (source and browser review).
 - [x] Inputs are validated before submission and a synchronous guard prevents duplicate requests on repeated clicks (component regression test).
 - [x] Scenario summary displays exact submitted (not merely current draft) inputs (component test).
-- [x] Results tie to last submitted input and later edits mark them stale (component test).
+- [x] Results show API-returned inputs alongside the submitted snapshot; later edits mark them stale (component test covers differing inputs and unknown IDs).
 - [x] Scenario comparison shows returned results, including no change; regression display reviewed in API-derived UI code (component test and source review).
 - [x] Due-date impact list is a labeled, keyboard-focusable region; regression test covers earlier/later/unchanged values, signed hours and late-state text.
 - [x] Scenario Gantt uses actual scenario response, not a reused optimization timeline (component test and source review).
@@ -96,7 +96,7 @@
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); the synthetic Edge walkthrough also passed with reduced motion emulated; an OS setting has not been checked.
 - [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
 - [x] Form controls have accessible names, help, and error associations. Source review covered all nine native controls; browser checks confirmed scenario labels and help, and component tests cover errors and clearing for all three scenario fields. Screen-reader review remains open.
-- [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details.
+- [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details. At 390 × 844, a focused operation clears the sticky resource label after horizontal scrolling (`scripts/gantt_focus_check.py`).
 - [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; control borders measured 3.91:1 against white; coverage of all states remains open).
 
 ## 6. Engineering and tests
@@ -104,7 +104,7 @@
 - [x] Shared typed API client and types reflect current backend response contract (contract and source review).
 - [x] `App.tsx` responsibly refactored rather than blindly replaced (diff review).
 - [x] `styles.css` improved with consistent tokens/component boundaries (source review).
-- [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test).
+- [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test). Malformed successful board, catalog, optimizer, and scenario responses are rejected; a refresh retains the last valid snapshot (API and component tests).
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, scenario behavior, and timeline filters.

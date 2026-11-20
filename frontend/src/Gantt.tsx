@@ -6,6 +6,20 @@ import './Gantt.css'
 
 const stages = ['Molding', 'Debinding', 'Sintering', 'CNC Machining', 'Finishing']
 
+function revealFocusedBar(bar: HTMLButtonElement) {
+  const timeline = bar.closest<HTMLElement>('.gantt')
+  const resource = bar.closest('.gantt-row')?.querySelector<HTMLElement>('.gantt-resource')
+  if (!timeline || !resource) return
+
+  const barBounds = bar.getBoundingClientRect()
+  const timelineBounds = timeline.getBoundingClientRect()
+  const left =
+    Math.max(timelineBounds.left + timeline.clientLeft, resource.getBoundingClientRect().right) + 4
+  const right = timelineBounds.left + timeline.clientLeft + timeline.clientWidth - 4
+  if (barBounds.left < left) timeline.scrollLeft -= left - barBounds.left
+  else if (barBounds.right > right) timeline.scrollLeft += barBounds.right - right
+}
+
 export function Gantt({
   operations,
   maxHour,
@@ -257,6 +271,7 @@ export function Gantt({
                             aria-expanded={selectedOperation === item}
                             aria-controls={selectedOperation === item ? detailId : undefined}
                             title={accessibleName}
+                            onFocus={(event) => revealFocusedBar(event.currentTarget)}
                             onMouseEnter={(event) => {
                               if (!selectedOperation) {
                                 hoveredBar.current = event.currentTarget
