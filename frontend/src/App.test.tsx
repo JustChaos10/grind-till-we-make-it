@@ -715,6 +715,19 @@ describe('frontend data states', () => {
           : path.endsWith('/api/schedule/simulate')
             ? {
                 ...makeSimulation(),
+                reference_metrics: {
+                  late_orders: 1,
+                  avg_wip_age_hours: 12,
+                  throughput: 2,
+                  throughput_horizon_hours: 168,
+                },
+                scenario_metrics: {
+                  late_orders: 1,
+                  avg_wip_age_hours: 12,
+                  throughput: 3,
+                  throughput_horizon_hours: 72,
+                },
+                delta: { ...makeSimulation().delta, throughput: 1 },
                 scenario_inputs: {
                   down_resource_ids: ['res-1', 'unknown-resource'],
                   rush_order_ids: ['unknown-order'],
@@ -745,6 +758,12 @@ describe('frontend data states', () => {
         /Submitted inputs: Resource outage: Furnace 1 \(res-1\) · Priority order: WO-001 \(wo-1\) · Demand increase: 25%/,
       ),
     ).toBeTruthy()
+    expect(
+      screen.getByText(/reference 168 hours; scenario 72 hours.*cannot be compared/),
+    ).toBeTruthy()
+    const throughputCard = screen.getByText('Throughput').closest('article')!
+    expect(within(throughputCard).getByText('Unavailable:')).toBeTruthy()
+    expect(screen.getByText('Projected effect under the modeled scenario quantities')).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'Scenario schedule' })).toBeTruthy()
     expect(screen.getByRole('button', { name: /WO-001.*late.*BATCH-1/i })).toBeTruthy()
     const request = fetchMock.mock.calls.find(([input]) =>

@@ -49,7 +49,7 @@ export type Metrics = {
   late_orders: number
   avg_wip_age_hours: number
   throughput: number
-  throughput_horizon_hours: number
+  throughput_horizon_hours?: number | null
   furnace_batch_efficiency_pct: number
   makespan_hours: number
   bottleneck_resource_id: string | null

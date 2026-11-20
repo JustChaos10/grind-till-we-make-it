@@ -66,6 +66,24 @@ const planningAlertTitle = (message: string) => {
 const formatPlanningAlert = (alert: string) =>
   alert.replace(/active bottleneck/gi, 'modeled busy-hours signal')
 
+const comparableHorizons = (
+  reference: number | null | undefined,
+  result: number | null | undefined,
+) => reference != null && result != null && reference === result
+
+function throughputCaption(
+  reference: number | null | undefined,
+  result: number | null | undefined,
+  resultLabel: string,
+) {
+  if (comparableHorizons(reference, result)) {
+    return `Throughput counts modeled work orders completed within ${reference} hours.`
+  }
+  const horizon = (value: number | null | undefined) =>
+    value == null ? 'not provided' : `${value} hours`
+  return `Throughput horizons: reference ${horizon(reference)}; ${resultLabel} ${horizon(result)}. Throughput changes cannot be compared without matching horizons.`
+}
+
 function App() {
   const [page, setPage] = useState<Page>(pageFromHash)
   const destinationHeading = useRef<HTMLHeadingElement>(null)
@@ -794,9 +812,20 @@ function App() {
                     />
                     <CompareCard
                       title="Throughput"
+                      comparable={comparableHorizons(
+                        optimization.comparison.baseline.throughput_horizon_hours,
+                        optimization.comparison.optimized.throughput_horizon_hours,
+                      )}
                       before={optimization.comparison.baseline.throughput}
                       after={optimization.comparison.optimized.throughput}
-                      delta={optimization.comparison.delta.throughput}
+                      delta={
+                        comparableHorizons(
+                          optimization.comparison.baseline.throughput_horizon_hours,
+                          optimization.comparison.optimized.throughput_horizon_hours,
+                        )
+                          ? optimization.comparison.delta.throughput
+                          : null
+                      }
                       unit="orders"
                       goodDown={false}
                     />
@@ -812,9 +841,14 @@ function App() {
                   <p className="metric-caption">
                     Late orders are projected, not confirmed customer misses. Average WIP age
                     includes modeled time through completion, unlike current WIP age on the flow
-                    board. Throughput counts modeled work orders completed within 168 hours. Furnace
-                    batch fill is a modeled load ratio; it is not utilization or OEE. Deltas show
-                    proposed minus reference, in percentage points for batch fill.
+                    board.{' '}
+                    {throughputCaption(
+                      optimization.comparison.baseline.throughput_horizon_hours,
+                      optimization.comparison.optimized.throughput_horizon_hours,
+                      'proposed',
+                    )}{' '}
+                    Furnace batch fill is a modeled load ratio; it is not utilization or OEE. Deltas
+                    show proposed minus reference, in percentage points for batch fill.
                   </p>
                   <section className="panel schedule-panel">
                     <div className="panel-heading schedule-heading">
@@ -1204,15 +1238,26 @@ function App() {
                           label="Throughput"
                           baseline={simulation.reference_metrics.throughput}
                           scenario={simulation.scenario_metrics.throughput}
-                          delta={simulation.delta.throughput}
+                          delta={
+                            comparableHorizons(
+                              simulation.reference_metrics.throughput_horizon_hours,
+                              simulation.scenario_metrics.throughput_horizon_hours,
+                            )
+                              ? simulation.delta.throughput
+                              : null
+                          }
                           unit="orders"
                         />
                       </div>
                       <p className="metric-caption">
-                        Throughput is modeled work orders completed within 168 hours. WIP age here
-                        is model-derived through completion, not the current age shown on the Flow
-                        Board. When quantities change, the two schedules contain different amounts
-                        of work; compare these measures in that context.
+                        {throughputCaption(
+                          simulation.reference_metrics.throughput_horizon_hours,
+                          simulation.scenario_metrics.throughput_horizon_hours,
+                          'scenario',
+                        )}{' '}
+                        WIP age here is model-derived through completion, not the current age shown
+                        on the Flow Board. When quantities change, the two schedules contain
+                        different amounts of work; compare these measures in that context.
                       </p>
                       <section className="scenario-insight">
                         <div>
@@ -1236,7 +1281,7 @@ function App() {
                         <div className="panel-heading">
                           <div>
                             <h2>What changes</h2>
-                            <p>Projected effect across the current order book</p>
+                            <p>Projected effect under the modeled scenario quantities</p>
                           </div>
                         </div>
                         {simulation.due_date_impact.length ? (
@@ -1424,6 +1469,7 @@ function CompareCard({
   delta,
   unit,
   goodDown,
+  comparable = true,
 }: {
   title: string
   before: number | null | undefined
@@ -1431,6 +1477,7 @@ function CompareCard({
   delta: number | null | undefined
   unit: string
   goodDown: boolean
+  comparable?: boolean
 }) {
   const improved = delta != null && (goodDown ? delta < 0 : delta > 0)
   const hasDelta = delta != null && Number.isFinite(delta)
@@ -1473,13 +1520,15 @@ function CompareCard({
           </b>
         </div>
       </div>
-      <div className="compare-bar">
-        <span
-          style={{
-            width: `${before == null || after == null || before <= 0 ? 0 : Math.min(100, (after / before) * 100)}%`,
-          }}
-        />
-      </div>
+      {comparable && (
+        <div className="compare-bar">
+          <span
+            style={{
+              width: `${before == null || after == null || before <= 0 ? 0 : Math.min(100, (after / before) * 100)}%`,
+            }}
+          />
+        </div>
+      )}
     </article>
   )
 }
