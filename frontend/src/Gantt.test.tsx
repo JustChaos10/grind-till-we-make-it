@@ -175,7 +175,13 @@ describe('Gantt controls', () => {
       end_hour: index + 1,
     }))
     const { container } = render(<Gantt operations={operations} maxHour={1200} />)
-    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(1200)
+    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(100)
+    expect(screen.getByText(/Timeline showing 1 to 100 of 1200 operations/)).toBeInTheDocument()
+    for (let page = 1; page < 12; page++) {
+      fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    }
+    expect(screen.getByText(/Timeline showing 1101 to 1200 of 1200 operations/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous timeline operations' })).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: 'Skip timeline operations' }))
     expect(screen.getByText('End of timeline')).toHaveFocus()
     fireEvent.click(screen.getByRole('button', { name: /^WO-1199,/ }))
@@ -184,6 +190,52 @@ describe('Gantt controls', () => {
     )
     fireEvent.change(screen.getByLabelText('Work order'), { target: { value: 'WO-1199' } })
     expect(container.querySelectorAll('.gantt-bar')).toHaveLength(1)
+    expect(screen.queryByRole('navigation', { name: 'Timeline operation pages' })).toBeNull()
+  })
+
+  it('resets timeline pages on filters and clears selection and hover during navigation', () => {
+    const operations = Array.from({ length: 201 }, (_, index) => ({
+      ...first,
+      work_order_id: String(index),
+      wo_number: `WO-${index}`,
+      start_hour: index,
+      end_hour: index + 1,
+      is_late: index >= 100,
+    }))
+    const { container, rerender } = render(<Gantt operations={operations} maxHour={500} />)
+    expect(screen.getByText(/Other pages may contain operations/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^WO-0, A/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /^WO-100, A/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    expect(screen.queryByText('Batch B1')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Previous timeline operations' })).toHaveFocus()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'late' } })
+    expect(screen.getByText(/Timeline showing 1 to 100 of 101 operations/)).toBeInTheDocument()
+    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(100)
+    expect(screen.getByText('500h')).toBeInTheDocument()
+    rerender(<Gantt operations={operations.slice(100, 150)} maxHour={500} />)
+    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(50)
+  })
+
+  it('clamps the timeline page when schedule data shrinks', () => {
+    const operations = Array.from({ length: 201 }, (_, index) => ({
+      ...first,
+      work_order_id: String(index),
+      wo_number: `WO-${index}`,
+      start_hour: index,
+      end_hour: index + 1,
+    }))
+    const { container, rerender } = render(<Gantt operations={operations} maxHour={500} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    fireEvent.click(screen.getByRole('button', { name: /^WO-200, A/ }))
+    rerender(<Gantt operations={operations.slice(0, 150)} maxHour={500} />)
+    expect(screen.getByText(/Timeline showing 101 to 150 of 150 operations/)).toBeInTheDocument()
+    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(50)
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+    expect(screen.getByLabelText('Stage')).toHaveFocus()
   })
 
   it('offers paged, text-labelled controls for short operations and respects timeline filters', async () => {

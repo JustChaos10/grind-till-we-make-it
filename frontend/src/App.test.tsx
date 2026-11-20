@@ -513,7 +513,9 @@ describe('frontend data states', () => {
 
     expect(screen.getByText(/120 operations across 1 resource · Timeline: 0–240h/)).toBeTruthy()
     const bars = container.querySelectorAll('.gantt-bar')
-    expect(bars).toHaveLength(120)
+    expect(bars).toHaveLength(100)
+    fireEvent.click(screen.getByRole('button', { name: 'Next timeline operations' }))
+    expect(container.querySelectorAll('.gantt-bar')).toHaveLength(20)
     const last = screen.getByRole('button', { name: /WO-120, SKU-120.*late.*Capacity constraint/ })
     expect(Number.parseFloat((last as HTMLButtonElement).style.width)).toBeCloseTo(0.4167, 3)
     expect(last.querySelector('span')).toHaveAttribute('aria-hidden', 'true')

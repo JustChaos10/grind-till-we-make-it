@@ -55,6 +55,14 @@ export function Gantt({
   const [zoom, setZoom] = useState(1)
   const [listOpen, setListOpen] = useState(false)
   const [listPage, setListPage] = useState(0)
+  const [chartState, setChartState] = useState({
+    page: 0,
+    length: operations.length,
+    sequence: requestSequence,
+  })
+  const chartPrevious = useRef<HTMLButtonElement | null>(null)
+  const chartNext = useRef<HTMLButtonElement | null>(null)
+  const chartFocus = useRef<'previous' | 'next' | null>(null)
   const stageFilter = useRef<HTMLSelectElement | null>(null)
   const orderFilter = useRef<HTMLSelectElement | null>(null)
   const previousPageButton = useRef<HTMLButtonElement | null>(null)
@@ -77,9 +85,20 @@ export function Gantt({
       ),
     [operations, filters],
   )
+  const chartPageSize = 100
+  const currentChartPage =
+    chartState.sequence !== requestSequence
+      ? 0
+      : Math.min(chartState.page, Math.max(0, Math.ceil(filtered.length / chartPageSize) - 1))
+  if (chartState.length !== filtered.length || chartState.sequence !== requestSequence) {
+    setChartState({ page: currentChartPage, length: filtered.length, sequence: requestSequence })
+  }
+  const setChartPage = (page: number) =>
+    setChartState({ page, length: filtered.length, sequence: requestSequence })
   const options = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b))
   const setFilter = (name: keyof typeof filters, value: string) => {
     setListPage(0)
+    setChartPage(0)
     setSelected(null)
     setHovered(null)
     setFilterState({ filters: { ...filters, [name]: value }, sequence: requestSequence })
@@ -95,16 +114,48 @@ export function Gantt({
   const detailRef = useRef<HTMLDivElement | null>(null)
   const detailHasFocus = useRef(false)
   const timelineEndRef = useRef<HTMLDivElement | null>(null)
+  const chartStart = currentChartPage * chartPageSize
+  const chartOperations = useMemo(
+    () => filtered.slice(chartStart, chartStart + chartPageSize),
+    [filtered, chartStart],
+  )
+  const resourceCount = useMemo(
+    () => new Set(filtered.map((item) => item.resource_id)).size,
+    [filtered],
+  )
   const rows = useMemo(() => {
     const grouped = new Map<string, Operation[]>()
-    filtered.forEach((operation) => {
+    chartOperations.forEach((operation) => {
       const key = operation.resource_id
       const items = grouped.get(key) ?? []
       items.push(operation)
       grouped.set(key, items)
     })
     return [...grouped.entries()]
-  }, [filtered])
+  }, [chartOperations])
+  useEffect(() => {
+    const target = chartFocus.current
+    if (!target) return
+    chartFocus.current = null
+    ;(target === 'previous' ? chartPrevious : chartNext).current?.focus()
+  }, [currentChartPage])
+  const changeChartPage = (page: number) => {
+    detailHasFocus.current = false
+    chartFocus.current =
+      page === 0 ? 'next' : (page + 1) * chartPageSize >= filtered.length ? 'previous' : null
+    setSelected(null)
+    setHovered(null)
+    setSelectionNotice('')
+    setChartPage(page)
+  }
+  const previousChartPage = useRef(currentChartPage)
+  useEffect(() => {
+    if (previousChartPage.current === currentChartPage) return
+    previousChartPage.current = currentChartPage
+    if (detailHasFocus.current) stageFilter.current?.focus()
+    setSelected(null)
+    setHovered(null)
+  }, [currentChartPage])
   const selectedOperation = selected
     ? (filtered.find((item) => item === selected) ??
       filtered.find((item) => sameOperation(item, selected)) ??
@@ -241,6 +292,7 @@ export function Gantt({
           type="button"
           onClick={() => {
             setListPage(0)
+            setChartPage(0)
             setSelected(null)
             setHovered(null)
             setFilterState({ filters: emptyFilters, sequence: requestSequence })
@@ -261,7 +313,7 @@ export function Gantt({
       </div>
       <div className="gantt-summary" aria-live="polite">
         {filtered.length.toLocaleString()} {filtered.length === 1 ? 'operation' : 'operations'}{' '}
-        across {rows.length} {rows.length === 1 ? 'resource' : 'resources'} · Timeline: 0–
+        across {resourceCount} {resourceCount === 1 ? 'resource' : 'resources'} · Timeline: 0–
         {fmt(maxHour, 0)}h
       </div>
       {filtered.length > 0 && (
@@ -328,6 +380,34 @@ export function Gantt({
             </div>
           )}
         </details>
+      )}
+      {filtered.length > chartPageSize && (
+        <nav className="gantt-chart-pages gantt-controls" aria-label="Timeline operation pages">
+          <span aria-live="polite">
+            Timeline showing {chartStart + 1} to{' '}
+            {Math.min(chartStart + chartPageSize, filtered.length)} of {filtered.length} operations
+          </span>
+          <span>
+            Other pages may contain operations on the same resource, including overlapping
+            operations.
+          </span>
+          <button
+            type="button"
+            ref={chartPrevious}
+            disabled={currentChartPage === 0}
+            onClick={() => changeChartPage(currentChartPage - 1)}
+          >
+            Previous timeline operations
+          </button>
+          <button
+            type="button"
+            ref={chartNext}
+            disabled={chartStart + chartPageSize >= filtered.length}
+            onClick={() => changeChartPage(currentChartPage + 1)}
+          >
+            Next timeline operations
+          </button>
+        </nav>
       )}
       {filtered.length > 0 && (
         <button
