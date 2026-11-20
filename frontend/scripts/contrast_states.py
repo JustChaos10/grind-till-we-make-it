@@ -19,6 +19,16 @@ assignments = [node for node in tree.body if isinstance(node, ast.Assign)
 fixtures = {}
 exec(compile(ast.Module(body=assignments, type_ignores=[]), '<fixtures>', 'exec'), fixtures)
 responses = fixtures['responses']
+empty_responses = {
+    **responses,
+    '/api/flow-board': dict(
+        total_wip_orders=0,
+        avg_wip_age_hours=None,
+        queues=[],
+        active_bottleneck_alerts=[],
+    ),
+    '/api/catalog': dict(resources=[], work_orders=[]),
+}
 fail_path = ''
 
 MEASURE = r'''root => {
@@ -63,6 +73,53 @@ def check(label, locator):
 
 with sync_playwright() as p:
     browser = p.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
+    viewport = {
+        'width': int(os.environ.get('INDOFLOW_VIEWPORT_WIDTH', '1280')),
+        'height': int(os.environ.get('INDOFLOW_VIEWPORT_HEIGHT', '800')),
+    }
+
+    initial_page = browser.new_page(viewport=viewport, reduced_motion='reduce')
+    initial_failure = True
+    def route_initial(route):
+        path = '/' + route.request.url.split('/', 3)[3].split('?', 1)[0]
+        if initial_failure and path == '/api/flow-board':
+            route.fulfill(status=503, content_type='application/json', body=json.dumps({'detail': 'Synthetic initial API failure'}))
+        elif path in responses:
+            route.fulfill(status=200, content_type='application/json', body=json.dumps(responses[path]))
+        else:
+            route.abort()
+            raise AssertionError(f'Unexpected API request: {path}')
+    initial_page.route('**/api/**', route_initial)
+    initial_page.goto(os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5187'), wait_until='networkidle')
+    expect(initial_page.get_by_role('heading', name='Connect to the factory demo')).to_be_visible()
+    expect(initial_page.get_by_role('alert')).to_contain_text('Synthetic initial API failure')
+    failures = check('Initial API failure welcome state', initial_page.locator('.welcome-panel'))
+    failures += check('Initial API failure alert', initial_page.get_by_role('alert'))
+    initial_failure = False
+    initial_page.get_by_role('button', name='Retry API connection').click()
+    expect(initial_page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    initial_page.close()
+
+    empty_page = browser.new_page(viewport=viewport, reduced_motion='reduce')
+    def route_empty(route):
+        path = '/' + route.request.url.split('/', 3)[3].split('?', 1)[0]
+        if path in empty_responses:
+            route.fulfill(status=200, content_type='application/json', body=json.dumps(empty_responses[path]))
+        else:
+            route.abort()
+            raise AssertionError(f'Unexpected API request: {path}')
+    empty_page.route('**/api/**', route_empty)
+    empty_page.goto(os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5187'), wait_until='networkidle')
+    expect(empty_page.get_by_role('heading', name='No open work orders')).to_be_visible()
+    failures += check('Empty Flow board', empty_page.locator('.empty-board'))
+    empty_page.get_by_role('button', name='Schedule optimizer').click()
+    expect(empty_page.get_by_role('heading', name='No work orders to schedule')).to_be_visible()
+    failures += check('Empty Schedule optimizer', empty_page.locator('.empty-run'))
+    empty_page.get_by_role('button', name='Scenario lab').click()
+    expect(empty_page.get_by_text('No schedulable work orders are available.')).to_be_visible()
+    failures += check('Empty Scenario lab', empty_page.locator('.scenario-layout'))
+    empty_page.close()
+
     page = browser.new_page(viewport={
         'width': int(os.environ.get('INDOFLOW_VIEWPORT_WIDTH', '1280')),
         'height': int(os.environ.get('INDOFLOW_VIEWPORT_HEIGHT', '800')),
@@ -79,7 +136,7 @@ with sync_playwright() as p:
     page.route('**/api/**', route_api)
     page.goto(os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5187'), wait_until='networkidle')
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
-    failures = check('Populated Flow board', page.locator('body'))
+    failures += check('Populated Flow board', page.locator('body'))
     fail_path = '/api/flow-board'
     page.get_by_role('button', name='Refresh data').click()
     failures += check('Refresh failure alert', page.get_by_role('alert'))
