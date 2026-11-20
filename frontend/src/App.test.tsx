@@ -220,6 +220,23 @@ describe('frontend data states', () => {
     expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus()
   })
 
+  it('does not call a catalog with no open orders an empty database or offer seeding', async () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'true')
+    const catalog = makeCatalog()
+    catalog.work_orders[0].status = 'COMPLETED'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) =>
+        Response.json(String(input).endsWith('/api/catalog') ? catalog : emptyBoard),
+      ),
+    )
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'No work orders in this database' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /load synthetic example/i })).toBeNull()
+  })
+
   it('keeps destructive synthetic seeding disabled unless explicitly enabled for a local demo', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = mockApi()

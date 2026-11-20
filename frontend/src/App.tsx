@@ -603,24 +603,36 @@ function App() {
                   <span className="placeholder-orbit">
                     <Boxes size={22} />
                   </span>
-                  <h2>No work orders in this database</h2>
-                  <p>
-                    Load the documented synthetic dataset to explore the flow board, schedule, and
-                    scenario controls.
-                  </p>
-                  <button
-                    className="primary-button"
-                    onClick={seedDemo}
-                    disabled={busy !== null || !lastUpdated || !canSeedDemo()}
-                    aria-describedby={!canSeedDemo() ? 'empty-board-seed-note' : undefined}
-                  >
-                    <GitBranch size={16} />{' '}
-                    {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
-                  </button>
-                  {!canSeedDemo() && (
-                    <p id="empty-board-seed-note">
-                      Demo seeding is off. Enable it only for a dedicated local demo database.
-                    </p>
+                  {orders.length > 0 ? (
+                    <>
+                      <h2>No open work orders</h2>
+                      <p>
+                        The flow snapshot has no open work orders. The catalog still contains work
+                        orders; refresh the data if this is unexpected.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2>No work orders in this database</h2>
+                      <p>
+                        Load the documented synthetic dataset to explore the flow board, schedule,
+                        and scenario controls.
+                      </p>
+                      <button
+                        className="primary-button"
+                        onClick={seedDemo}
+                        disabled={busy !== null || !lastUpdated || !canSeedDemo()}
+                        aria-describedby={!canSeedDemo() ? 'empty-board-seed-note' : undefined}
+                      >
+                        <GitBranch size={16} />{' '}
+                        {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
+                      </button>
+                      {!canSeedDemo() && (
+                        <p id="empty-board-seed-note">
+                          Demo seeding is off. Enable it only for a dedicated local demo database.
+                        </p>
+                      )}
+                    </>
                   )}
                 </section>
               ) : (
