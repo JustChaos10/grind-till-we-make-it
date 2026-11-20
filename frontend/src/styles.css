@@ -48,6 +48,11 @@
   --status-negative: #96433a;
   --status-negative-surface: #fbefed;
   --status-late: #a33c34;
+  --status-impact-later: #a34f43;
+  --status-impact-earlier: #287147;
+  --status-impact-unchanged: #58665c;
+  --status-impact-ok: #54a76e;
+  --status-impact-late: #d49144;
   --scenario-accent: #655482;
   --surface-sidebar: #fbfcfa;
   --surface-soft: #f3f5f2;
@@ -1547,13 +1552,13 @@ a {
   font-weight: 700;
 }
 .impact-time.later {
-  color: #a34f43;
+  color: var(--status-impact-later);
 }
 .impact-time.earlier {
-  color: #287147;
+  color: var(--status-impact-earlier);
 }
 .impact-time.unchanged {
-  color: #58665c;
+  color: var(--status-impact-unchanged);
 }
 .impact-dot {
   height: 6px;
@@ -1561,10 +1566,10 @@ a {
   border-radius: 50%;
 }
 .impact-dot.ok {
-  background: #54a76e;
+  background: var(--status-impact-ok);
 }
 .impact-dot.late {
-  background: #d49144;
+  background: var(--status-impact-late);
 }
 .scenario-insight {
   display: flex;
