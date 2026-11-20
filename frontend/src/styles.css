@@ -394,6 +394,12 @@ a {
 .link-button {
   font-size: 12px;
 }
+.text-button:hover:not(:disabled),
+.link-button:hover:not(:disabled) {
+  color: var(--green-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

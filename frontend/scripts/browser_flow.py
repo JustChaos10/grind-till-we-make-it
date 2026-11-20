@@ -52,6 +52,15 @@ with sync_playwright() as playwright:
     page.goto(BASE, wait_until='networkidle')
     assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    for width in (320, 390, 768, 1440):
+        page.set_viewport_size({'width': width, 'height': 844})
+        for button in page.locator('.stage-help').all():
+            bounds = button.bounding_box()
+            assert bounds and bounds['width'] >= 44 and bounds['height'] >= 44
+        assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+        if width == 320:
+            page.screenshot(path='docs/screenshots/board-320-help.png', full_page=True)
+    page.set_viewport_size({'width': 1280, 'height': 800})
     help_button = page.get_by_role('button', name='About Molding')
     help_button.focus()
     expect(help_button).to_have_attribute('aria-expanded', 'true')

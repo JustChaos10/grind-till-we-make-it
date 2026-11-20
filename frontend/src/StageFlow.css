@@ -2,19 +2,20 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-top: 8px;
-  padding: 2px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 2px;
   border: 0;
   background: transparent;
-  color: #355d40;
+  color: var(--green-dark);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
 }
 .stage-route-note,
 .stage-help-detail {
   margin: 12px 0 0;
   color: var(--stage-label);
-  font-size: 12px;
+  font-size: 13px;
 }
 .stage-help-detail {
   min-height: 2.5em;
