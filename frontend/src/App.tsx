@@ -613,10 +613,11 @@ function App() {
                     </>
                   ) : (
                     <>
-                      <h2>No work orders in this database</h2>
+                      <h2>No open work orders</h2>
                       <p>
-                        Load the documented synthetic dataset to explore the flow board, schedule,
-                        and scenario controls.
+                        The API reports no open work orders. This does not mean the database is
+                        empty. Loading the synthetic example resets factory data, so use it only
+                        with a dedicated local demo database.
                       </p>
                       <button
                         className="primary-button"

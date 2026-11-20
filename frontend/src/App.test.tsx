@@ -220,10 +220,9 @@ describe('frontend data states', () => {
     expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus()
   })
 
-  it('does not call a catalog with no open orders an empty database or offer seeding', async () => {
+  it('does not offer seeding when the flow snapshot and catalog disagree', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'true')
     const catalog = makeCatalog()
-    catalog.work_orders[0].status = 'COMPLETED'
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) =>
@@ -233,7 +232,6 @@ describe('frontend data states', () => {
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeVisible()
-    expect(screen.queryByRole('heading', { name: 'No work orders in this database' })).toBeNull()
     expect(screen.queryByRole('button', { name: /load synthetic example/i })).toBeNull()
   })
 
@@ -242,9 +240,8 @@ describe('frontend data states', () => {
     const fetchMock = mockApi()
     render(<App />)
 
-    expect(
-      await screen.findByRole('heading', { name: 'No work orders in this database' }),
-    ).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeTruthy()
+    expect(screen.getByText(/this does not mean the database is empty/i)).toBeVisible()
     expect(screen.getByRole('button', { name: /load synthetic example/i })).toBeDisabled()
     expect(screen.getByText(/demo seeding is off\. enable it only/i)).toBeVisible()
     expect(screen.queryByText('Clear for now')).toBeNull()
@@ -258,7 +255,7 @@ describe('frontend data states', () => {
     const fetchMock = mockApi()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Load synthetic example' }))
     await waitFor(() =>
@@ -274,7 +271,7 @@ describe('frontend data states', () => {
     const fetchMock = mockApi()
     vi.spyOn(window, 'confirm').mockReturnValue(false)
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Load synthetic example' }))
 
@@ -285,7 +282,7 @@ describe('frontend data states', () => {
   it('keeps the demand control within the documented API range', async () => {
     mockApi()
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
     fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
 
     const demand = screen.getByRole('slider', {
@@ -302,7 +299,7 @@ describe('frontend data states', () => {
   it('explains why optimization is unavailable and returns to the board when there are no work orders', async () => {
     const fetchMock = mockApi()
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
     fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
 
     expect(screen.getByRole('heading', { name: 'No work orders to schedule' })).toBeInTheDocument()
@@ -317,7 +314,7 @@ describe('frontend data states', () => {
   it('does not offer scenario simulation when the API has no work orders', async () => {
     const fetchMock = mockApi()
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
     fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
 
     expect(
@@ -359,9 +356,7 @@ describe('frontend data states', () => {
     expect(screen.queryByRole('heading', { name: 'Production flow overview' })).toBeNull()
     failed = false
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
-    expect(
-      await screen.findByRole('heading', { name: 'No work orders in this database' }),
-    ).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeTruthy()
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
@@ -378,13 +373,13 @@ describe('frontend data states', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
 
     malformed = true
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(/response/i)
     expect(screen.getByText('Refresh failed · previous data')).toHaveAttribute('role', 'status')
-    expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'No open work orders' })).toBeTruthy()
     expect(
       screen.getByText('Showing the last successfully loaded data. Retry to update it.'),
     ).toBeTruthy()
@@ -396,7 +391,7 @@ describe('frontend data states', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     await waitFor(() => expect(screen.queryByText('Refresh failed')).toBeNull())
     expect(screen.queryByText('Refresh failed · previous data')).toBeNull()
-    expect(screen.getByRole('heading', { name: 'No work orders in this database' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'No open work orders' })).toBeTruthy()
   })
 
   it('marks model results as potentially out of date after a successful refresh', async () => {
@@ -484,7 +479,7 @@ describe('frontend data states', () => {
       }),
     )
     render(<App />)
-    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    await screen.findByRole('heading', { name: 'No open work orders' })
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
     expect(screen.getByText('Refreshing API data…')).toHaveAttribute('role', 'status')
     await act(async () => {
@@ -541,7 +536,7 @@ describe('frontend data states', () => {
     })
 
     expect(screen.getByText('7 open work orders in this API snapshot')).toBeTruthy()
-    expect(screen.queryByRole('heading', { name: 'No work orders in this database' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'No open work orders' })).toBeNull()
   })
 
   it('shows populated queue signals as snapshot counts, not proven bottlenecks', async () => {

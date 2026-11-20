@@ -285,6 +285,6 @@ with sync_playwright() as playwright:
         expect(page.get_by_role('button', name='Run scenario')).to_be_disabled()
         page.get_by_role('button', name='Go to Flow board').click()
         expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
-        expect(page.get_by_role('heading', name='No work orders in this database')).to_be_visible()
+        expect(page.get_by_role('heading', name='No open work orders')).to_be_visible()
     browser.close()
 print(f'PASS: board, optimization, hover and scroll dismissal, keyboard selection and focus restore, scenario, reduced motion; synthetic API fixtures; automated walkthrough {elapsed:.2f}s')

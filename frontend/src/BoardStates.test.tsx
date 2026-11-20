@@ -57,7 +57,7 @@ it('disables schedule actions when there are no schedulable catalog orders', asy
   )
   vi.stubGlobal('fetch', fetchMock)
   render(<App />)
-  await screen.findByText('No work orders in this database')
+  await screen.findByText('No open work orders')
   expect(screen.getByRole('button', { name: /Optimize schedule/i })).toBeDisabled()
   expect(screen.getByRole('button', { name: /Run comparison/i })).toBeDisabled()
   await userEvent.click(screen.getByRole('button', { name: /Schedule optimizer/i }))
