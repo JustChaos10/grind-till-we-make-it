@@ -97,7 +97,7 @@
 - [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
 - [x] Form controls have accessible names, help, and error associations. Source review covered all nine native controls; browser checks confirmed scenario labels and help, and component tests cover errors and clearing for all three scenario fields. Screen-reader review remains open.
 - [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details. At 390 × 844, a focused operation clears the sticky resource label after horizontal scrolling (`scripts/gantt_focus_check.py`).
-- [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; control borders measured 3.91:1 against white; the Gantt also has a text-labelled operation list; coverage of all states remains open).
+- [ ] Color contrast and no color-only status indicators checked (at 1440 px, sampled fixture board, optimizer, and scenario result text met 4.5:1; control borders measured 3.91:1 against white; the board warning icon now measures 6.09:1 against its background and has adjacent text; the Gantt also has a text-labelled operation list; coverage of all states remains open).
 
 ## 6. Engineering and tests
 
