@@ -196,13 +196,6 @@ a {
 .nav-item.selected svg {
   stroke-width: 2.3;
 }
-.nav-dot {
-  margin-left: auto;
-  width: 5px;
-  height: 5px;
-  background: #38a968;
-  border-radius: 50%;
-}
 .beta {
   margin-left: auto;
   color: var(--text-secondary);
@@ -1790,11 +1783,10 @@ a {
     gap: 3px;
     font-size: 12px;
   }
-  .nav-item span:not(.nav-dot):not(.beta) {
+  .nav-item span:not(.beta) {
     display: block;
   }
-  .nav-item .beta,
-  .nav-dot {
+  .nav-item .beta {
     display: none;
   }
   .main-area {

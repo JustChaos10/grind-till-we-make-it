@@ -383,7 +383,6 @@ function App() {
           >
             <Layers3 size={17} />
             <span>Flow board</span>
-            <span className="nav-dot" />
           </button>
           <button
             className={page === 'optimizer' ? 'nav-item selected' : 'nav-item'}
