@@ -11,7 +11,7 @@
 ## Five-minute narrative
 
 1. **Flow board:** “This synthetic example shows work orders across Molding, Debinding, Sintering, CNC, and Finishing. Queue depth is a planning signal, not proof of a bottleneck.”
-2. **Schedule optimizer:** “This compares an illustrative FIFO reference with a proposed model schedule. The metrics and timeline are model outputs; throughput counts orders completed inside the modeled 168-hour horizon, and furnace batch fill is not utilization or OEE.”
+2. **Schedule optimizer:** “This compares an illustrative FIFO reference with a proposed model schedule. The metrics and timeline are model outputs; throughput counts orders completed inside the displayed model horizon, and furnace batch fill is not utilization or OEE.”
 3. **Scenario lab:** “This what-if run removes a selected resource from modeled availability and shows returned schedule and due-date changes. It does not change source work orders or control equipment.”
 4. **Close:** “This demo shows visibility and modeled planning tradeoffs. The next step is to validate routings, calendars, ERP inputs, and constraints with plant experts before any operational use.”
 
@@ -24,7 +24,7 @@
 
 ## Live walkthrough cues
 
-- **First minute** — Open Flow board. Read the active work-order count and largest stage queue from the current run. Focus a stage to explain what its queue contains.
+- **First minute** — Open Flow board. Read the open work-order count and largest stage queue from the current run. Explain that the open count includes quality holds. Focus a stage to explain what its queue contains.
 - **Minutes two and three** — Open Schedule optimizer and run the comparison. Read one returned metric and its unit. Switch between the FIFO reference and the proposed timeline. Select a work order from the late-order table, open an operation, and press Escape to return. Clear the timeline filters to show the full schedule again.
 - **Minute four** — Open Scenario lab. Select an available resource from the catalog and run the scenario. Read the submitted resource ID and one returned due-date impact. If the modeled result stays the same, report that result.
 - **Final minute** — Change the draft input to show which result belongs to the previous submission. Close by identifying one real plant constraint that needs validation before this model can support a planning decision.
