@@ -328,6 +328,37 @@ describe('frontend data states', () => {
     await waitFor(() => expect(bar).toHaveFocus())
   })
 
+  it('associates scenario validation errors with controls and retains other errors', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input)
+        if (path.endsWith('/api/schedule/simulate')) {
+          return Response.json(
+            {
+              detail: [
+                { loc: ['body', 'demand_spike_pct'], msg: 'Invalid demand' },
+                { loc: ['body', 'other'], msg: 'Other problem' },
+              ],
+            },
+            { status: 422 },
+          )
+        }
+        return Response.json(
+          path.endsWith('/api/catalog') ? makeCatalog() : { ...emptyBoard, total_wip_orders: 1 },
+        )
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    fireEvent.click(screen.getByRole('button', { name: /run scenario/i }))
+    const slider = screen.getByRole('slider', { name: 'Increase quantities in this model' })
+    await waitFor(() => expect(slider).toHaveAttribute('aria-invalid', 'true'))
+    expect(slider).toHaveAccessibleDescription(/Invalid demand/)
+    expect(screen.getByRole('alert')).toHaveTextContent('Other problem')
+  })
+
   it('submits and labels the exact scenario inputs that produced the returned Gantt', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input)

@@ -3,6 +3,15 @@ export const fmt = (value: number | null | undefined, digits = 1) =>
     ? '—'
     : value.toLocaleString(undefined, { maximumFractionDigits: digits })
 
+export class ApiError extends Error {
+  detail: unknown
+
+  constructor(message: string, detail: unknown) {
+    super(message)
+    this.detail = detail
+  }
+}
+
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...options,
@@ -10,8 +19,10 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   })
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`
+    let detail: unknown
     try {
       const body = await response.json()
+      detail = body.detail
       message = describeApiError(body.detail) || body.message || message
     } catch {
       /* keep status */
@@ -20,7 +31,7 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
       const reason = response.status === 401 ? 'Authentication required' : 'Access denied'
       throw new Error(`${reason}. Ask the administrator to check access through the API proxy.`)
     }
-    throw new Error(message)
+    throw new ApiError(message, detail)
   }
   return response.json() as Promise<T>
 }

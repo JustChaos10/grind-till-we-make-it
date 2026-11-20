@@ -21,7 +21,7 @@ import {
   Wrench,
   Zap,
 } from 'lucide-react'
-import { api, fmt } from './api'
+import { api, ApiError, fmt } from './api'
 import { Gantt } from './Gantt'
 import { StageFlow } from './StageFlow'
 import './Optimizer.css'
@@ -70,6 +70,7 @@ function App() {
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
   const [busy, setBusy] = useState<'seed' | 'optimize' | 'simulate' | null>(null)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [downId, setDownId] = useState('')
   const [rushId, setRushId] = useState('')
@@ -191,6 +192,7 @@ function App() {
     const submittedInputs = { ...scenarioInputs }
     setBusy('simulate')
     setError('')
+    setFieldErrors({})
     try {
       const result = await api<Simulation>('/api/schedule/simulate', {
         method: 'POST',
@@ -204,6 +206,17 @@ function App() {
       setScenarioRun({ inputs: submittedInputs, result })
       setPage('scenario')
     } catch (e) {
+      if (e instanceof ApiError && Array.isArray(e.detail)) {
+        const errors: Record<string, string> = {}
+        for (const entry of e.detail) {
+          if (!entry || typeof entry !== 'object' || !Array.isArray(entry.loc)) continue
+          const field = entry.loc.find((part: unknown) =>
+            ['down_resource_ids', 'rush_order_ids', 'demand_spike_pct'].includes(String(part)),
+          )
+          if (field && typeof entry.msg === 'string') errors[String(field)] = entry.msg
+        }
+        setFieldErrors(errors)
+      }
       setError(e instanceof Error ? e.message : 'Scenario simulation failed.')
     } finally {
       scheduleRequestInFlight.current = false
@@ -215,6 +228,7 @@ function App() {
     setDownId('')
     setRushId('')
     setDemand(0)
+    setFieldErrors({})
   }
 
   const activePageLabel =
@@ -793,7 +807,12 @@ function App() {
                     <Wrench size={16} />
                     <select
                       id="machine-down"
-                      aria-describedby="machine-down-help"
+                      aria-describedby={
+                        fieldErrors.down_resource_ids
+                          ? 'machine-down-help machine-down-error'
+                          : 'machine-down-help'
+                      }
+                      aria-invalid={Boolean(fieldErrors.down_resource_ids)}
                       value={downId}
                       onChange={(e) => setDownId(e.target.value)}
                     >
@@ -810,6 +829,9 @@ function App() {
                   <p className="field-help" id="machine-down-help">
                     Select up to one active resource. It is removed from the scenario schedule.
                   </p>
+                  {fieldErrors.down_resource_ids && (
+                    <p id="machine-down-error">{fieldErrors.down_resource_ids}</p>
+                  )}
                   <label className="field-label" htmlFor="rush-order">
                     Priority rush order
                   </label>
@@ -817,7 +839,12 @@ function App() {
                     <Truck size={16} />
                     <select
                       id="rush-order"
-                      aria-describedby="rush-order-help"
+                      aria-describedby={
+                        fieldErrors.rush_order_ids
+                          ? 'rush-order-help rush-order-error'
+                          : 'rush-order-help'
+                      }
+                      aria-invalid={Boolean(fieldErrors.rush_order_ids)}
                       value={rushId}
                       onChange={(e) => setRushId(e.target.value)}
                     >
@@ -834,6 +861,9 @@ function App() {
                     Selected orders use priority 5 and a due time capped at 24 hours in the
                     simulation.
                   </p>
+                  {fieldErrors.rush_order_ids && (
+                    <p id="rush-order-error">{fieldErrors.rush_order_ids}</p>
+                  )}
                   <div className="slider-head">
                     <label className="field-label" htmlFor="demand-spike">
                       Increase quantities in this model
@@ -842,7 +872,12 @@ function App() {
                   </div>
                   <input
                     id="demand-spike"
-                    aria-describedby="demand-spike-help"
+                    aria-describedby={
+                      fieldErrors.demand_spike_pct
+                        ? 'demand-spike-help demand-spike-error'
+                        : 'demand-spike-help'
+                    }
+                    aria-invalid={Boolean(fieldErrors.demand_spike_pct)}
                     aria-valuetext={`${demand}% demand increase`}
                     className="range-input"
                     type="range"
@@ -878,6 +913,9 @@ function App() {
                     Demand scales scenario quantities by 1 + the selected percentage. It does not
                     add forecast orders.
                   </p>
+                  {fieldErrors.demand_spike_pct && (
+                    <p id="demand-spike-error">{fieldErrors.demand_spike_pct}</p>
+                  )}
                   {orders.length === 0 && (
                     <div className="scenario-no-data" role="status">
                       <b>No schedulable work orders are available.</b>
