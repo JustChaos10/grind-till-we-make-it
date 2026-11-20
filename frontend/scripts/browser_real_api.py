@@ -109,13 +109,14 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             machine.select_option(index=1)
             selected = machine.input_value()
             page.get_by_role('button', name='Run scenario').click()
-            expect(page.get_by_text(f'Resource outage: {selected}', exact=False)).to_be_visible(timeout=120000)
+            expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
+            expect(page.get_by_text(f'({selected})', exact=False).first).to_be_visible()
             expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
             page.screenshot(path=str(SCREENSHOTS / 'real-api-scenario.png'), full_page=True)
             page.get_by_role('button', name='Reset inputs').click()
             expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
             page.get_by_role('button', name='Run scenario').click()
-            expect(page.get_by_text('Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
+            expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
             assert sum(method == 'POST' and path == '/api/seed' for method, path, _ in seen) == 1
             assert sum(method == 'POST' and path == '/api/schedule/simulate' for method, path, _ in seen) == 2
             assert any(path == '/api/schedule/simulate' and data['down_resource_ids'] == [] and data['demand_spike_pct'] == 0 for _, path, data in seen)

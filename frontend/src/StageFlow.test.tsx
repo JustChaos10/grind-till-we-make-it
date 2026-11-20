@@ -10,7 +10,6 @@ describe('production stage flow', () => {
       <StageFlow
         queues={[{ stage: 'Molding', queue_depth: 0, avg_wip_age_hours: 0 }]}
         onSchedule={vi.fn()}
-        disabled={false}
       />,
     )
     const molding = screen.getByRole('button', { name: 'About Molding' }).closest('.stage-column')!
@@ -29,13 +28,15 @@ describe('production stage flow', () => {
     expect(screen.getByText(/CNC machining is optional/)).toBeInTheDocument()
   })
 
-  it('disables the schedule action when unavailable', () => {
-    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled />)
-    expect(screen.getByRole('button', { name: /View schedule/ })).toBeDisabled()
+  it('opens the schedule when requested', () => {
+    const onSchedule = vi.fn()
+    render(<StageFlow queues={[]} onSchedule={onSchedule} />)
+    fireEvent.click(screen.getByRole('button', { name: /View schedule/ }))
+    expect(onSchedule).toHaveBeenCalledOnce()
   })
 
   it('lets a focused user close and reopen stage help', () => {
-    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
     const help = screen.getByRole('button', { name: 'About Molding' })
     fireEvent.focus(help)
     fireEvent.click(help)
@@ -48,7 +49,7 @@ describe('production stage flow', () => {
   })
 
   it('keeps stage help open on the first pointer activation', () => {
-    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
     const help = screen.getByRole('button', { name: 'About Molding' })
     fireEvent.pointerDown(help)
     fireEvent.focus(help)
@@ -58,7 +59,7 @@ describe('production stage flow', () => {
   })
 
   it('keeps help open while either focus or hover remains', () => {
-    render(<StageFlow queues={[]} onSchedule={vi.fn()} disabled={false} />)
+    render(<StageFlow queues={[]} onSchedule={vi.fn()} />)
     const help = screen.getByRole('button', { name: 'About Molding' })
     fireEvent.mouseEnter(help)
     fireEvent.focus(help)

@@ -16,15 +16,7 @@ const stages = [
   { name: 'Finishing', short: 'Finishing', help: 'Finishing covers final processing of parts.' },
 ]
 
-export function StageFlow({
-  queues,
-  onSchedule,
-  disabled,
-}: {
-  queues: Queue[]
-  onSchedule: () => void
-  disabled: boolean
-}) {
+export function StageFlow({ queues, onSchedule }: { queues: Queue[]; onSchedule: () => void }) {
   const [focused, setFocused] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<string | null>(null)
@@ -121,7 +113,7 @@ export function StageFlow({
         <span>
           <i className="legend-dot" /> Open orders at each operation’s current stage
         </span>
-        <button className="link-button" onClick={onSchedule} disabled={disabled}>
+        <button className="link-button" onClick={onSchedule}>
           View schedule <ArrowRight size={14} />
         </button>
       </div>

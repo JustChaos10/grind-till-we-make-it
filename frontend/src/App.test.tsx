@@ -106,6 +106,23 @@ afterEach(() => {
 })
 
 describe('frontend data states', () => {
+  it('opens the schedule without starting an optimization', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const body = String(input).endsWith('/api/catalog')
+        ? makeCatalog()
+        : { ...emptyBoard, total_wip_orders: 1 }
+      return Response.json(body)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /view schedule/i }))
+    expect(screen.getByRole('heading', { name: 'Generate a proposed schedule' })).toBeVisible()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/optimize')),
+    ).toBe(false)
+  })
+
   it('keeps destructive synthetic seeding disabled unless explicitly enabled for a local demo', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = mockApi()
@@ -115,6 +132,7 @@ describe('frontend data states', () => {
       await screen.findByRole('heading', { name: 'No work orders in this database' }),
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: /load synthetic example/i })).toBeDisabled()
+    expect(screen.getByText(/demo seeding is off\. enable it only/i)).toBeVisible()
     expect(screen.queryByText('Clear for now')).toBeNull()
     expect(screen.getAllByText('—')).toHaveLength(2)
 

@@ -13,7 +13,7 @@
 .stage-route-note,
 .stage-help-detail {
   margin: 12px 0 0;
-  color: #55655b;
+  color: var(--stage-label);
   font-size: 12px;
 }
 .stage-help-detail {

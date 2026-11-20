@@ -19,6 +19,10 @@
   --muted: #626e66;
   --line: #e9ece8;
   --table-divider: #edf0ec;
+  --subtle-divider: #f0f2ef;
+  --track: #f0f2ef;
+  --stage-label: #55655b;
+  --gantt-label: #546258;
   --control-border: #77847a;
   --green: #13834e;
   --green-dark: #0c6e3e;
@@ -377,7 +381,7 @@ a {
   border: 1px solid var(--control-border);
   color: #42624d;
 }
-.secondary-button:hover {
+.secondary-button:hover:not(:disabled) {
   background: #f7faf7;
 }
 .text-button,
@@ -559,14 +563,14 @@ a {
 .stage-name {
   font-size: 12px;
   font-weight: 600;
-  color: #55655b;
+  color: var(--stage-label);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .stage-bar {
   height: 4px;
-  background: #f0f2ef;
+  background: var(--track);
   border-radius: 4px;
   margin-top: 11px;
   overflow: hidden;
@@ -586,7 +590,7 @@ a {
   margin-top: 6px;
 }
 .flow-foot {
-  border-top: 1px solid #f0f2ef;
+  border-top: 1px solid var(--subtle-divider);
   margin-top: 18px;
   padding-top: 10px;
   display: flex;
@@ -692,7 +696,7 @@ a {
   width: 100%;
   padding: 10px 0 0;
   border: 0;
-  border-top: 1px solid #f0f2ef;
+  border-top: 1px solid var(--subtle-divider);
   background: none;
   text-align: left;
   margin-top: auto;
@@ -962,7 +966,7 @@ a {
 }
 .compare-bar {
   height: 3px;
-  background: #f0f2ef;
+  background: var(--track);
   margin-top: 11px;
   border-radius: 3px;
   overflow: hidden;
@@ -1476,7 +1480,7 @@ a {
   align-items: center;
   gap: 8px;
   padding: 9px 0;
-  border-top: 1px solid #f0f2ef;
+  border-top: 1px solid var(--subtle-divider);
   font-size: 12px;
   color: var(--muted);
 }
@@ -2013,7 +2017,7 @@ a {
 }
 .gantt-summary,
 .gantt-detail {
-  color: #546258;
+  color: var(--gantt-label);
   font-size: 12px;
 }
 .gantt-summary {

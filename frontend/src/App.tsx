@@ -495,23 +495,20 @@ function App() {
                     className="primary-button"
                     onClick={seedDemo}
                     disabled={busy !== null || !lastUpdated || !canSeedDemo()}
-                    title={
-                      !canSeedDemo()
-                        ? 'Enable seeding only for a dedicated local demo database.'
-                        : undefined
-                    }
+                    aria-describedby={!canSeedDemo() ? 'empty-board-seed-note' : undefined}
                   >
                     <GitBranch size={16} />{' '}
                     {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
                   </button>
+                  {!canSeedDemo() && (
+                    <p id="empty-board-seed-note">
+                      Demo seeding is off. Enable it only for a dedicated local demo database.
+                    </p>
+                  )}
                 </section>
               ) : (
                 <div className="content-grid board-grid">
-                  <StageFlow
-                    queues={board.queues}
-                    onSchedule={optimize}
-                    disabled={busy !== null || orders.length === 0}
-                  />
+                  <StageFlow queues={board.queues} onSchedule={() => setPage('optimizer')} />
                   <section className="panel alerts-panel">
                     <div className="panel-heading">
                       <div>

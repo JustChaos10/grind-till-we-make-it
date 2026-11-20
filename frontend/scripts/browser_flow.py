@@ -27,7 +27,8 @@ catalog = dict(resources=[dict(id='res-1', name='Molding Cell 1', plant='Synthet
 optimize = dict(comparison=dict(baseline=metrics, optimized=metrics,
     delta=dict(late_orders=0, avg_wip_age_hours=0, throughput=0, furnace_batch_efficiency_pct=0)),
     gantt=dict(baseline=[operation], optimized=[operation]), why_late=dict(baseline=[], optimized=[]))
-scenario = dict(reference_metrics=metrics, scenario_metrics=metrics,
+scenario = dict(scenario_inputs=dict(down_resource_ids=['res-1'], rush_order_ids=['wo-1'], demand_spike_pct=25),
+    reference_metrics=metrics, scenario_metrics=metrics,
     delta=dict(late_orders=0, avg_wip_age_hours=0, throughput=0, bottleneck_before=None, bottleneck_after=None),
     due_date_impact=[], why_late=[], gantt=[operation])
 responses = {'/api/flow-board': board, '/api/catalog': catalog,
@@ -60,6 +61,10 @@ with sync_playwright() as playwright:
     expect(help_button).to_have_attribute('aria-expanded', 'true')
     page.keyboard.press('Escape')
     expect(help_button).to_have_attribute('aria-expanded', 'false')
+    page.get_by_role('button', name='View schedule').click()
+    expect(page.get_by_role('heading', name='Generate a proposed schedule')).to_be_visible()
+    assert not any(path == '/api/schedule/optimize' for _, path, _ in requests)
+    page.get_by_role('button', name='Flow board').first.click()
     page.get_by_role('button', name='Run comparison').click()
     expect(page.get_by_text('Proposed model schedule ready')).to_be_visible()
     bar = page.get_by_role('button', name='WO-001, SKU-1, Molding, Molding Cell 1, 0 to 1 hours, late, batch B-42')
@@ -104,7 +109,7 @@ with sync_playwright() as playwright:
     for _ in range(25):
         page.keyboard.press('ArrowRight')
     page.get_by_role('button', name='Run scenario').click()
-    expect(page.get_by_text('Resource outage: res-1 · Priority order: wo-1 · Demand increase: 25%')).to_be_visible()
+    expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
     elapsed = time.perf_counter() - started
     assert ('POST', '/api/schedule/optimize', {'time_limit_seconds': 3}) in requests
