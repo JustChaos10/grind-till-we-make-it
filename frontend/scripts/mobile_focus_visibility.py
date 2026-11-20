@@ -73,6 +73,9 @@ with sync_playwright() as playwright:
                     'Optimization complete. Results are available below.')
             else:
                 page.get_by_role('button', name='Scenario lab').click()
+                for label in ('Machine unavailable', 'Priority rush order'):
+                    box = page.get_by_label(label).bounding_box()
+                    assert box and box['height'] >= 44, f'{label}: touch target {box}'
                 page.get_by_label('Machine unavailable').select_option('res-1')
                 page.get_by_label('Priority rush order').select_option('wo-1')
                 page.get_by_role('button', name='Run scenario').click()
