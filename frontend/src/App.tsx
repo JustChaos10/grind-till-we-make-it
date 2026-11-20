@@ -454,6 +454,7 @@ function App() {
                   className="primary-button"
                   onClick={seedDemo}
                   disabled={busy !== null || !lastUpdated || !canSeedDemo()}
+                  aria-describedby="welcome-seed-help"
                   title={
                     !canSeedDemo()
                       ? 'Seeding is off. Enable it only for a dedicated local demo database.'
@@ -469,6 +470,10 @@ function App() {
                   <RefreshCw size={15} /> Retry API connection
                 </button>
               </div>
+              <p className="field-help" id="welcome-seed-help">
+                Connect to the API before loading demo records. Seeding must also be enabled for a
+                dedicated local demo database.
+              </p>
               <div className="welcome-note">
                 <ShieldCheck size={15} /> Demo records are synthetic. Seeding is off unless
                 explicitly enabled for a dedicated local demo database.

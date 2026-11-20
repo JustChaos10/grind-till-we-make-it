@@ -75,6 +75,10 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             page.route('**/api/**', route_api)
             page.goto(web_url)
             expect(page.get_by_role('alert')).to_contain_text('Smoke test outage')
+            seed_button = page.get_by_role('button', name='Load synthetic demo data')
+            expect(seed_button).to_be_disabled()
+            expect(seed_button).to_have_attribute('aria-describedby', 'welcome-seed-help')
+            expect(page.locator('#welcome-seed-help')).to_be_visible()
             fail_first[0] = False
             page.get_by_role('button', name='Retry API connection').click()
             expect(page.get_by_role('heading', name='No work orders in this database')).to_be_visible()
