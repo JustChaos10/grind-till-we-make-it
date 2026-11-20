@@ -175,3 +175,5 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Removed an unexplained green dot from Flow board navigation; it had no defined status. The synthetic Edge flow and forced-colors keyboard walkthrough passed. `scripts/contrast_states.py` measured 76 rendered text nodes in selected failure, stale-result, operation-detail and scenario states at 1280 × 800; none fell below the applicable threshold (lowest 4.94:1). This covers solid text and backgrounds only, not all states or assistive technology.
 
 - At tablet widths from 621 to 820 px, the header keeps the demo and update status legible by hiding the redundant breadcrumb and avatar. Synthetic Edge checks covered 621, 700, 768, 820 and 821 px; the status lines fit and the document did not overflow. See `screenshots/topbar-tablet-review.png`. The fixture flow, 69 tests, lint and build passed; lint retains the existing Gantt effect warning.
+
+- The footer messages stack at widths up to 820 px to preserve their reading order. Edge layout checks at 320, 390, 621, 768, 820 and 821 px found no page overflow; the production build passed.
