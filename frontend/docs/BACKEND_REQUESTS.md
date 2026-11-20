@@ -14,6 +14,10 @@ Return supported provenance fields such as `solver_mode` (`CP_SAT`, `HEURISTIC`,
 
 Source review on 2026-11-19 found that `_order_specs()` copies `locked_resource_id` and `locked_until_hour` into `OrderSpec` (`main.py`), but the scenario reconstruction in `simulate_schedule()` creates new `OrderSpec` values without either field (`main.py`, scenario mapping). Please preserve both fields when constructing scenario specs and add a backend regression test for locked orders. Also verify that a scenario with no changes preserves baseline order inputs and document intentional transformations in the contract. This finding is source-confirmed; no backend request was made to reproduce it.
 
+## Priority 2: Validate scenario rush orders against schedulable orders
+
+Source review on 2026-11-20 found that `/api/schedule/simulate` checks rush-order IDs against all stored orders (`main.py`), while `/api/catalog` and the solver exclude `COMPLETED` and `QUALITY_HOLD` orders (`main.py`, `solver.py`). A direct API caller can therefore submit an existing but unschedulable order without the unknown-ID validation rejecting it. Please define and test the expected response for these IDs, and align validation with the documented scenario behavior. The normal frontend selector uses the filtered catalog. This is a source finding; the direct request has not been reproduced.
+
 ## Priority 2: Metric definitions and comparison provenance
 
 Document or expose the formula/version for late-order count, average WIP age, throughput, and furnace batch fill. Include baseline provenance and the time origin used by the comparison. This will let the frontend explain each comparison without implying unsupported business outcomes.

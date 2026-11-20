@@ -1331,6 +1331,10 @@ a {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px var(--focus);
 }
+.select-wrap.has-error:not(:focus-within) {
+  border-color: var(--status-negative);
+  border-width: 2px;
+}
 @media (forced-colors: active) {
   .select-wrap:focus-within {
     outline: 2px solid Highlight;
@@ -1357,6 +1361,16 @@ a {
   color: var(--muted);
   margin: 7px 0 0;
   line-height: 1.5;
+}
+.field-error {
+  color: var(--status-negative);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  margin: 7px 0 0;
+}
+.range-input[aria-invalid='true'] {
+  accent-color: var(--status-negative);
 }
 .scenario-no-data {
   display: grid;

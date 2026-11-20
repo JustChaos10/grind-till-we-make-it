@@ -126,7 +126,13 @@ with sync_playwright() as p:
     }, reduced_motion='reduce')
     def route_api(route):
         path = '/' + route.request.url.split('/', 3)[3].split('?', 1)[0]
-        if path == fail_path:
+        if fail_path == 'validation' and path == '/api/schedule/simulate':
+            route.fulfill(status=422, content_type='application/json', body=json.dumps({'detail': [
+                {'loc': ['body', 'down_resource_ids', 0], 'msg': 'Invalid machine'},
+                {'loc': ['body', 'rush_order_ids', 0], 'msg': 'Invalid order'},
+                {'loc': ['body', 'demand_spike_pct'], 'msg': 'Invalid demand'},
+            ]}))
+        elif path == fail_path:
             route.fulfill(status=503, content_type='application/json', body=json.dumps({'detail': 'Synthetic failure'}))
         elif path in responses:
             route.fulfill(status=200, content_type='application/json', body=json.dumps(responses[path]))
@@ -180,6 +186,28 @@ with sync_playwright() as p:
     failures += check('Scenario failure alert', page.get_by_role('alert'))
     page.get_by_role('button', name='Dismiss').click()
     failures += check('Stale scenario result', page.get_by_text('The latest simulation failed. Showing the last successful result.'))
+    fail_path = 'validation'
+    page.get_by_role('button', name='Run scenario').click()
+    for control_name in ('Machine unavailable', 'Priority rush order', 'Increase quantities in this model'):
+        control = page.get_by_label(control_name, exact=True)
+        expect(control).to_have_attribute('aria-invalid', 'true')
+    failures += check('Scenario field validation errors', page.locator('.scenario-controls'))
+    for selector in ('#machine-down', '#rush-order'):
+        control = page.locator(selector)
+        border = control.locator('..').evaluate("e => getComputedStyle(e).borderTopWidth")
+        if border != '2px':
+            raise AssertionError(f'{selector}: expected a visible error border, got {border}')
+    page.screenshot(path='docs/screenshots/scenario-validation-errors.png', full_page=True)
+    for selector in ('#machine-down', '#rush-order'):
+        control = page.locator(selector)
+        control.select_option(index=1)
+        expect(control).to_have_attribute('aria-invalid', 'false')
+        border = control.locator('..').evaluate("e => getComputedStyle(e).borderTopWidth")
+        if border != '1px':
+            raise AssertionError(f'{selector}: expected the normal border after correction, got {border}')
+    slider = page.get_by_label('Increase quantities in this model', exact=True)
+    slider.fill('25')
+    expect(slider).to_have_attribute('aria-invalid', 'false')
     browser.close()
 print(f'\nMeasured contrast failures: {failures}')
 raise SystemExit(1 if failures else 0)

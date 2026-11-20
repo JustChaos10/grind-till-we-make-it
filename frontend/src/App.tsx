@@ -1027,7 +1027,9 @@ function App() {
                   <label className="field-label" htmlFor="machine-down">
                     Machine unavailable
                   </label>
-                  <div className="select-wrap">
+                  <div
+                    className={`select-wrap${fieldErrors.down_resource_ids || missingDownSelection ? ' has-error' : ''}`}
+                  >
                     <Wrench size={16} />
                     <select
                       id="machine-down"
@@ -1060,7 +1062,8 @@ function App() {
                     Select up to one active resource. It is removed from the scenario schedule.
                   </p>
                   {(fieldErrors.down_resource_ids || missingDownSelection) && (
-                    <p id="machine-down-error">
+                    <p className="field-error" id="machine-down-error">
+                      Error:{' '}
                       {missingDownSelection
                         ? 'This machine is no longer available. Choose another option.'
                         : fieldErrors.down_resource_ids}
@@ -1069,7 +1072,9 @@ function App() {
                   <label className="field-label" htmlFor="rush-order">
                     Priority rush order
                   </label>
-                  <div className="select-wrap">
+                  <div
+                    className={`select-wrap${fieldErrors.rush_order_ids || missingRushSelection ? ' has-error' : ''}`}
+                  >
                     <Truck size={16} />
                     <select
                       id="rush-order"
@@ -1102,7 +1107,8 @@ function App() {
                     simulation.
                   </p>
                   {(fieldErrors.rush_order_ids || missingRushSelection) && (
-                    <p id="rush-order-error">
+                    <p className="field-error" id="rush-order-error">
+                      Error:{' '}
                       {missingRushSelection
                         ? 'This work order is no longer available. Choose another option.'
                         : fieldErrors.rush_order_ids}
@@ -1161,7 +1167,9 @@ function App() {
                     add forecast orders.
                   </p>
                   {fieldErrors.demand_spike_pct && (
-                    <p id="demand-spike-error">{fieldErrors.demand_spike_pct}</p>
+                    <p className="field-error" id="demand-spike-error">
+                      Error: {fieldErrors.demand_spike_pct}
+                    </p>
                   )}
                   {orders.length === 0 && (
                     <div className="scenario-no-data" role="status">
