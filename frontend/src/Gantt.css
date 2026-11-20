@@ -26,7 +26,10 @@
   cursor: pointer;
 }
 .gantt-controls button:disabled {
-  opacity: 0.55;
+  opacity: 1;
+  color: var(--disabled-ink);
+  background: var(--disabled-surface);
+  border-color: var(--disabled-border);
   cursor: not-allowed;
 }
 .gantt-skip {

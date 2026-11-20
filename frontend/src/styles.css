@@ -28,6 +28,9 @@
   --stage-5-ink: #845456;
   --gantt-label: #546258;
   --control-border: #77847a;
+  --disabled-ink: #485b4d;
+  --disabled-surface: #e4e9e5;
+  --disabled-border: #a9b5ac;
   --green: #13834e;
   --green-dark: #0c6e3e;
   --mint: #e7f5eb;
@@ -421,9 +424,9 @@ a {
 .primary-button:disabled,
 .secondary-button:disabled {
   opacity: 1;
-  color: #485b4d;
-  background: #e4e9e5;
-  border-color: #a9b5ac;
+  color: var(--disabled-ink);
+  background: var(--disabled-surface);
+  border-color: var(--disabled-border);
   box-shadow: none;
 }
 .text-button,

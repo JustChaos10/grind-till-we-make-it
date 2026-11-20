@@ -147,3 +147,4 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 - Repeated surface, text, border, and accent colors now use shared CSS tokens with their original values. Lint, build, and the synthetic Edge walkthrough passed. A complete token and contrast audit remains open.
 
 - Disabled primary and secondary actions now use a muted surface with readable text instead of fading the whole control. The synthetic Edge walkthrough covered an invalid scenario and saved `screenshots/scenario-disabled-mobile.png`; the screenshot was inspected. Other disabled control types still need the full-state contrast review.
+- Gantt filter and pagination buttons now share the readable disabled-control colors. The synthetic Edge walkthrough passed, and the updated `screenshots/gantt-list-mobile.png` was inspected.
