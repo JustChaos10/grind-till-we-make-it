@@ -14,8 +14,10 @@
   --muted: #626e66;
   --line: #e9ece8;
   --table-divider: #edf0ec;
-  --subtle-divider: #f0f2ef;
-  --track: #f0f2ef;
+  --on-primary: #fff;
+  --neutral-track: #f0f2ef;
+  --subtle-divider: var(--neutral-track);
+  --track: var(--neutral-track);
   --stage-label: #55655b;
   --stage-1-surface: #cfe9d5;
   --stage-2-surface: #e5dfef;
@@ -402,7 +404,7 @@ a {
 .primary-button {
   height: 38px;
   padding: 0 14px;
-  color: #fff;
+  color: var(--on-primary);
   background: #17824d;
   border: 1px solid #127343;
   box-shadow: 0 2px 4px #167d4924;
@@ -1155,7 +1157,7 @@ a {
 }
 .gantt-lane {
   height: 20px;
-  background-image: linear-gradient(to right, #f3f5f2 1px, transparent 1px);
+  background-image: linear-gradient(to right, var(--surface-soft) 1px, transparent 1px);
   background-size: 25% 100%;
   background-color: #fafbf9;
   border-radius: 4px;
@@ -1253,7 +1255,7 @@ a {
 }
 .late-row {
   padding: 9px 0;
-  border-bottom: 1px solid #f1f3f0;
+  border-bottom: 1px solid var(--surface-muted);
   color: var(--text-secondary);
   font-size: 12px;
 }
