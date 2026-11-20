@@ -45,6 +45,10 @@ type Simulation = ScenarioResponse
 type ScenarioInputs = { downId: string; rushId: string; demand: number }
 type ScenarioRun = { inputs: ScenarioInputs; result: Simulation }
 type Page = 'board' | 'optimizer' | 'scenario'
+const pageFromHash = (): Page => {
+  const hash = window.location.hash
+  return hash === '#optimizer' ? 'optimizer' : hash === '#scenario' ? 'scenario' : 'board'
+}
 
 const stageShort: Record<string, string> = {
   Molding: 'Molding',
@@ -63,7 +67,7 @@ const formatPlanningAlert = (alert: string) =>
   alert.replace(/active bottleneck/gi, 'modeled busy-hours signal')
 
 function App() {
-  const [page, setPage] = useState<Page>('board')
+  const [page, setPage] = useState<Page>(pageFromHash)
   const destinationHeading = useRef<HTMLHeadingElement>(null)
   const refreshButton = useRef<HTMLButtonElement>(null)
   const focusDestination = useRef(false)
@@ -99,7 +103,22 @@ function App() {
     }
   }, [page])
 
+  useEffect(() => {
+    function onHashChange() {
+      const destination = pageFromHash()
+      if (destination !== page) {
+        focusDestination.current = true
+        setPage(destination)
+      }
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [page])
+
   function navigateTo(destination: Page) {
+    if (pageFromHash() !== destination) {
+      window.history.pushState(null, '', `#${destination}`)
+    }
     if (page === destination) {
       destinationHeading.current?.focus()
     } else {
@@ -220,9 +239,7 @@ function App() {
     if (scheduleRequestInFlight.current || orders.length === 0) return
     scheduleRequestInFlight.current = true
     const submittedSnapshot = snapshotRevision.current
-    if (page === 'optimizer') destinationHeading.current?.focus()
-    else focusDestination.current = true
-    setPage('optimizer')
+    navigateTo('optimizer')
     setBusy('optimize')
     setOptimizationAnnouncement('The model is running. Results will appear when the API responds.')
     setError('')

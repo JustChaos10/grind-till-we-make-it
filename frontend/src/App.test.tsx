@@ -100,12 +100,46 @@ function makeOperations(count: number): Operation[] {
 
 afterEach(() => {
   cleanup()
+  window.history.replaceState(null, '', window.location.pathname)
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
 describe('frontend data states', () => {
+  it('opens a direct screen hash and falls back to the board for an unknown hash', async () => {
+    mockApi()
+    window.history.replaceState(null, '', '#scenario')
+    const view = render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Scenario lab' })).toBeVisible()
+    view.unmount()
+    window.history.replaceState(null, '', '#unknown')
+    render(<App />)
+    expect(await screen.findByRole('heading', { name: 'Production flow overview' })).toBeVisible()
+  })
+
+  it('restores screens and focus with browser history without duplicating repeated selections', async () => {
+    mockApi()
+    window.history.replaceState(null, '', '#board')
+    const push = vi.spyOn(window.history, 'pushState')
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
+    expect(window.location.hash).toBe('#scenario')
+    fireEvent.click(screen.getByRole('button', { name: 'Scenario lab' }))
+    expect(push).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Flow board' }))
+    expect(window.location.hash).toBe('#board')
+
+    act(() => window.history.back())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Scenario lab' })).toHaveFocus())
+    act(() => window.history.forward())
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus(),
+    )
+  })
+
   it('shows unavailable WIP ages without a misleading unit', async () => {
     vi.stubGlobal(
       'fetch',

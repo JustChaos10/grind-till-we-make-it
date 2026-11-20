@@ -71,6 +71,17 @@ with sync_playwright() as playwright:
     page.goto(BASE, wait_until='networkidle')
     assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    page.get_by_role('button', name='Scenario lab').first.click()
+    expect(page.get_by_role('heading', name='Scenario lab', exact=True)).to_be_visible()
+    assert page.evaluate('location.hash') == '#scenario'
+    page.reload(wait_until='networkidle')
+    expect(page.get_by_role('heading', name='Scenario lab', exact=True)).to_be_visible()
+    page.go_back(wait_until='networkidle')
+    expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    page.go_forward(wait_until='networkidle')
+    expect(page.get_by_role('heading', name='Scenario lab', exact=True)).to_be_visible()
+    page.get_by_role('button', name='Flow board').first.click()
+    expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
     for width in (390, 1280):
         page.set_viewport_size({'width': width, 'height': 844})
         fail_refresh = True
