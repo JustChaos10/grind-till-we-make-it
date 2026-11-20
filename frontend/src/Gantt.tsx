@@ -234,6 +234,8 @@ export function Gantt({
                     <button
                       type="button"
                       className="operation-list-item"
+                      aria-expanded={selectedOperation === item}
+                      aria-controls={selectedOperation === item ? detailId : undefined}
                       onClick={(event) => {
                         selectedBar.current = event.currentTarget
                         setHovered(null)

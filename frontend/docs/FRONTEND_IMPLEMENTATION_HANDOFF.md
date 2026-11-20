@@ -108,6 +108,8 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- Key explanatory copy on the board, optimizer and scenario screens now uses 13 px text. The 320 px board and 390 px operation list screenshots were refreshed and inspected; the fixture browser flow passed its viewport overflow checks. Other labels and states still need the full legibility review.
+- Operation-list buttons now expose their expanded state and link to the selected details region, matching timeline bars. The Gantt component test covers selection and Escape; screen-reader speech still needs a manual check. The isolated real API walkthrough passed again after the navigation changes.
 - See `BACKEND_REQUESTS.md` for requests and `UI_ACCEPTANCE_CHECKLIST.md` for the open acceptance items.
 - Have a plant planner validate routings, order data, calendars, and model assumptions before using the results for shop-floor decisions.
 - Production use requires a trusted authentication/proxy design. Keep shared API credentials on the server.

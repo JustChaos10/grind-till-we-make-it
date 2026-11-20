@@ -355,7 +355,7 @@ a {
   vertical-align: 4px;
 }
 .heading-sub {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin: 8px 0 0;
 }
@@ -476,7 +476,7 @@ a {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .tiny-status {
@@ -510,7 +510,7 @@ a {
   letter-spacing: -0.25px;
 }
 .panel-heading p {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin: 5px 0 0;
 }
@@ -674,7 +674,7 @@ a {
   color: #435148;
 }
 .alert-row > div span {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -702,7 +702,7 @@ a {
   gap: 4px;
 }
 .empty-alert small {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 .scenario-shortcut {
@@ -736,7 +736,7 @@ a {
   color: #445249;
 }
 .scenario-shortcut small {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 .scenario-shortcut > svg {
@@ -777,7 +777,7 @@ a {
 }
 .capability-panel p:last-child {
   margin: 5px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.45;
 }
@@ -906,7 +906,7 @@ a {
 .metric-caption {
   margin: -3px 0 16px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
 }
 .compare-card {
@@ -1021,7 +1021,7 @@ a {
   color: #3c6244;
 }
 .result-banner small {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .result-time {
@@ -1310,7 +1310,7 @@ a {
   color: var(--text-secondary);
 }
 .field-help {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   margin: 7px 0 0;
   line-height: 1.5;
@@ -1816,7 +1816,7 @@ a {
     font-size: 16px;
   }
   .stat-foot {
-    font-size: 12px;
+    font-size: 13px;
   }
   .content-grid {
     gap: 9px;
