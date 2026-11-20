@@ -192,6 +192,21 @@ with sync_playwright() as playwright:
     assert ('POST', '/api/schedule/simulate', {'down_resource_ids': ['res-1'],
         'rush_order_ids': ['wo-1'], 'demand_spike_pct': 25, 'time_limit_seconds': 3}) in requests
     assert not any(path == '/api/seed' for _, path, _ in requests)
+    responses['/api/catalog'] = dict(
+        resources=[dict(catalog['resources'][0], status='DOWN')],
+        work_orders=[dict(catalog['work_orders'][0], id='wo-2')])
+    page.get_by_role('button', name='Refresh data').click()
+    machine = page.get_by_label('Machine unavailable')
+    rush = page.get_by_label('Priority rush order')
+    expect(machine).to_have_value('res-1')
+    expect(rush).to_have_value('wo-1')
+    expect(page.get_by_text('This machine is no longer available. Choose another option.')).to_be_visible()
+    expect(page.get_by_text('This work order is no longer available. Choose another option.')).to_be_visible()
+    expect(page.get_by_role('button', name='Run scenario')).to_be_disabled()
+    machine.select_option('')
+    rush.select_option('wo-2')
+    expect(page.get_by_role('button', name='Run scenario')).to_be_enabled()
+    responses['/api/catalog'] = catalog
     touch_context = browser.new_context(viewport={'width': 390, 'height': 844},
         is_mobile=True, has_touch=True)
     touch_page = touch_context.new_page()

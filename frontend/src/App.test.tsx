@@ -514,6 +514,50 @@ describe('frontend data states', () => {
     await waitFor(() => expect(bar).toHaveFocus())
   })
 
+  it('prevents submitting selections removed by a catalog refresh', async () => {
+    let refreshed = false
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input)
+      if (path.endsWith('/api/schedule/simulate')) return Response.json(makeSimulation())
+      if (path.endsWith('/api/catalog')) {
+        const catalog = makeCatalog()
+        if (refreshed) {
+          catalog.resources[0].status = 'DOWN'
+          catalog.work_orders[0].id = 'wo-2'
+        }
+        return Response.json(catalog)
+      }
+      return Response.json({ ...emptyBoard, total_wip_orders: 1 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    const machine = screen.getByRole('combobox', { name: 'Machine unavailable' })
+    const rush = screen.getByRole('combobox', { name: 'Priority rush order' })
+    fireEvent.change(machine, { target: { value: 'res-1' } })
+    fireEvent.change(rush, { target: { value: 'wo-1' } })
+    refreshed = true
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    await waitFor(() => expect(machine).toHaveAccessibleDescription(/no longer available/i))
+    expect(rush).toHaveAccessibleDescription(/no longer available/i)
+    expect(machine).toHaveValue('res-1')
+    expect(rush).toHaveValue('wo-1')
+    expect(screen.getByRole('button', { name: /run scenario/i })).toBeDisabled()
+    expect(
+      fetchMock.mock.calls.some(([path]) => String(path).endsWith('/api/schedule/simulate')),
+    ).toBe(false)
+    fireEvent.change(machine, { target: { value: '' } })
+    fireEvent.change(rush, { target: { value: 'wo-2' } })
+    expect(screen.getByRole('button', { name: /run scenario/i })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: /run scenario/i }))
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([path]) => String(path).endsWith('/api/schedule/simulate')),
+      ).toBe(true),
+    )
+  })
+
   it('associates scenario validation errors with controls and retains other errors', async () => {
     vi.stubGlobal(
       'fetch',

@@ -170,6 +170,10 @@ function App() {
   }, [refresh])
 
   const activeResources = resources.filter((resource) => resource.status === 'ACTIVE')
+  const missingDownSelection = Boolean(
+    downId && !activeResources.some((item) => item.id === downId),
+  )
+  const missingRushSelection = Boolean(rushId && !orders.some((item) => item.id === rushId))
   const bottleneckQueue = board?.queues.reduce<Queue | null>(
     (top, queue) => (!top || queue.queue_depth > top.queue_depth ? queue : top),
     null,
@@ -237,7 +241,13 @@ function App() {
   }
 
   async function runScenario() {
-    if (scheduleRequestInFlight.current || orders.length === 0) return
+    if (
+      scheduleRequestInFlight.current ||
+      orders.length === 0 ||
+      missingDownSelection ||
+      missingRushSelection
+    )
+      return
     scheduleRequestInFlight.current = true
     const submittedSnapshot = snapshotRevision.current
     const submittedInputs = { ...scenarioInputs }
@@ -908,11 +918,11 @@ function App() {
                     <select
                       id="machine-down"
                       aria-describedby={
-                        fieldErrors.down_resource_ids
+                        fieldErrors.down_resource_ids || missingDownSelection
                           ? 'machine-down-help machine-down-error'
                           : 'machine-down-help'
                       }
-                      aria-invalid={Boolean(fieldErrors.down_resource_ids)}
+                      aria-invalid={Boolean(fieldErrors.down_resource_ids || missingDownSelection)}
                       value={downId}
                       onChange={(e) => {
                         setDownId(e.target.value)
@@ -920,6 +930,9 @@ function App() {
                       }}
                     >
                       <option value="">No machine outage</option>
+                      {missingDownSelection && (
+                        <option value={downId}>Unavailable selection · {downId}</option>
+                      )}
                       {activeResources.map((resource) => (
                         <option key={resource.id} value={resource.id}>
                           {resource.name} · {stageShort[resource.stage] ?? resource.stage} ·{' '}
@@ -932,8 +945,12 @@ function App() {
                   <p className="field-help" id="machine-down-help">
                     Select up to one active resource. It is removed from the scenario schedule.
                   </p>
-                  {fieldErrors.down_resource_ids && (
-                    <p id="machine-down-error">{fieldErrors.down_resource_ids}</p>
+                  {(fieldErrors.down_resource_ids || missingDownSelection) && (
+                    <p id="machine-down-error">
+                      {missingDownSelection
+                        ? 'This machine is no longer available. Choose another option.'
+                        : fieldErrors.down_resource_ids}
+                    </p>
                   )}
                   <label className="field-label" htmlFor="rush-order">
                     Priority rush order
@@ -943,11 +960,11 @@ function App() {
                     <select
                       id="rush-order"
                       aria-describedby={
-                        fieldErrors.rush_order_ids
+                        fieldErrors.rush_order_ids || missingRushSelection
                           ? 'rush-order-help rush-order-error'
                           : 'rush-order-help'
                       }
-                      aria-invalid={Boolean(fieldErrors.rush_order_ids)}
+                      aria-invalid={Boolean(fieldErrors.rush_order_ids || missingRushSelection)}
                       value={rushId}
                       onChange={(e) => {
                         setRushId(e.target.value)
@@ -955,6 +972,9 @@ function App() {
                       }}
                     >
                       <option value="">No rush order</option>
+                      {missingRushSelection && (
+                        <option value={rushId}>Unavailable selection · {rushId}</option>
+                      )}
                       {orders.map((order) => (
                         <option key={order.id} value={order.id}>
                           {order.wo_number} · {order.sku_code} · due {fmt(order.due_date_hours)}h
@@ -967,8 +987,12 @@ function App() {
                     Selected orders use priority 5 and a due time capped at 24 hours in the
                     simulation.
                   </p>
-                  {fieldErrors.rush_order_ids && (
-                    <p id="rush-order-error">{fieldErrors.rush_order_ids}</p>
+                  {(fieldErrors.rush_order_ids || missingRushSelection) && (
+                    <p id="rush-order-error">
+                      {missingRushSelection
+                        ? 'This work order is no longer available. Choose another option.'
+                        : fieldErrors.rush_order_ids}
+                    </p>
                   )}
                   <div className="slider-head">
                     <label className="field-label" htmlFor="demand-spike">
@@ -1045,7 +1069,12 @@ function App() {
                     <button
                       className="primary-button run-scenario"
                       onClick={runScenario}
-                      disabled={busy !== null || orders.length === 0}
+                      disabled={
+                        busy !== null ||
+                        orders.length === 0 ||
+                        missingDownSelection ||
+                        missingRushSelection
+                      }
                     >
                       <Zap size={15} fill="currentColor" />
                       {busy === 'simulate' ? 'Simulating scenario…' : 'Run scenario'}
