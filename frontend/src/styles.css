@@ -23,6 +23,12 @@
   --mint: #e7f5eb;
   --surface: #fff;
   --canvas: #f6f7f5;
+  --text-secondary: #58665d;
+  --focus: #1673c9;
+  --status-positive: #236b3b;
+  --status-negative: #96433a;
+  --status-negative-surface: #fbefed;
+  --status-late: #a33c34;
   --serif: Georgia, 'Times New Roman', serif;
 }
 * {
@@ -193,7 +199,7 @@ a {
 .plant-card small,
 .side-user small {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .plant-card > svg {
   color: #879188;
@@ -236,11 +242,11 @@ a {
 }
 .crumb {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .crumb span {
   padding: 0 8px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .crumb b {
   color: #314138;
@@ -277,7 +283,7 @@ a {
 }
 .updated {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .icon-button {
   border: 1px solid var(--line);
@@ -333,7 +339,7 @@ a {
 }
 .heading-sub {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
   margin: 8px 0 0;
 }
 .primary-button,
@@ -490,7 +496,7 @@ a {
   border: 1px solid #e8ede8;
   border-radius: 5px;
   padding: 5px 7px;
-  color: #58665d;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -524,7 +530,7 @@ a {
 .stage-index {
   font-size: 12px;
   font-weight: 700;
-  color: #58665d;
+  color: var(--text-secondary);
   background: #f3f5f2;
   border-radius: 5px;
   padding: 3px 5px;
@@ -646,7 +652,7 @@ a {
 }
 .alert-row > div span {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 .alert-row > svg {
@@ -674,7 +680,7 @@ a {
 }
 .empty-alert small {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .scenario-shortcut {
   display: flex;
@@ -708,7 +714,7 @@ a {
 }
 .scenario-shortcut small {
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .scenario-shortcut > svg {
   color: var(--muted);
@@ -749,7 +755,7 @@ a {
 .capability-panel p:last-child {
   margin: 5px 0 0;
   font-size: 12px;
-  color: #58665d;
+  color: var(--text-secondary);
   line-height: 1.45;
 }
 .trust-note {
@@ -764,7 +770,7 @@ a {
 .trust-note > span {
   font-size: 12px;
   line-height: 1.65;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .trust-note b {
   color: #48694f;
@@ -776,7 +782,7 @@ a {
   margin-top: 29px;
   padding-top: 12px;
   border-top: 1px solid #e9ece8;
-  color: #58665d;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.8px;
@@ -784,7 +790,7 @@ a {
 .page-footer i {
   font-style: normal;
   padding: 0 3px;
-  color: #58665d;
+  color: var(--text-secondary);
 }
 .error-banner {
   display: flex;
@@ -876,7 +882,7 @@ a {
 }
 .metric-caption {
   margin: -3px 0 16px;
-  color: #58665d;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.55;
 }
@@ -906,11 +912,11 @@ a {
 }
 .delta-chip.good {
   background: #e9f5eb;
-  color: #236b3b;
+  color: var(--status-positive);
 }
 .delta-chip.bad {
-  background: #fbefed;
-  color: #96433a;
+  background: var(--status-negative-surface);
+  color: var(--status-negative);
 }
 .compare-numbers {
   font-variant-numeric: tabular-nums;
@@ -998,7 +1004,7 @@ a {
 .result-time {
   font-size: 12px;
   font-weight: 700;
-  color: #58665d;
+  color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
 .schedule-panel {
@@ -1018,7 +1024,7 @@ a {
 .segmented button {
   border: 0;
   background: transparent;
-  color: #58665d;
+  color: var(--text-secondary);
   padding: 6px 9px;
   border-radius: 5px;
   font-size: 12px;
@@ -1089,7 +1095,7 @@ a {
   display: block;
   font-size: 12px;
   font-weight: 400;
-  color: #58665d;
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 .gantt-lane {
@@ -1149,7 +1155,7 @@ a {
   gap: 15px;
   flex-wrap: wrap;
   padding: 12px 0 0 155px;
-  color: #58665d;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .gantt-legend span {
@@ -1221,7 +1227,7 @@ a {
   display: grid;
   place-items: center;
   background: #e8f4eb;
-  color: #236b3b;
+  color: var(--status-positive);
   border-radius: 12px;
 }
 .empty-run p {
@@ -1264,8 +1270,8 @@ a {
   color: #849188;
 }
 .select-wrap:focus-within {
-  border-color: #1673c9;
-  box-shadow: 0 0 0 3px #1673c9;
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 .select-wrap select {
   flex: 1;
@@ -1439,17 +1445,17 @@ a {
   border-radius: 4px;
   padding: 3px 4px;
   background: #f1f3f0;
-  color: #58665d;
+  color: var(--text-secondary);
   font-size: 12px;
   white-space: nowrap;
 }
 .impact-change.good {
   background: #e9f5eb;
-  color: #236b3b;
+  color: var(--status-positive);
 }
 .impact-change.bad {
-  background: #fbefed;
-  color: #96433a;
+  background: var(--status-negative-surface);
+  color: var(--status-negative);
 }
 .impact-baseline {
   font-size: 12px;
@@ -1555,7 +1561,7 @@ a {
 }
 .scenario-placeholder > p:not(.eyebrow) {
   max-width: 340px;
-  color: #58665d;
+  color: var(--text-secondary);
   line-height: 1.65;
   font-size: 12px;
 }
@@ -1928,7 +1934,7 @@ a {
 
 /* Schedule density and keyboard behavior are explicit design-system rules. */
 :focus-visible {
-  outline: 3px solid #1673c9;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 .gantt {
@@ -1994,7 +2000,7 @@ a {
   }
 }
 .gantt-bar.is-late {
-  outline: 2px dashed #a33c34;
+  outline: 2px dashed var(--status-late);
   outline-offset: -2px;
 }
 .gantt-bar.is-late:focus-visible {
@@ -2022,7 +2028,7 @@ a {
 .legend-late {
   width: 12px;
   height: 8px;
-  border: 2px dashed #a33c34;
+  border: 2px dashed var(--status-late);
 }
 .empty-board {
   min-height: 270px;
