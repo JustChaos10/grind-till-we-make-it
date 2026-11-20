@@ -86,6 +86,20 @@ describe('Gantt controls', () => {
     expect(screen.getByText(/2 operations across 1 resource · Timeline: 0–24h/)).toBeTruthy()
   })
 
+  it('does not restore a hidden selection or lose focus when filters are cleared', () => {
+    render(<Gantt operations={[first, second]} maxHour={24} />)
+    fireEvent.click(screen.getByRole('button', { name: /^WO-1, A/ }))
+    const status = screen.getByLabelText('Status')
+    status.focus()
+    fireEvent.change(status, { target: { value: 'late' } })
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+    const clear = screen.getByRole('button', { name: 'Clear filters (1)' })
+    clear.focus()
+    fireEvent.click(clear)
+    expect(screen.queryByRole('region', { name: 'Selected operation details' })).toBeNull()
+    expect(screen.getByLabelText('Stage')).toHaveFocus()
+  })
+
   it('keeps overlapping operations discoverable and supports zoom and table selection', () => {
     const { container, rerender } = render(<Gantt operations={[first, second]} maxHour={24} />)
     const bars = container.querySelectorAll<HTMLButtonElement>('.gantt-bar')

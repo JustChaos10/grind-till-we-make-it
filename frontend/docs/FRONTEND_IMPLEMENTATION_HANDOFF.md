@@ -129,3 +129,4 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 - The synthetic browser flow now checks document width on populated optimizer and scenario results at 320, 390, 768, and 1440 px, after viewport layout settles. The chart retains its intentional internal scroll.
 - Gantt operation-list pagination retains keyboard focus when the first or last page disables its navigation button. Component tests and an Edge check with 51 synthetic operations passed.
+- Changing or clearing Gantt filters closes stale operation details; clearing filters returns keyboard focus to Stage. Dismissing an API error returns focus to Refresh data. Component tests and the synthetic Edge walkthrough cover these flows; all 53 frontend tests, lint, and the build passed.

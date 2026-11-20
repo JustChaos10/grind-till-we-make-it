@@ -64,6 +64,7 @@ const formatPlanningAlert = (alert: string) =>
 function App() {
   const [page, setPage] = useState<Page>('board')
   const destinationHeading = useRef<HTMLHeadingElement>(null)
+  const refreshButton = useRef<HTMLButtonElement>(null)
   const focusDestination = useRef(false)
   const [board, setBoard] = useState<Board | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
@@ -407,6 +408,7 @@ function App() {
                     : 'API unavailable'}
             </span>
             <button
+              ref={refreshButton}
               className="icon-button"
               onClick={() => void refresh()}
               aria-label="Refresh data"
@@ -434,7 +436,13 @@ function App() {
                 <b>Something needs attention</b>
                 <span>{error}</span>
               </div>
-              <button onClick={() => setError('')} aria-label="Dismiss">
+              <button
+                onClick={() => {
+                  setError('')
+                  requestAnimationFrame(() => refreshButton.current?.focus())
+                }}
+                aria-label="Dismiss"
+              >
                 ×
               </button>
             </div>

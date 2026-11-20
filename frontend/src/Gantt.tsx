@@ -48,6 +48,7 @@ export function Gantt({
   const [zoom, setZoom] = useState(1)
   const [listOpen, setListOpen] = useState(false)
   const [listPage, setListPage] = useState(0)
+  const stageFilter = useRef<HTMLSelectElement | null>(null)
   const orderFilter = useRef<HTMLSelectElement | null>(null)
   const previousPageButton = useRef<HTMLButtonElement | null>(null)
   const nextPageButton = useRef<HTMLButtonElement | null>(null)
@@ -72,6 +73,8 @@ export function Gantt({
   const options = (values: string[]) => [...new Set(values)].sort((a, b) => a.localeCompare(b))
   const setFilter = (name: keyof typeof filters, value: string) => {
     setListPage(0)
+    setSelected(null)
+    setHovered(null)
     setFilterState({ filters: { ...filters, [name]: value }, sequence: requestSequence })
   }
   const activeFilters = Object.values(filters).filter(Boolean).length
@@ -147,7 +150,11 @@ export function Gantt({
       <div className="gantt-controls" aria-label="Timeline filters">
         <label>
           Stage
-          <select value={filters.stage} onChange={(e) => setFilter('stage', e.target.value)}>
+          <select
+            ref={stageFilter}
+            value={filters.stage}
+            onChange={(e) => setFilter('stage', e.target.value)}
+          >
             <option value="">All stages</option>
             {options(operations.map((item) => item.stage)).map((value) => (
               <option key={value}>{value}</option>
@@ -205,7 +212,10 @@ export function Gantt({
           type="button"
           onClick={() => {
             setListPage(0)
+            setSelected(null)
+            setHovered(null)
             setFilterState({ filters: emptyFilters, sequence: requestSequence })
+            stageFilter.current?.focus()
           }}
           disabled={!activeFilters}
         >

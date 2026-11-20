@@ -263,6 +263,10 @@ describe('frontend data states', () => {
     render(<App />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Planning API is unavailable')
+    const dismiss = screen.getByRole('button', { name: 'Dismiss' })
+    dismiss.focus()
+    fireEvent.click(dismiss)
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh data' })).toHaveFocus())
     expect(screen.queryByRole('heading', { name: 'Production flow overview' })).toBeNull()
     failed = false
     fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
