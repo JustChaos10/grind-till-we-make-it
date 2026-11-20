@@ -282,6 +282,21 @@ describe('frontend data states', () => {
     expect(screen.getAllByText('150%')).toHaveLength(2)
   })
 
+  it('explains why optimization is unavailable and returns to the board when there are no work orders', async () => {
+    const fetchMock = mockApi()
+    render(<App />)
+    await screen.findByRole('heading', { name: 'No work orders in this database' })
+    fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
+
+    expect(screen.getByRole('heading', { name: 'No work orders to schedule' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Run optimization' })).toBeDisabled()
+    expect(
+      fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/optimize')),
+    ).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Go to Flow board' }))
+    expect(screen.getByRole('heading', { name: 'Production flow overview' })).toHaveFocus()
+  })
+
   it('does not offer scenario simulation when the API has no work orders', async () => {
     const fetchMock = mockApi()
     render(<App />)

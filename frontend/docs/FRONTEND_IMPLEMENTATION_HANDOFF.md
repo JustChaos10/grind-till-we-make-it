@@ -126,6 +126,7 @@ The final responsive pass checked all three populated screens at 320, 390, 768, 
 
 ## Follow-up
 
+- The empty Schedule optimizer explains that work orders are required and offers a link to the Flow board. Component tests verify the disabled run action and no optimization request; synthetic Edge checks covered navigation and overflow at 390 × 844 and 1280 × 844. See `screenshots/empty-optimizer-390.png` and `screenshots/empty-optimizer-1280.png`.
 - Screen navigation now uses `#board`, `#optimizer`, and `#scenario`, so a direct link or reload opens the selected screen and browser Back/Forward restores it with heading focus. Unknown hashes fall back to the board. The synthetic Edge flow checked reload and browser history; all 63 frontend tests, lint, and build passed. Lint reports an existing Gantt effect warning.
 - Stage Help now hides its detail region when no help is active, matching the controls' collapsed state. Component tests and the synthetic browser flow passed; screen-reader speech remains unverified.
 - Timeline range calculation now handles large operation arrays without exceeding the JavaScript argument limit. A regression checks 200,000 synthetic operations; the fixture browser flow covers normal optimization and scenario timelines. Large-chart rendering speed is not verified.

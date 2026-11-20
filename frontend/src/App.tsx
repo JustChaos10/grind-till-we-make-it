@@ -738,19 +738,34 @@ function App() {
                   <div className="empty-run-icon">
                     <GitCompareArrows size={21} />
                   </div>
-                  <h2>Generate a proposed schedule</h2>
-                  <p>
-                    Run the model to compare late orders, WIP age, and flow time against an
-                    illustrative FIFO reference.
-                  </p>
-                  <button
-                    className="primary-button"
-                    onClick={optimize}
-                    disabled={busy !== null || orders.length === 0}
-                  >
-                    <Play size={15} fill="currentColor" />
-                    {busy === 'optimize' ? 'Running…' : 'Optimize now'}
-                  </button>
+                  {orders.length === 0 ? (
+                    <>
+                      <h2>No work orders to schedule</h2>
+                      <p>
+                        Work orders are needed before the model can run. Review the Flow board to
+                        get started.
+                      </p>
+                      <button className="primary-button" onClick={() => navigateTo('board')}>
+                        Go to Flow board
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <h2>Generate a proposed schedule</h2>
+                      <p>
+                        Run the model to compare late orders, WIP age, and flow time against an
+                        illustrative FIFO reference.
+                      </p>
+                      <button
+                        className="primary-button"
+                        onClick={optimize}
+                        disabled={busy !== null}
+                      >
+                        <Play size={15} fill="currentColor" />
+                        {busy === 'optimize' ? 'Running…' : 'Optimize now'}
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>

@@ -45,7 +45,8 @@ it('disables schedule actions when there are no schedulable catalog orders', asy
   expect(screen.getByRole('button', { name: /Run comparison/i })).toBeDisabled()
   await userEvent.click(screen.getByRole('button', { name: /Schedule optimizer/i }))
   expect(screen.getByRole('button', { name: /Run optimization/i })).toBeDisabled()
-  expect(screen.getByRole('button', { name: /Optimize now/i })).toBeDisabled()
+  expect(screen.getByRole('heading', { name: 'No work orders to schedule' })).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Go to Flow board' })).toBeEnabled()
   await waitFor(() =>
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).includes('/api/schedule/optimize')),
