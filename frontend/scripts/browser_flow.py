@@ -76,6 +76,11 @@ with sync_playwright() as playwright:
         fail_refresh = True
         page.get_by_role('button', name='Refresh data').click()
         expect(page.get_by_role('alert')).to_contain_text('Synthetic refresh failure')
+        dismiss = page.get_by_role('button', name='Dismiss')
+        bounds = dismiss.bounding_box()
+        assert bounds and bounds['width'] >= 44 and bounds['height'] >= 44, 'Error dismiss target is smaller than 44px'
+        if width == 390 and os.environ.get('INDOFLOW_ERROR_SCREENSHOT'):
+            page.screenshot(path=os.environ['INDOFLOW_ERROR_SCREENSHOT'])
         if width == 1280:
             expect(page.get_by_text('Refresh failed · previous data')).to_be_visible()
         page.get_by_role('button', name='Dismiss').focus()
