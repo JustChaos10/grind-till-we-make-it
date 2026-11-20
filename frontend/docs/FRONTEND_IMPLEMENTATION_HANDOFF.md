@@ -12,6 +12,8 @@
 
 ## Verification completed
 
+- The synthetic contrast check now also covers stage help, scenario failure, and the retained scenario-result notice at 1280 and 390 px. No supported solid-color text pairs failed; this is not a complete contrast or screen-reader audit.
+
 - The scenario impact table keeps work-order identifiers visible during horizontal scrolling. The synthetic Edge walkthrough checks the row header at the right edge at 1280 and 390 px; both screenshots were visually reviewed. All 67 frontend tests, build, and lint passed, with the existing Gantt effect warning.
 
 - Scenario due-date impact now shows the API's delay change as well as completion change. A component regression covers a changed due date and delay with unchanged completion; 67 frontend tests, build, and lint passed. Lint retains the existing Gantt effect warning. The synthetic Edge walkthrough checked the rendered values and keyboard scrolling at 1280 and 390 px; the right edge was visually reviewed in `screenshots/scenario-impact-1280.png` and `screenshots/scenario-impact-390.png`.

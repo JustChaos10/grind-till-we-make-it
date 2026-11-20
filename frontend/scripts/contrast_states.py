@@ -137,6 +137,9 @@ with sync_playwright() as p:
     page.goto(os.environ.get('INDOFLOW_FRONTEND_URL', 'http://127.0.0.1:5187'), wait_until='networkidle')
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
     failures += check('Populated Flow board', page.locator('body'))
+    page.get_by_role('button', name='About Molding').focus()
+    failures += check('Stage help detail', page.locator('#stage-help-detail'))
+    page.keyboard.press('Escape')
     fail_path = '/api/flow-board'
     page.get_by_role('button', name='Refresh data').click()
     failures += check('Refresh failure alert', page.get_by_role('alert'))
@@ -162,6 +165,11 @@ with sync_playwright() as p:
     failures += check('Scenario results', page.locator('body'))
     failures += check('Submitted scenario inputs', page.get_by_text('Submitted inputs:', exact=False))
     failures += check('Scenario late-order explanations', page.get_by_role('region', name='Scenario late-order explanations'))
+    fail_path = '/api/schedule/simulate'
+    page.get_by_role('button', name='Run scenario').click()
+    failures += check('Scenario failure alert', page.get_by_role('alert'))
+    page.get_by_role('button', name='Dismiss').click()
+    failures += check('Stale scenario result', page.get_by_text('The latest simulation failed. Showing the last successful result.'))
     browser.close()
 print(f'\nMeasured contrast failures: {failures}')
 raise SystemExit(1 if failures else 0)
