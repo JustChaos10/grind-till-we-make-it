@@ -316,21 +316,49 @@ function App() {
       setScenarioFailed(true)
       if (e instanceof ApiError && Array.isArray(e.detail)) {
         const errors: Record<string, string> = {}
+        const otherMessages: string[] = []
         for (const entry of e.detail) {
-          if (!entry || typeof entry !== 'object' || !Array.isArray(entry.loc)) continue
-          const field = entry.loc.find((part: unknown) =>
-            ['down_resource_ids', 'rush_order_ids', 'demand_spike_pct'].includes(String(part)),
-          )
+          if (typeof entry === 'string') {
+            otherMessages.push(entry)
+            continue
+          }
+          if (!entry || typeof entry !== 'object') {
+            otherMessages.push(String(entry))
+            continue
+          }
+          const field =
+            Array.isArray(entry.loc) &&
+            entry.loc.find((part: unknown) =>
+              ['down_resource_ids', 'rush_order_ids', 'demand_spike_pct'].includes(String(part)),
+            )
+          const message =
+            typeof entry.msg === 'string'
+              ? entry.msg
+              : typeof entry.message === 'string'
+                ? entry.message
+                : 'Invalid value'
           if (
             field &&
-            typeof entry.msg === 'string' &&
             scenarioFieldRevisions.current[String(field)] === submittedRevisions[String(field)]
-          )
-            errors[String(field)] = entry.msg
+          ) {
+            const key = String(field)
+            errors[key] = errors[key] ? `${errors[key]}; ${message}` : message
+          } else {
+            otherMessages.push(message)
+          }
         }
         setFieldErrors(errors)
+        setError(
+          [
+            Object.keys(errors).length ? 'Check the highlighted scenario inputs.' : '',
+            ...otherMessages,
+          ]
+            .filter(Boolean)
+            .join(' ') || 'Scenario validation failed.',
+        )
+      } else {
+        setError(e instanceof Error ? e.message : 'Scenario simulation failed.')
       }
-      setError(e instanceof Error ? e.message : 'Scenario simulation failed.')
     } finally {
       scheduleRequestInFlight.current = false
       setBusy(null)

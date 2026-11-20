@@ -704,7 +704,9 @@ describe('frontend data states', () => {
     const slider = screen.getByRole('slider', { name: 'Increase quantities in this model' })
     await waitFor(() => expect(slider).toHaveAttribute('aria-invalid', 'true'))
     expect(slider).toHaveAccessibleDescription(/Invalid demand/)
-    expect(screen.getByRole('alert')).toHaveTextContent('Other problem')
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Check the highlighted scenario inputs. Other problem')
+    expect(alert).not.toHaveTextContent(/Invalid demand|Invalid machine|Invalid order|body|other →/)
     const machine = screen.getByRole('combobox', { name: 'Machine unavailable' })
     const rush = screen.getByRole('combobox', { name: 'Priority rush order' })
     expect(machine).toHaveAccessibleDescription(/Invalid machine/)
@@ -748,9 +750,39 @@ describe('frontend data states', () => {
         { status: 422 },
       ),
     )
-    await screen.findByRole('alert')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid demand')
+    expect(screen.getByRole('alert')).not.toHaveTextContent('demand_spike_pct')
     expect(slider).toHaveAttribute('aria-invalid', 'false')
     expect(slider).not.toHaveAccessibleDescription(/Invalid demand/)
+  })
+
+  it('summarizes mapped validation errors without repeating inline messages', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const path = String(input)
+        if (path.endsWith('/api/schedule/simulate')) {
+          return Response.json(
+            { detail: [{ loc: ['body', 'demand_spike_pct'], msg: 'Invalid demand' }] },
+            { status: 422 },
+          )
+        }
+        return Response.json(
+          path.endsWith('/api/catalog') ? makeCatalog() : { ...emptyBoard, total_wip_orders: 1 },
+        )
+      }),
+    )
+    render(<App />)
+    await screen.findByRole('heading', { name: 'Production flow overview' })
+    fireEvent.click(screen.getAllByRole('button', { name: /scenario lab/i })[0])
+    fireEvent.click(screen.getByRole('button', { name: /run scenario/i }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Check the highlighted scenario inputs.',
+    )
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/Invalid demand|demand_spike_pct|body/)
+    expect(
+      screen.getByRole('slider', { name: 'Increase quantities in this model' }),
+    ).toHaveAccessibleDescription(/Invalid demand/)
   })
 
   it('distinguishes returned scenario inputs from the submitted request', async () => {

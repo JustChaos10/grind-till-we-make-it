@@ -188,6 +188,9 @@ with sync_playwright() as p:
     failures += check('Stale scenario result', page.get_by_text('The latest simulation failed. Showing the last successful result.'))
     fail_path = 'validation'
     page.get_by_role('button', name='Run scenario').click()
+    validation_alert = page.get_by_role('alert')
+    expect(validation_alert).to_contain_text('Check the highlighted scenario inputs.')
+    expect(validation_alert).not_to_contain_text('down_resource_ids')
     for control_name in ('Machine unavailable', 'Priority rush order', 'Increase quantities in this model'):
         control = page.get_by_label(control_name, exact=True)
         expect(control).to_have_attribute('aria-invalid', 'true')

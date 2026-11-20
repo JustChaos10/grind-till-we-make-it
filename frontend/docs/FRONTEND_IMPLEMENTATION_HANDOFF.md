@@ -2,6 +2,8 @@
 
 ## Current state
 
+- Scenario validation alerts summarize errors shown beside fields and keep other API messages without exposing field paths. Tests cover mapped, unmapped and late responses. The synthetic 390 px Edge validation flow passed and the updated screenshot was visually reviewed. All 71 frontend tests, build and lint passed; lint retains the existing Gantt effect warning.
+
 - Scenario API validation errors now have visible field messages and error borders, with the existing focus treatment retained. Synthetic Edge checks at 1280 x 800 and 390 x 844 verified invalid controls, text contrast and clearing errors after edits; the mobile screenshot is `screenshots/scenario-validation-errors.png`. All 70 frontend tests, build and lint passed; lint retains the existing Gantt effect warning. This is not a full accessibility audit.
 
 - The flow board and Gantt now share the five-stage MIM configuration in `src/stages.ts`, including the optional CNC label. Stage colors and the route note still assume the current five-stage contract; changing the contract needs a coordinated UI and backend review. All 70 tests, build, lint and the synthetic Edge walkthrough passed; lint retains the existing Gantt effect warning.
