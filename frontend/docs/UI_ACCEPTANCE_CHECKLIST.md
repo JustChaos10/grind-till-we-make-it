@@ -90,7 +90,7 @@
 - [x] Tablet ~768×1024 reviewed.
 - [x] Mobile ~390×844 reviewed after the CSS width adjustment (`docs/screenshots/flow-mobile-390.png`); KPI and stage cards use two columns and navigation moves to the bottom bar.
 - [x] No unintended horizontal page overflow at reviewed viewport sizes. Browser measurements showed `scrollWidth === clientWidth` at desktop 1920, laptop 1280, tablet 768 (753 px client area after vertical scrollbar), and mobile 390 (375 px client area after vertical scrollbar). Populated optimizer and scenario results also passed at 320, 390, 768 and 1440 px in the synthetic browser flow.
-- [x] Dense chart and tables use intentional scroll in reviewed browser views.
+- [x] Dense chart and tables use intentional scroll in reviewed browser views. Scenario late-order explanations also use a named keyboard-scrollable region; a 30-order synthetic fixture reached the last entry at 390 px (`docs/screenshots/scenario-late-list-mobile.png`).
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent.
 - [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); the synthetic Edge walkthrough also passed with reduced motion emulated; an OS setting has not been checked.

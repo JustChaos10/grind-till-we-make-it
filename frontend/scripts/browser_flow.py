@@ -30,7 +30,9 @@ optimize = dict(comparison=dict(baseline=metrics, optimized=metrics,
 scenario = dict(scenario_inputs=dict(down_resource_ids=['res-1'], rush_order_ids=['wo-1'], demand_spike_pct=25),
     reference_metrics=metrics, scenario_metrics=metrics,
     delta=dict(late_orders=0, avg_wip_age_hours=0, throughput=0, bottleneck_before=None, bottleneck_after=None),
-    due_date_impact=[], why_late=[], gantt=[operation])
+    due_date_impact=[], why_late=[dict(work_order_id=f'late-{i}', wo_number=f'LATE-{i:03}',
+        due_date_hours=24, completion_hours=30, delay_hours=6, priority=2,
+        explanation='Synthetic capacity constraint') for i in range(1, 31)], gantt=[operation])
 responses = {'/api/flow-board': board, '/api/catalog': catalog,
     '/api/schedule/optimize': optimize, '/api/schedule/simulate': scenario}
 requests = []
@@ -158,6 +160,15 @@ with sync_playwright() as playwright:
     expect(page.get_by_text('Submitted inputs: Resource outage: Molding Cell 1 (res-1) · Priority order: WO-001 (wo-1) · Demand increase: 25%')).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
     check_document_width(page)
+    page.set_viewport_size({'width': 390, 'height': 844})
+    late_list = page.get_by_role('region', name='Scenario late-order explanations')
+    assert late_list.evaluate('(element) => element.scrollHeight > element.clientHeight')
+    late_list.focus()
+    page.keyboard.press('End')
+    expect(late_list.get_by_text('LATE-030')).to_be_in_viewport()
+    if os.environ.get('INDOFLOW_SCENARIO_SCREENSHOT'):
+        late_list.scroll_into_view_if_needed()
+        page.screenshot(path=os.environ['INDOFLOW_SCENARIO_SCREENSHOT'])
     elapsed = time.perf_counter() - started
     assert ('POST', '/api/schedule/optimize', {'time_limit_seconds': 3}) in requests
     assert ('POST', '/api/schedule/simulate', {'down_resource_ids': ['res-1'],

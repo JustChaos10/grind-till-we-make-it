@@ -2072,10 +2072,14 @@ a {
   line-height: 1.6;
 }
 .late-table,
-.impact-list {
+.impact-list,
+.scenario-late-list {
   max-height: 420px;
   overflow: auto;
   overscroll-behavior: contain;
+}
+.scenario-late-list {
+  margin-top: 10px;
 }
 @media (max-width: 620px) {
   .gantt-canvas {

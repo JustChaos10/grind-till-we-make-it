@@ -1219,14 +1219,21 @@ function App() {
                           </div>
                         </div>
                         {simulation.why_late.length ? (
-                          <ul>
-                            {simulation.why_late.map((order) => (
-                              <li key={order.work_order_id}>
-                                <b>{order.wo_number}</b> · {fmt(order.delay_hours)}h late ·{' '}
-                                {order.explanation}
-                              </li>
-                            ))}
-                          </ul>
+                          <div
+                            className="scenario-late-list"
+                            role="region"
+                            aria-label="Scenario late-order explanations"
+                            tabIndex={0}
+                          >
+                            <ul>
+                              {simulation.why_late.map((order) => (
+                                <li key={order.work_order_id}>
+                                  <b>{order.wo_number}</b> · {fmt(order.delay_hours)}h late ·{' '}
+                                  {order.explanation}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         ) : (
                           <p>No late-order explanations were returned for this scenario.</p>
                         )}

@@ -13,10 +13,19 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-  })
+  let response: Response
+  try {
+    response = await fetch(path, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+    })
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') throw error
+    if (error instanceof TypeError) {
+      throw new Error('Could not connect to the IndoFlow API. Check the connection and try again.')
+    }
+    throw error
+  }
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`
     let detail: unknown
