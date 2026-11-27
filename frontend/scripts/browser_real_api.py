@@ -49,6 +49,18 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
         requests = []
         connection_interrupted = False
+        reads_held = True
+        pending_reads = []
+
+        def forward_read(route, path):
+            route.fulfill(response=route.fetch(url=api_url + path))
+
+        def release_reads():
+            nonlocal reads_held
+            reads_held = False
+            for route, path in pending_reads:
+                forward_read(route, path)
+            pending_reads.clear()
 
         def route_api(route):
             path = route.request.url.removeprefix(web_url)
@@ -59,10 +71,17 @@ def check_unseeded(browser, web_url, api_url, screenshots):
             if connection_interrupted and path == '/api/flow-board':
                 route.abort('connectionfailed')
                 return
-            route.fulfill(response=route.fetch(url=api_url + path))
+            if reads_held:
+                pending_reads.append((route, path))
+                return
+            forward_read(route, path)
 
         page.route('**/api/**', route_api)
-        page.goto(web_url)
+        page.goto(web_url, wait_until='domcontentloaded')
+        expect(page.get_by_role('heading', name='Loading factory data')).to_be_visible()
+        expect(page.get_by_role('status').filter(has_text='Loading API data')).to_be_visible()
+        assert check_text_contrast(f'{device}: initial load', page.locator('body')) == 0
+        release_reads()
         board_heading = page.get_by_role('heading', name='No open work orders')
         expect(board_heading).to_be_visible()
         refresh = page.get_by_role('button', name='Refresh data')
@@ -76,17 +95,25 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         expect(refresh).to_be_focused()
         expect(refresh).to_have_css('outline-style', 'solid')
         expect(refresh).to_have_css('outline-width', '3px')
+        reads_held = True
         with page.expect_response('**/api/flow-board') as board_response, page.expect_response('**/api/catalog') as catalog_response:
             page.keyboard.press('Enter')
+            expect(board_heading).to_be_visible()
+            expect(page.get_by_role('status').filter(has_text='Refreshing API data')).to_be_visible()
+            expect(refresh).to_be_focused()
+            assert check_text_contrast(f'{device}: refresh in progress', page.locator('body')) == 0
+            release_reads()
         assert board_response.value.json()['total_wip_orders'] == 0
         assert catalog_response.value.json()['work_orders'] == []
         expect(board_heading).to_be_visible()
         expect(page.get_by_role('button', name='Run comparison')).to_be_disabled()
 
         for index, (nav, title, empty_message, action, filename) in enumerate(screens):
+            nav_button = page.get_by_role('navigation').get_by_role('button', name=nav, exact=True)
             if index:
-                page.get_by_role('navigation').get_by_role('button', name=nav, exact=True).click()
+                nav_button.click()
                 expect(page.get_by_role('heading', name=title, exact=True)).to_be_focused()
+            expect(nav_button).to_have_attribute('aria-current', 'page')
             expect(page.get_by_text(empty_message, exact=True)).to_be_visible()
             if index != 1:
                 expect(page.get_by_text('factory data administrator', exact=False)).to_be_visible()
@@ -99,8 +126,26 @@ def check_unseeded(browser, web_url, api_url, screenshots):
             if index == capture:
                 page.screenshot(path=str(screenshots / f'unseeded-{filename}-{device}.png'))
             if action:
-                page.get_by_role('button', name='Go to Flow board').click()
+                back = page.get_by_role('button', name='Go to Flow board')
+                back.focus()
+                page.keyboard.press('Enter')
                 expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
+
+        connection_interrupted = True
+        refresh.press('Enter')
+        expect(page.get_by_role('alert')).to_be_visible()
+        expect(board_heading).to_be_visible()
+        failed_refresh = page.get_by_role('status').filter(has_text='Showing the last successfully loaded data')
+        expect(failed_refresh).to_be_visible()
+        assert check_text_contrast(f'{device}: refresh failed', page.locator('body')) == 0
+        page.get_by_role('button', name='Dismiss').press('Enter')
+        expect(refresh).to_be_focused()
+        expect(page.get_by_role('alert')).to_have_count(0)
+        expect(failed_refresh).to_be_visible()
+        connection_interrupted = False
+        refresh.press('Enter')
+        expect(failed_refresh).to_have_count(0)
+        expect(board_heading).to_be_visible()
 
         connection_interrupted = True
         page.reload()
@@ -116,7 +161,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
 
         assert set(requests) == {('GET', '/api/flow-board'), ('GET', '/api/catalog')}, requests
         page.close()
-        print(f'PASS: {device} ({width}×{height}), empty screens, keyboard refresh, outage recovery, and read-only API')
+        print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, read-only API')
 
 
 parser = argparse.ArgumentParser(description=__doc__)

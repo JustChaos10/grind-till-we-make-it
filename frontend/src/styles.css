@@ -1836,19 +1836,23 @@ a {
     padding-bottom: 68px;
   }
   .topbar {
-    height: 55px;
-    padding: 0 14px;
+    height: auto;
+    min-height: 55px;
+    padding: 5px 14px;
   }
-  .crumb {
+  .crumb,
+  .top-avatar,
+  .top-divider {
     display: none;
   }
   .top-actions {
     gap: 9px;
+    width: 100%;
     min-width: 0;
   }
-  .updated,
-  .top-divider {
-    display: none;
+  .updated {
+    margin-left: auto;
+    text-align: right;
   }
   .page-content {
     padding: 22px 14px 15px;
