@@ -53,7 +53,7 @@ Global Python 3.13 did not have `aiosqlite`, so its initial pytest run failed du
 
 The final responsive captures were made with browser device metrics set to each CSS viewport, then visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844. At all four widths, `document.documentElement.scrollWidth` matched `clientWidth` (1920, 1280, 753, and 375 respectively; the smaller client widths at tablet and phone exclude the vertical scrollbar), so there is no horizontal page overflow. The mobile view uses a two-column KPI and stage layout and a bottom navigation bar. Screenshots are in `docs/screenshots/flow-{desktop-1920,laptop-1280,tablet-768,mobile-390}.png`. An Edge keyboard-only walkthrough at 1280×800 passed for seed confirmation, board onboarding, optimization, timeline scroll focus, operation selection and Escape focus restoration, and scenario control changes and submission. Scenario input names and help links resolved. Synthetic solid text contrast checks also cover initial API failure and empty board, optimizer, and scenario states at 1280×800 and 390×844, with no measured failures. Screen-reader review, full state contrast, visible focus, and a spoken five-minute founder walkthrough remain open. Field-error associations have source and component-test coverage, but have not been checked with a screen reader. The browser smoke scripts cover representative fixture and isolated local API flows. The fixture walkthrough passed with reduced-motion media emulation, and the stylesheet contains a reduced-motion rule. An OS setting remains untested. At 1440 px, sampled text on the fixture Flow Board and optimizer and scenario results met 4.5:1. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
 
-The results above describe the original fixture review. The current review uses an isolated, unseeded API. Edge checked hover, keyboard focus, disabled actions, loading, empty screens, refresh failure and recovery at 1440 × 900, 768 × 1024 and 390 × 844. The lowest ratio across 600 sampled solid-background text pairs was 4.69:1. Named navigation, main landmarks, and forced-colors focus were also checked. The [current checklist](UI_ACCEPTANCE_CHECKLIST.md) records the coverage.
+The results above describe the original fixture review. The current review uses an isolated, unseeded API. Edge checked hover, keyboard focus, disabled actions, loading, empty screens, refresh failure and recovery at 1440 × 900, 768 × 1024 and 390 × 844. The lowest ratio across 600 sampled solid-background text pairs was 4.69:1. Named navigation, main landmarks, forced-colors focus and the native Windows reduced-motion setting were also checked. The [current checklist](UI_ACCEPTANCE_CHECKLIST.md) records the coverage.
 
 The [public-data review](PUBLIC_DATA_VALIDATION.md) checked chart layout separately against 1,512 observed production intervals. A populated solver and browser review requires [approved historical metal injection molding records](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
 
@@ -92,11 +92,15 @@ npm.cmd install --prefix $axeDir --ignore-scripts --no-audit --no-fund --save-ex
 python frontend/scripts/browser_real_api.py --empty-only --axe-script (Join-Path $axeDir 'node_modules\axe-core\axe.min.js') --screenshots (Join-Path $axeDir 'screenshots')
 ```
 
-The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Screen-reader announcements and the Windows reduced-motion setting still need manual checks.
+The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Screen-reader announcements still need manual review.
+
+The same smoke test passed in headed Edge at all three viewport sizes with the existing Windows animation setting and motion emulation turned off. The browser matched `prefers-reduced-motion: reduce`. Computed CSS disabled smooth scrolling and limited animation and transition durations to 0.01 ms. This run used backend `d9ae616` in a detached worktree, a new empty database and only `GET /api/flow-board` and `GET /api/catalog` from the frontend. All 21 axe-core scans passed again.
+
+With Windows Animation effects off, append `--system-reduced-motion` to the command above to repeat the native check. To run against a separate local backend checkout, also append `--backend-root` followed by its path. The script uses the feature checkout's `.venv` to launch that backend.
 
 ## Next work
 
-1. Review form labels, error announcements and timeline details with a screen reader. Browser media emulation covered reduced motion. An OS setting remains untested.
+1. Review form labels, error announcements and timeline details with a screen reader.
 2. Rehearse the populated founder presentation in `docs/CEO_DEMO.md` after the backend owner loads approved historical records into an isolated database.
 3. Review `BACKEND_REQUESTS.md` with the backend owner before stronger solver or metric claims are made.
 

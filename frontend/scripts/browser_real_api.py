@@ -63,7 +63,7 @@ def check_accessibility(page, axe_script, scope):
     print(f"PASS: axe-core {result['version']}, {scope}, no violations; manual review: {manual}")
 
 
-def check_unseeded(browser, web_url, api_url, screenshots, axe_script):
+def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_reduced_motion):
     screens = (
         ('Flow board', 'Production flow overview', 'No open work orders', None, 'board'),
         ('Schedule optimizer', 'Schedule optimizer', 'No work orders to schedule', 'Run optimization', 'optimizer'),
@@ -72,7 +72,10 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script):
     viewports = ((1440, 900, 'desktop'), (768, 1024, 'tablet'), (390, 844, 'phone'))
     screenshots.mkdir(parents=True, exist_ok=True)
     for capture, (width, height, device) in enumerate(viewports):
-        page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
+        page = browser.new_page(
+            viewport={'width': width, 'height': height},
+            reduced_motion='null' if system_reduced_motion else 'reduce',
+        )
         requests = []
         connection_interrupted = False
         reads_held = True
@@ -106,6 +109,22 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script):
         page.goto(web_url, wait_until='domcontentloaded')
         expect(page.get_by_role('heading', name='Loading factory data')).to_be_visible()
         expect(page.get_by_role('status').filter(has_text='Loading API data')).to_be_visible()
+        assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"), (
+            'Enable reduced motion in your OS before using --system-reduced-motion.'
+        )
+        motion = page.locator('html').evaluate("""element => {
+            const style = getComputedStyle(element);
+            return {
+                scrollBehavior: style.scrollBehavior,
+                animationSeconds: parseFloat(style.animationDuration),
+                animationIterations: style.animationIterationCount,
+                transitionSeconds: parseFloat(style.transitionDuration),
+            };
+        }""")
+        assert motion['scrollBehavior'] == 'auto' and motion['animationIterations'] == '1', motion
+        assert motion['animationSeconds'] <= 0.00001 and motion['transitionSeconds'] <= 0.00001, motion
+        motion_source = 'system setting' if system_reduced_motion else 'browser emulation'
+        print(f'PASS: {device}: reduced motion via {motion_source}')
         assert check_text_contrast(f'{device}: initial load', page.locator('body')) == 0
         check_accessibility(page, axe_script, f'{device}: initial load')
         release_reads()
@@ -223,9 +242,17 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--empty-only', action='store_true', help='Verify an isolated API with no factory records.')
 parser.add_argument('--screenshots', type=Path, default=SCREENSHOTS, help='Directory for captured screenshots.')
 parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for the unseeded WCAG scan.')
+parser.add_argument('--system-reduced-motion', action='store_true',
+                    help='Use the OS reduced-motion setting in headed Edge. Requires --empty-only and reduced motion enabled.')
+parser.add_argument('--backend-root', type=Path, default=ROOT,
+                    help='Backend checkout to launch with the local virtual environment.')
 args = parser.parse_args()
 if args.axe_script is not None and (not args.empty_only or not args.axe_script.is_file()):
     parser.error('--axe-script requires --empty-only and a readable axe.min.js file')
+if args.system_reduced_motion and not args.empty_only:
+    parser.error('--system-reduced-motion requires --empty-only')
+if not (args.backend_root / 'main.py').is_file():
+    parser.error('--backend-root must point to a checkout containing main.py')
 
 with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
     api_port, web_port = free_port(), free_port()
@@ -242,7 +269,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
     try:
         processes.append(subprocess.Popen([str(ROOT / '.venv' / 'Scripts' / 'python.exe'), '-m',
             'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', str(api_port)],
-            cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT))
+            cwd=args.backend_root.resolve(), env=env, stdout=log, stderr=subprocess.STDOUT))
         ready(api_url + '/health', processes[-1])
         # Invoke Vite directly so terminating the process does not leave an npm child behind.
         processes.append(subprocess.Popen(['node', str(FRONTEND / 'node_modules' / 'vite' / 'bin' / 'vite.js'),
@@ -250,9 +277,12 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             env=env, stdout=log, stderr=subprocess.STDOUT))
         ready(web_url, processes[-1])
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
+            browser = playwright.chromium.launch(
+                channel=os.environ.get('BROWSER_CHANNEL', 'msedge'),
+                headless=not args.system_reduced_motion,
+            )
             if args.empty_only:
-                check_unseeded(browser, web_url, api_url, args.screenshots, args.axe_script)
+                check_unseeded(browser, web_url, api_url, args.screenshots, args.axe_script, args.system_reduced_motion)
                 browser.close()
                 raise SystemExit(0)
             page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
