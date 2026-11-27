@@ -366,6 +366,10 @@ a {
   margin-bottom: 24px;
   gap: 20px;
 }
+.page-heading > .primary-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .eyebrow {
   margin: 0 0 9px;
 }
