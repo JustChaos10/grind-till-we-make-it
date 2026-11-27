@@ -579,15 +579,6 @@ function App() {
                     Work orders and resource queues from the latest API snapshot.
                   </p>
                 </div>
-                <button
-                  className="primary-button"
-                  onClick={optimize}
-                  disabled={busy !== null || board.total_wip_orders === 0 || orders.length === 0}
-                >
-                  <Zap size={16} fill="currentColor" />
-                  {busy === 'optimize' ? 'Optimizing…' : 'Optimize schedule'}
-                  <ArrowRight size={15} />
-                </button>
               </div>
               <div className="stat-grid">
                 <StatCard

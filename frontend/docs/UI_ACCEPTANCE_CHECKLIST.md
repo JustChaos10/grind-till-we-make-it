@@ -18,7 +18,7 @@
 
 ## 1. Truth and safety
 
-- [x] Every screen identifies `Synthetic demo` clearly (browser review and source inspection).
+- [x] Every screen identifies its data mode (prior browser review in optional synthetic mode, and current Edge review of the default unseeded API mode).
 - [x] No live telemetry/actual ERP/verified Indo-MIM production claims (copy/source review).
 - [x] Baseline named `Illustrative FIFO reference` or equivalent (source review).
 - [x] Scheduling result named `Proposed model schedule`, not guaranteed globally optimal (component test and source review).
@@ -112,6 +112,9 @@
 - [x] `npm run build` passes.
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
+- [x] Shared timeline layout validated on 1,512 observed intervals from published bottling and CNC records. Published textile scheduling inputs checked separately. See [records and field limits](PUBLIC_DATA_VALIDATION.md).
+- [x] Isolated unseeded API verified in Edge at 1440 × 900, 768 × 1024 and 390 × 844. Checks cover all three empty states, text contrast, keyboard refresh, connection recovery and GET-only access. The desktop board, tablet optimizer and phone scenario screenshots were visually reviewed.
+- [ ] Populated browser comparison and scenarios verified on approved historical metal injection molding records. Depends on a [permission-cleared snapshot and isolated import](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
 - [x] Python backend pytest/ruff regression results documented (without backend edits).
 - [x] Flow Board screenshots captured and **actually inspected**, not just created, at desktop 1920×1080, laptop 1280×800, tablet 768×1024, and phone 390×844 (`docs/screenshots/flow-*.png`). The optimizer and Scenario Lab were also visually reviewed in the browser; additional desktop, tablet and mobile captures for all three screens are in `docs/screenshots/{board,optimizer,scenario}-{desktop,tablet,mobile}.png`.
 - [x] No production deploy, public secret or paid infrastructure action was taken.
@@ -126,7 +129,7 @@
 - [x] Frontend setup/run instructions verified in PowerShell; exact commands are in `FRONTEND_AUDIT.md`.
 - [x] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md`.
 - [ ] Five-minute spoken founder walkthrough rehearsed against actual UI. Use `docs/CEO_DEMO.md` and time the prepared presentation.
-- [x] `CEO_DEMO.md` and the reviewed UI communicate: *synthetic → compare → stress-test → request plant expert validation*.
+- [x] `CEO_DEMO.md` describes the empty-workspace review and a populated walkthrough with approved historical records, comparison, disruption testing, and plant planner validation.
 - [x] All incomplete items explicitly listed with specific next steps below and in `FRONTEND_AUDIT.md`.
 
 ## Founder presentation five-minute test

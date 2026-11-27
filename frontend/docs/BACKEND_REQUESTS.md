@@ -36,6 +36,12 @@ If the API supports it, add paginated work-order detail, process routes, stage q
 
 The current browser client is for local demonstration. Before any public frontend, provide user-level authentication or a trusted server-side proxy. Do not expose shared admin or API tokens to browser JavaScript.
 
+## Permission-cleared historical MIM snapshot
+
+Ask the plant data owner for a historical snapshot approved for the founder walkthrough. Include order and part IDs, quantities, alloy and recipe, route and current stage, due and queue timestamps with their time zone, resource capabilities, calendars and outage history. Obtain a published schedule for the same period if the walkthrough needs to compare model outputs with recorded performance. Record the covered dates and which fields were redacted.
+
+Have the backend owner prepare a separate local review database and verify its fields and order counts. The existing admin-only `POST /api/import/erp-csv` accepts work-order records and reports rejected rows. Coordinate loading and checking resource calendars and other inputs with the backend owner. Keep admin credentials server-side and review any partial import before using the snapshot.
+
 ## Contract details for backend review
 
 These are proposed additions. The current frontend does not consume them. Preserve existing response fields for older clients.

@@ -19,7 +19,11 @@ python -m uvicorn main:app --reload
 
 The API is at `http://127.0.0.1:8000`; interactive docs are at `/docs`. SQLite is created automatically for local development.
 
-### Run the CEO demo locally
+### Run the frontend review locally
+
+Use the [PowerShell review commands](frontend/docs/FRONTEND_IMPLEMENTATION_HANDOFF.md#local-run-commands-powershell) to start the frontend with an isolated database and seeding disabled. The [CEO walkthrough](docs/CEO_DEMO.md) explains what to show once the backend owner has prepared approved historical factory records.
+
+### Optional synthetic demo
 
 Use a dedicated demo database so loading synthetic factory records cannot replace `indoflow.db`:
 

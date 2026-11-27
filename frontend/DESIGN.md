@@ -32,7 +32,7 @@ The visual review also uses ideas from [Taste](https://github.com/Leonxlnx/taste
 - Keep the Gantt domain-specific. Show all API-returned operations; scroll the chart when needed.
 - Each operation is a keyboard-focusable control with order, SKU, stage, resource, time range, and late status in its accessible name. Selecting it reveals the same facts as text.
 - Keep tables and result lists complete. Bound their height with scrolling, not row truncation.
-- Use a clear empty state with an explicit synthetic-data action. Confirm before a database seed/reset.
+- Explain how to add factory work orders and refresh. Show the synthetic-data action only when demo seeding is enabled. Confirm before a database seed or reset.
 - Use visible field labels, explain accepted ranges, and distinguish current input from submitted scenario output.
 - Every interactive element needs a visible focus ring and touch targets near 44px.
 - Honor reduced-motion preferences.

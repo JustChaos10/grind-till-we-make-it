@@ -14,6 +14,7 @@ import tempfile
 import time
 import urllib.request
 from playwright.sync_api import sync_playwright, expect
+from measure_contrast import check as check_text_contrast
 
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / 'frontend'
@@ -47,12 +48,16 @@ def check_unseeded(browser, web_url, api_url, screenshots):
     for capture, (width, height, device) in enumerate(viewports):
         page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
         requests = []
+        connection_interrupted = False
 
         def route_api(route):
             path = route.request.url.removeprefix(web_url)
             requests.append((route.request.method, path))
             if route.request.method != 'GET':
                 route.abort()
+                return
+            if connection_interrupted and path == '/api/flow-board':
+                route.abort('connectionfailed')
                 return
             route.fulfill(response=route.fetch(url=api_url + path))
 
@@ -76,6 +81,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         assert board_response.value.json()['total_wip_orders'] == 0
         assert catalog_response.value.json()['work_orders'] == []
         expect(board_heading).to_be_visible()
+        expect(page.get_by_role('button', name='Run comparison')).to_be_disabled()
 
         for index, (nav, title, empty_message, action, filename) in enumerate(screens):
             if index:
@@ -89,15 +95,28 @@ def check_unseeded(browser, web_url, api_url, screenshots):
             if action:
                 expect(page.get_by_role('button', name=action, exact=True)).to_be_disabled()
             assert page.evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), (device, nav)
+            assert check_text_contrast(f'{device}: {nav}', page.locator('body')) == 0
             if index == capture:
                 page.screenshot(path=str(screenshots / f'unseeded-{filename}-{device}.png'))
             if action:
                 page.get_by_role('button', name='Go to Flow board').click()
                 expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
 
+        connection_interrupted = True
+        page.reload()
+        expect(page.get_by_role('alert')).to_be_visible()
+        retry = page.get_by_role('button', name='Retry API connection')
+        expect(retry).to_be_enabled()
+        assert check_text_contrast(f'{device}: connection interrupted', page.locator('body')) == 0
+        connection_interrupted = False
+        retry.press('Enter')
+        expect(board_heading).to_be_visible()
+        expect(refresh).to_be_focused()
+        expect(page.get_by_role('alert')).to_have_count(0)
+
         assert set(requests) == {('GET', '/api/flow-board'), ('GET', '/api/catalog')}, requests
         page.close()
-        print(f'PASS: {device} ({width}×{height}), empty screens, keyboard refresh, and read-only API')
+        print(f'PASS: {device} ({width}×{height}), empty screens, keyboard refresh, outage recovery, and read-only API')
 
 
 parser = argparse.ArgumentParser(description=__doc__)

@@ -2,6 +2,10 @@
 
 ## Current state
 
+- On 2026-11-27, Google Dataset Search and source searches led to published bottling, CNC and textile records. The shared Gantt layout passed checks on 1,512 observed intervals. The textile scheduling input was checked separately. See [public data validation](PUBLIC_DATA_VALIDATION.md) for the sources, checksums and field limits.
+- The read-only app passed the Edge checks for an isolated, unseeded API at 1440 × 900, 768 × 1024 and 390 × 844. Checks cover each empty screen, 44 px refresh, navigation and retry focus, and viewport width. The lowest contrast ratio among 327 visible text samples on solid backgrounds was 4.69:1. See the [desktop board](screenshots/unseeded-board-desktop.png), [tablet optimizer](screenshots/unseeded-optimizer-tablet.png) and [phone scenario lab](screenshots/unseeded-scenario-phone.png).
+- Populated factory checks require an approved historical metal injection molding dataset with orders, routes, resources and calendars. Public bottling and CNC records are used for timeline geometry validation. API ingestion or optimizer results based on these files would require unsupported field mappings.
+
 - Scenario validation alerts summarize errors shown beside fields and keep other API messages without exposing field paths. Tests cover mapped, unmapped and late responses. The synthetic 390 px Edge validation flow passed and the updated screenshot was visually reviewed. All 71 frontend tests, build and lint passed; lint retains the existing Gantt effect warning.
 
 - Scenario API validation errors now have visible field messages and error borders, with the existing focus treatment retained. Synthetic Edge checks at 1280 x 800 and 390 x 844 verified invalid controls, text contrast and clearing errors after edits; the mobile screenshot is `screenshots/scenario-validation-errors.png`. All 70 frontend tests, build and lint passed; lint retains the existing Gantt effect warning. This is not a full accessibility audit.
@@ -108,7 +112,7 @@
 From the repository root, use one terminal for the API:
 
 ```powershell
-$env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-demo.db"
+$env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-review.db"
 $env:APP_ENV = "development"
 .\.venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -117,12 +121,12 @@ Use a second terminal for the frontend:
 
 ```powershell
 cd frontend
-$env:VITE_ENABLE_DEMO_SEED = "true"
-npm ci
-npm run dev -- --host 127.0.0.1
+$env:VITE_ENABLE_DEMO_SEED = "false"
+npm.cmd ci
+npm.cmd run dev -- --host 127.0.0.1
 ```
 
-Open the Vite URL, usually `http://localhost:5173`. Load synthetic data only in the dedicated demo database. See the root README for the explicit seed warning.
+Open the Vite URL, usually `http://127.0.0.1:5173`. A new review database opens on the empty Flow board. For the required populated review, use an isolated database prepared by the backend owner from approved records. See [backend requests](BACKEND_REQUESTS.md).
 
 ## Repeatable browser verification
 
@@ -132,7 +136,7 @@ With Vite on `127.0.0.1:5187`, run `python scripts/gantt_focus_check.py` to repe
 
 For the keyboard navigation check, start Vite on port 5189 and run `python scripts/keyboard_acceptance.py`. Set `INDOFLOW_FRONTEND_URL` to use another local port. The script uses synthetic API fixtures and exercises navigation, a timeline selection, and Escape focus restoration.
 
-Run `python scripts/browser_real_api.py` from `frontend` for the isolated API smoke. It starts its own local API and Vite processes, uses a temporary synthetic SQLite database, and passed retry, empty onboarding, explicit seed confirmation, optimization, keyboard timeline selection, baseline and proposed tabs, status filtering, zoom, an outage scenario, and a reset followed by a zero-input scenario. The root `.venv` must have the backend dependencies installed. Python Playwright and Microsoft Edge are also required.
+Run `python frontend/scripts/browser_real_api.py --empty-only --screenshots "$env:TEMP\IndoFlow-review"` from the repository root. It starts its own local API and Vite processes and uses a temporary unseeded SQLite database. Install backend dependencies in the root `.venv` and Python Playwright in the outer Python environment. The script uses Microsoft Edge. Prior seeded workflow checks are recorded in the acceptance checklist.
 
 The final responsive pass checked all three populated screens at 320, 390, 768, and 1440 px. The optimizer comparison cards stack on narrow phones, and the timeline scrolls inside its panel. All four widths fit the document without horizontal overflow.
 
