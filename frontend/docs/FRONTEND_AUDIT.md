@@ -92,7 +92,7 @@ npm.cmd install --prefix $axeDir --ignore-scripts --no-audit --no-fund --save-ex
 python frontend/scripts/browser_real_api.py --empty-only --axe-script (Join-Path $axeDir 'node_modules\axe-core\axe.min.js') --screenshots (Join-Path $axeDir 'screenshots')
 ```
 
-Edge's accessibility tree exposed initial loading, refresh in progress, and the retained-data notice as polite live regions at all three sizes. It exposed the connection error as an assertive alert. All four regions included their visible message and exposed atomic updates. The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Spoken announcements still need a [manual screen-reader check](#manual-screen-reader-check).
+Edge's accessibility tree exposed initial loading, refresh in progress, and the retained-data notice as polite live regions at all three sizes. It exposed the connection error as an assertive alert. All four regions included their visible message and exposed atomic updates. The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. See the [Narrator results](#manual-screen-reader-check) for spoken announcements.
 
 The same smoke test passed in headed Edge at all three viewport sizes with the existing Windows animation setting and motion emulation turned off. The browser matched `prefers-reduced-motion: reduce`. Computed CSS disabled smooth scrolling and limited animation and transition durations to 0.01 ms. This run used backend `d9ae616` in a detached worktree, a new empty database and only `GET /api/flow-board` and `GET /api/catalog` from the frontend. All 21 axe-core scans passed again.
 
@@ -100,16 +100,20 @@ With Windows Animation effects off, append `--system-reduced-motion` to the comm
 
 ## Manual screen-reader check
 
+Windows Narrator 10.0.26100.8972 and Edge 158.0.4370.45 were checked against FastAPI `d9ae616` on an isolated, empty SQLite database. Narrator's Speech recap recorded “Production flow overview,” “Schedule optimizer,” and “Scenario lab” as level-one headings, plus “No open work orders” as a level-two heading. A delayed API response produced “Refreshing API data” followed by “Updated.”
+
+Stopping the API produced a real HTTP 502 from the development proxy. Narrator read “Refresh failed · previous data” and the new alert text, which asks the user to retry or have an administrator check the API connection. The persistent notice also appeared visually and in Edge's accessibility tree. Refresh succeeded after restarting the API. The automated browser run separately verified keyboard recovery at desktop, tablet and phone sizes.
+
 1. Start the frontend and an isolated, empty API using the [local run commands](FRONTEND_IMPLEMENTATION_HANDOFF.md#local-run-commands-powershell). In NVDA, open **Tools → Speech Viewer**. Keep keyboard and pointer focus in Edge so the viewer continues to receive speech. [NVDA User Guide](https://api.nvaccess.org/documentation/userGuide.html)
 2. Use the keyboard to move through Flow Board, Optimizer, and Scenario Lab. Check that the destination heading is spoken and the empty-state action has a clear name.
 3. Throttle the Edge network before refreshing so the progress message has time to appear. Listen for “Refreshing API data.” After a successful load, stop the isolated API and refresh again. Check for the connection alert and the notice “Showing the last successfully loaded data.” Restart the API, use **Retry API connection**, and check that focus returns to **Refresh data**.
 4. With an [approved historical snapshot](PUBLIC_DATA_VALIDATION.md#verify-an-approved-historical-snapshot), check the scenario labels, help, and validation errors. Listen for optimization and scenario progress and results. Open a timeline operation with the keyboard, check its name and expanded state, then check the details and verify that Escape returns focus to the operation.
 
-Record the browser and screen-reader versions, what was spoken, and any focus problems in the acceptance notes. The automated checks verified the accessibility tree and keyboard behavior. Spoken announcements still need verification.
+Record the browser and screen-reader versions, what was spoken, and any focus problems in the acceptance notes. Scenario validation and run results, optimizer outcomes, and Gantt operation details still need spoken verification on an approved historical snapshot.
 
 ## Next work
 
-1. Complete the [manual screen-reader check](#manual-screen-reader-check).
+1. Complete the populated portion of the [manual screen-reader check](#manual-screen-reader-check) after the approved historical records are available.
 2. Rehearse the populated founder presentation in `docs/CEO_DEMO.md` after the backend owner loads approved historical records into an isolated database.
 3. Review `BACKEND_REQUESTS.md` with the backend owner before stronger solver or metric claims are made.
 

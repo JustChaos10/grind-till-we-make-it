@@ -27,14 +27,17 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
     throw error
   }
   if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`
+    const apiUnavailable = [502, 503, 504].includes(response.status)
+    let message = apiUnavailable
+      ? 'The IndoFlow API is unavailable. Try again. If the problem continues, ask your administrator to check the API connection.'
+      : `${response.status} ${response.statusText}`
     let detail: unknown
     try {
       const body = await response.json()
       detail = body.detail
       message = describeApiError(body.detail) || body.message || message
     } catch {
-      /* keep status */
+      /* keep the fallback message */
     }
     if (response.status === 401 || response.status === 403) {
       const reason = response.status === 401 ? 'Authentication required' : 'Access denied'

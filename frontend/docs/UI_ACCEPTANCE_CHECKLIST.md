@@ -100,7 +100,8 @@
 - [x] Sampled solid text contrast in populated and empty states with no measured failures. Source and browser checks confirmed text for API status, board warnings and scenario due-date status. Gantt lateness uses a dashed outline and text in the operation list and details. Earlier checks measured control borders at 3.91:1 and the board warning icon at 6.09:1. Screen-reader review is tracked separately.
 - [x] Unseeded Edge walkthrough covered initial and refresh loading, disabled actions, empty screens, refresh failure and recovery at 1440 × 900, 768 × 1024 and 390 × 844. Forced-colors emulation preserved keyboard focus and named navigation destinations on all three screens. The lowest contrast ratio of the 600 sampled solid-background text pairs was 4.69:1. Nine hover measurements across the onboarding links and API retry were at least 6.09:1.
 - [x] axe-core 4.14.1 reported zero violations across 21 unseeded Edge states. The error banner dismiss button has a 44 × 44 px minimum target, hides its icon from assistive technology, and returns keyboard focus to Refresh. See the [phone connection error](screenshots/unseeded-api-error-phone.png).
-- [ ] Heard page headings, refresh and error messages, scenario feedback, and operation details in Edge with a screen reader. Follow the [manual screen-reader check](FRONTEND_AUDIT.md#manual-screen-reader-check).
+- [x] Windows Narrator announced the three screen headings, refresh progress, the gateway error and the previous-data status in Edge against the unseeded API. See the [manual screen-reader evidence](FRONTEND_AUDIT.md#manual-screen-reader-check).
+- [ ] Verify scenario feedback, optimizer outcomes and Gantt operation details with a screen reader after approved historical records are available. Follow the [manual screen-reader check](FRONTEND_AUDIT.md#manual-screen-reader-check).
 
 ## 6. Engineering and tests
 
@@ -109,6 +110,7 @@
 - [x] `styles.css` improved with consistent tokens/component boundaries (source review).
 - [x] Missing/null/non-finite metric values are not displayed as fabricated zeroes (component test). Malformed successful board, catalog, optimizer, and scenario responses are rejected; a refresh retains the last valid snapshot (API and component tests).
 - [x] Pydantic array and object-shaped `detail` values render field locations/messages (unit tests).
+- [x] HTTP 502, 503 and 504 responses include API recovery steps when the proxy provides no error detail (unit tests). Edge and Windows Narrator confirmed the message after stopping the isolated API.
 - [x] Canceled/stale async requests don't overwrite newer results incorrectly (out-of-order refresh regression test).
 - [x] Frontend component/unit tests cover missing metrics, Gantt, error parsing, seed confirmation/cancel, refresh races, comparison states, scenario behavior, and timeline filters.
 - [x] Repeatable browser smoke passed with synthetic fixtures and an isolated real API and temporary SQLite DB. `scripts/browser_real_api.py` covers outage/retry, empty onboarding, explicit seed, optimization, timeline interactions, and two scenario runs. A separate smoke passed seed, optimization and a CNC-1 outage against backend `origin/main` at `d9ae616` with a temporary SQLite DB.
