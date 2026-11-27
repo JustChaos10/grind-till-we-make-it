@@ -92,7 +92,7 @@ npm.cmd install --prefix $axeDir --ignore-scripts --no-audit --no-fund --save-ex
 python frontend/scripts/browser_real_api.py --empty-only --axe-script (Join-Path $axeDir 'node_modules\axe-core\axe.min.js') --screenshots (Join-Path $axeDir 'screenshots')
 ```
 
-The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Screen-reader announcements still need manual review.
+Edge's accessibility tree exposed initial loading, refresh in progress, and the retained-data notice as polite live regions at all three sizes. It exposed the connection error as an assertive alert. All four regions included their visible message and exposed atomic updates. The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Spoken announcements still need manual screen-reader review.
 
 The same smoke test passed in headed Edge at all three viewport sizes with the existing Windows animation setting and motion emulation turned off. The browser matched `prefers-reduced-motion: reduce`. Computed CSS disabled smooth scrolling and limited animation and transition durations to 0.01 ms. This run used backend `d9ae616` in a detached worktree, a new empty database and only `GET /api/flow-board` and `GET /api/catalog` from the frontend. All 21 axe-core scans passed again.
 

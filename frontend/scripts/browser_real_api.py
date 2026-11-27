@@ -63,6 +63,24 @@ def check_accessibility(page, axe_script, scope):
     print(f"PASS: axe-core {result['version']}, {scope}, no violations; manual review: {manual}")
 
 
+def check_live_region(session, role, priority, message):
+    nodes = session.send('Accessibility.getFullAXTree')['nodes']
+    by_id = {node['nodeId']: node for node in nodes}
+    for node in nodes:
+        if node['ignored'] or node.get('role', {}).get('value') != role:
+            continue
+        pending = list(node.get('childIds', []))
+        while pending:
+            child = by_id[pending.pop()]
+            if child.get('role', {}).get('value') == 'StaticText' and message in child['name']['value']:
+                properties = {item['name']: item['value']['value'] for item in node['properties']}
+                assert properties.get('live') == priority, properties
+                assert properties.get('atomic') is True, properties
+                return
+            pending.extend(child.get('childIds', []))
+    raise AssertionError(f'Edge accessibility tree has no {role} containing {message!r}')
+
+
 def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_reduced_motion):
     screens = (
         ('Flow board', 'Production flow overview', 'No open work orders', None, 'board'),
@@ -76,6 +94,7 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
             viewport={'width': width, 'height': height},
             reduced_motion='null' if system_reduced_motion else 'reduce',
         )
+        accessibility = page.context.new_cdp_session(page)
         requests = []
         connection_interrupted = False
         reads_held = True
@@ -109,6 +128,7 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
         page.goto(web_url, wait_until='domcontentloaded')
         expect(page.get_by_role('heading', name='Loading factory data')).to_be_visible()
         expect(page.get_by_role('status').filter(has_text='Loading API data')).to_be_visible()
+        check_live_region(accessibility, 'status', 'polite', 'Loading API data')
         assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches"), (
             'Enable reduced motion in your OS before using --system-reduced-motion.'
         )
@@ -147,6 +167,7 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
             page.keyboard.press('Enter')
             expect(board_heading).to_be_visible()
             expect(page.get_by_role('status').filter(has_text='Refreshing API data')).to_be_visible()
+            check_live_region(accessibility, 'status', 'polite', 'Refreshing API data')
             expect(refresh).to_be_focused()
             assert check_text_contrast(f'{device}: refresh in progress', page.locator('body')) == 0
             check_accessibility(page, axe_script, f'{device}: refresh in progress')
@@ -188,6 +209,7 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
         expect(board_heading).to_be_visible()
         failed_refresh = page.get_by_role('status').filter(has_text='Showing the last successfully loaded data')
         expect(failed_refresh).to_be_visible()
+        check_live_region(accessibility, 'status', 'polite', 'Showing the last successfully loaded data')
         assert check_text_contrast(f'{device}: refresh failed', page.locator('body')) == 0
         check_accessibility(page, axe_script, f'{device}: refresh failed')
         dismiss = page.get_by_role('button', name='Dismiss', exact=True)
@@ -206,6 +228,7 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
         connection_interrupted = True
         page.reload()
         expect(page.get_by_role('alert')).to_be_visible()
+        check_live_region(accessibility, 'alert', 'assertive', 'Something needs attention')
         retry = page.get_by_role('button', name='Retry API connection')
         expect(retry).to_be_enabled()
         assert check_text_contrast(f'{device}: connection interrupted', page.locator('body')) == 0
@@ -234,8 +257,9 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
                 expect(page.get_by_role('button', name=action, exact=True)).to_be_disabled()
 
         assert set(requests) == {('GET', '/api/flow-board'), ('GET', '/api/catalog')}, requests
+        accessibility.detach()
         page.close()
-        print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, forced colors, read-only API')
+        print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, live regions, forced colors, read-only API')
 
 
 parser = argparse.ArgumentParser(description=__doc__)
