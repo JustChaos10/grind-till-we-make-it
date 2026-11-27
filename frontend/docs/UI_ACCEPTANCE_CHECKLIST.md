@@ -118,6 +118,7 @@
 - [x] `npm run lint` passes.
 - [x] Frontend test suite passes.
 - [x] Shared timeline layout validated on 1,512 observed intervals from published bottling and CNC records. Published textile scheduling inputs checked separately. See [records and field limits](PUBLIC_DATA_VALIDATION.md).
+- [x] The built Gantt chart reached all 1,512 public intervals, kept each page at 100 bars or fewer, and passed zoom, filter, reset, and missing-status checks across desktop, laptop, tablet and phone widths in Edge. See the [browser measurements](PUBLIC_DATA_VALIDATION.md#browser-measurement).
 - [x] Isolated unseeded API verified in Edge at 1440 × 900, 768 × 1024 and 390 × 844. Checks cover all three empty states, text contrast, visible loading and refresh status, keyboard actions, retained data after refresh failure, connection recovery and GET-only access. The desktop board, tablet optimizer and phone scenario screenshots were visually reviewed.
 - [ ] Populated browser comparison and scenarios verified on approved historical metal injection molding records. Run the [historical browser check](PUBLIC_DATA_VALIDATION.md#verify-an-approved-historical-snapshot) after the backend owner prepares a [permission-cleared snapshot](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
 - [x] Python backend pytest/ruff regression results documented (without backend edits).

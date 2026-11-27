@@ -1,6 +1,6 @@
 # Public manufacturing data validation
 
-Run this check to verify timeline coordinates and lane assignment with published manufacturing records. It runs the same layout code as the Gantt chart. It uses files in a local temporary directory and does not write to the application database.
+Use the checks below to verify Gantt layout and browser interactions with published manufacturing records. They use local files and run without an application database.
 
 ## Sources and coverage
 
@@ -25,9 +25,28 @@ python scripts/public_data_records.py $dataPath
 node scripts/validate-public-timeline.mjs (Join-Path $dataPath 'observed-timeline.json')
 ```
 
+## Browser measurement
+
+With frontend dependencies, Python Playwright and Microsoft Edge installed, run from the `frontend` directory after the layout check:
+
+```powershell
+python scripts/measure-public-gantt.py (Join-Path $dataPath 'observed-timeline.json')
+```
+
+The runner builds the app's Gantt component and styles in a local test page. Source groups supply the row labels, and record IDs identify the intervals. The source records do not carry order due dates. The browser checks that the bars announce “Status unavailable” and that both status filters exclude them. It reaches the last page, confirms that each page renders at most 100 bars, and checks zoom, resource filtering and filter reset at each viewport.
+
+The table shows the median and maximum in milliseconds from five runs per viewport in headless Edge 158 on this Windows PC. Initial render starts immediately before React mount and ends two animation frames after the bars enter the page. Interactions are measured from the browser event through two animation frames. Each resulting state is verified separately. These measurements cover the component with local records and exclude download, API and solver time.
+
+| Viewport | Initial render | Next page | Zoom | Resource filter | Clear filters |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desktop 1440 × 900 | 30.7 / 215.3 | 10.6 / 13.2 | 6.6 / 7.8 | 9.4 / 21.0 | 10.2 / 10.7 |
+| Laptop 1280 × 800 | 28.1 / 66.8 | 10.4 / 12.8 | 7.1 / 7.7 | 9.4 / 9.7 | 9.8 / 10.5 |
+| Tablet 768 × 1024 | 29.7 / 67.1 | 10.5 / 12.5 | 6.6 / 7.6 | 9.3 / 9.7 | 9.8 / 10.2 |
+| Phone 390 × 844 | 31.9 / 67.1 | 10.5 / 13.7 | 6.2 / 6.4 | 9.3 / 9.9 | 9.7 / 10.2 |
+
 ## Verify an approved historical snapshot
 
-The public records above cover chart layout. The populated browser flow requires metal injection molding work orders, due dates, machine capabilities, routes and calendars under the backend contract. A published visit to INDO-MIM's San Antonio plant describes how it links batch IDs to machines and orders, but provides no downloadable work orders, timestamps or calendars. [PIM International plant report](https://www.pim-international.com/articles/indo-mim-in-north-america-scaling-mim-and-developing-binder-jetting-to-meet-evolving-market-needs/)
+The populated API browser flow requires metal injection molding work orders, due dates, machine capabilities, routes and calendars under the backend contract. A published visit to INDO-MIM's San Antonio plant describes how it links batch IDs to machines and orders, but provides no downloadable work orders, timestamps or calendars. [PIM International plant report](https://www.pim-international.com/articles/indo-mim-in-north-america-scaling-mim-and-developing-binder-jetting-to-meet-evolving-market-needs/)
 
 Ask the backend owner for a permission-cleared SQLite snapshot and the ID of an active resource with a feasible outage scenario. See [Backend requests](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
 

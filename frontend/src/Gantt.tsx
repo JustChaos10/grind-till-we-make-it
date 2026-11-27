@@ -2,9 +2,16 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Wrench } from 'lucide-react'
 import { fmt } from './api'
 import { layoutScheduleRow } from './scheduleRange'
-import type { ScheduledOperation as Operation } from './types'
+import type { ScheduledOperation } from './types'
 import { stages } from './stages'
 import './Gantt.css'
+
+type Operation = Omit<ScheduledOperation, 'is_late'> & { is_late: boolean | null }
+
+function statusLabel(isLate: Operation['is_late']) {
+  if (isLate === null) return 'Status unavailable'
+  return isLate ? 'Late' : 'On time'
+}
 
 function sameOperation(left: Operation, right: Operation) {
   return (
@@ -82,7 +89,7 @@ export function Gantt({
           (!filters.plant || item.plant === filters.plant) &&
           (!filters.resource || item.resource_id === filters.resource) &&
           (!filters.order || item.wo_number === filters.order) &&
-          (!filters.status || (filters.status === 'late' ? item.is_late : !item.is_late)),
+          (!filters.status || item.is_late === (filters.status === 'late')),
       ),
     [operations, filters],
   )
@@ -357,8 +364,7 @@ export function Gantt({
                       }}
                     >
                       {item.wo_number} · {item.stage} · {item.resource_name} ·{' '}
-                      {fmt(item.start_hour)}–{fmt(item.end_hour)}h ·{' '}
-                      {item.is_late ? 'Late' : 'On time'}
+                      {fmt(item.start_hour)}–{fmt(item.end_hour)}h · {statusLabel(item.is_late)}
                     </button>
                   </li>
                 ))}
@@ -470,7 +476,7 @@ export function Gantt({
                       style={{ height: `${Math.max(25, laneCount * 25)}px` }}
                     >
                       {bars.map(({ item, slot, left, width }, index) => {
-                        const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
+                        const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${statusLabel(item.is_late).toLowerCase()}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
                         return (
                           <button
                             type="button"
@@ -627,8 +633,13 @@ export function Gantt({
                 Late{displayedOperation.delay_reason ? ` · ${displayedOperation.delay_reason}` : ''}
               </span>
             ) : (
-              <span id={`${detailId}-status`} className="on-time-tag">
-                On time at scheduled completion
+              <span
+                id={`${detailId}-status`}
+                className={displayedOperation.is_late === false ? 'on-time-tag' : undefined}
+              >
+                {displayedOperation.is_late === false
+                  ? 'On time at scheduled completion'
+                  : statusLabel(displayedOperation.is_late)}
               </span>
             )}
             <span id={`${detailId}-provenance`}>
