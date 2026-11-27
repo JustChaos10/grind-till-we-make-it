@@ -1,14 +1,18 @@
 """End-to-end smoke test using an isolated, temporary SQLite database.
 
-Run from frontend: python scripts/browser_real_api.py --empty-only
-Omit --empty-only to run the original opt-in synthetic demo smoke test.
+Run from frontend: python scripts/browser_real_api.py
+Use --historical-db with an approved SQLite snapshot to verify populated workflows.
+Use --synthetic to opt in to the legacy synthetic demo smoke test.
 Requires Python Playwright, Edge, npm dependencies, and the root .venv.
-Starts private API/Vite processes on ephemeral ports; removes only its own temp DB.
+Starts private API/Vite processes on ephemeral ports. A historical source is opened read-only.
 """
 import argparse
+from contextlib import closing
+import json
 import os
 from pathlib import Path
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -19,6 +23,86 @@ from measure_contrast import check as check_text_contrast
 ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = ROOT / 'frontend'
 SCREENSHOTS = FRONTEND / 'docs' / 'screenshots'
+
+
+def copy_snapshot(source_path, destination_path):
+    # SQLite's backup includes committed WAL transactions and leaves the source read-only.
+    with closing(sqlite3.connect(source_path.resolve().as_uri() + '?mode=ro', uri=True)) as source:
+        with closing(sqlite3.connect(destination_path)) as destination:
+            source.backup(destination)
+
+
+def capture_screen(page, screenshots, name):
+    if screenshots is not None:
+        screenshots.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(screenshots / f'{name}.png'), full_page=True)
+
+
+def check_populated(page, screenshots, outage_resource_id):
+    expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
+    expect(page.get_by_role('heading', name='No open work orders')).to_have_count(0)
+    capture_screen(page, screenshots, 'real-api-board')
+
+    page.get_by_role('button', name='Run comparison').click()
+    expect(page.get_by_text('Proposed model schedule ready')).to_be_visible(timeout=120000)
+    timeline = page.get_by_role('region', name='Schedule timeline. Use the scroll area to review all resources and hours.')
+    bar = timeline.locator('button.gantt-bar').first
+    expect(bar).to_be_visible()
+    bar.focus()
+    page.keyboard.press('Enter')
+    expect(page.get_by_role('region', name='Selected operation details')).to_be_focused()
+    page.keyboard.press('Escape')
+    expect(bar).to_be_focused()
+    page.get_by_role('button', name='Baseline', exact=True).click()
+    expect(timeline.locator('button.gantt-bar').first).to_be_visible()
+    page.get_by_role('button', name='Optimized', exact=True).click()
+    page.get_by_label('Zoom').select_option('2')
+    expect(timeline.locator('.gantt-canvas')).to_have_attribute('style', 'width: 200%;')
+    page.locator('.gantt-controls').get_by_label('Status').select_option('late')
+    expect(page.get_by_role('button', name='Clear filters (1)')).to_be_enabled()
+    page.get_by_role('button', name='Clear filters (1)').click()
+    expect(timeline.locator('button.gantt-bar').first).to_be_visible()
+    capture_screen(page, screenshots, 'real-api-optimizer')
+
+    page.get_by_role('button', name='Scenario lab').click()
+    machine = page.get_by_label('Machine unavailable')
+    if outage_resource_id is None:
+        machine.select_option(index=1)
+        outage_resource_id = machine.input_value()
+    else:
+        machine.select_option(value=outage_resource_id)
+    page.get_by_role('button', name='Run scenario').click()
+    expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
+    expect(page.get_by_text(f'({outage_resource_id})', exact=False).first).to_be_visible()
+    expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
+    capture_screen(page, screenshots, 'real-api-scenario')
+    page.get_by_role('button', name='Reset inputs').click()
+    expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
+    page.get_by_role('button', name='Run scenario').click()
+    expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
+
+
+def check_schedule_requests(seen, outage_resource_id):
+    optimize = [data for method, path, data in seen if method == 'POST' and path == '/api/schedule/optimize']
+    simulate = [data for method, path, data in seen if method == 'POST' and path == '/api/schedule/simulate']
+    assert len(optimize) == 1 and len(simulate) == 2, 'Expected one comparison and two scenarios.'
+    assert len(simulate[0]['down_resource_ids']) == 1, 'Expected one resource in the outage scenario.'
+    if outage_resource_id is not None:
+        assert simulate[0]['down_resource_ids'] == [outage_resource_id], 'Unexpected outage resource.'
+    assert simulate[1]['down_resource_ids'] == [], 'Expected no resource outage after reset.'
+    assert all(request['rush_order_ids'] == [] and request['demand_spike_pct'] == 0 for request in simulate), (
+        'Expected no priority orders or demand changes in either scenario.'
+    )
+
+
+def check_historical_catalog(api_url, outage_resource_id):
+    with urllib.request.urlopen(api_url + '/api/catalog', timeout=10) as response:
+        catalog = json.load(response)
+    if not catalog['work_orders']:
+        raise SystemExit('Historical check requires a snapshot with schedulable work orders.')
+    if not any(resource['id'] == outage_resource_id and resource['status'] == 'ACTIVE'
+               for resource in catalog['resources']):
+        raise SystemExit('The requested outage resource must be active in the copied snapshot.')
 
 def free_port():
     with socket.socket() as sock:
@@ -262,126 +346,131 @@ def check_unseeded(browser, web_url, api_url, screenshots, axe_script, system_re
         print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, live regions, forced colors, read-only API')
 
 
-parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--empty-only', action='store_true', help='Verify an isolated API with no factory records.')
-parser.add_argument('--screenshots', type=Path, default=SCREENSHOTS, help='Directory for captured screenshots.')
-parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for the unseeded WCAG scan.')
-parser.add_argument('--system-reduced-motion', action='store_true',
-                    help='Use the OS reduced-motion setting in headed Edge. Requires --empty-only and reduced motion enabled.')
-parser.add_argument('--backend-root', type=Path, default=ROOT,
-                    help='Backend checkout to launch with the local virtual environment.')
-args = parser.parse_args()
-if args.axe_script is not None and (not args.empty_only or not args.axe_script.is_file()):
-    parser.error('--axe-script requires --empty-only and a readable axe.min.js file')
-if args.system_reduced_motion and not args.empty_only:
-    parser.error('--system-reduced-motion requires --empty-only')
-if not (args.backend_root / 'main.py').is_file():
-    parser.error('--backend-root must point to a checkout containing main.py')
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--empty-only', action='store_true', help='Verify an isolated API with no factory records (default).')
+    mode.add_argument('--historical-db', type=Path, help='Approved historical SQLite snapshot to copy read-only.')
+    mode.add_argument('--synthetic', action='store_true', help='Opt in to seeding a temporary synthetic demo database.')
+    parser.add_argument('--outage-resource-id', help='Active resource with a feasible outage, required for --historical-db.')
+    parser.add_argument('--screenshots', type=Path, help='Directory for screenshots. Historical mode captures only when supplied.')
+    parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for the unseeded WCAG scan.')
+    parser.add_argument('--system-reduced-motion', action='store_true',
+                        help='Use the OS reduced-motion setting in headed Edge. Requires --empty-only and reduced motion enabled.')
+    parser.add_argument('--backend-root', type=Path, default=ROOT,
+                        help='Backend checkout to launch with the local virtual environment.')
+    args = parser.parse_args()
+    empty_only = not (args.synthetic or args.historical_db)
+    if args.historical_db:
+        if not args.historical_db.is_file():
+            parser.error('--historical-db must point to a readable SQLite snapshot')
+        if not args.outage_resource_id:
+            parser.error('--historical-db requires --outage-resource-id')
+    elif args.outage_resource_id:
+        parser.error('--outage-resource-id requires --historical-db')
+    if args.axe_script is not None and (not empty_only or not args.axe_script.is_file()):
+        parser.error('--axe-script requires --empty-only and a readable axe.min.js file')
+    if args.system_reduced_motion and not empty_only:
+        parser.error('--system-reduced-motion requires --empty-only')
+    if not (args.backend_root / 'main.py').is_file():
+        parser.error('--backend-root must point to a checkout containing main.py')
 
-with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
-    api_port, web_port = free_port(), free_port()
-    while web_port == api_port:
-        web_port = free_port()
-    api_url = f'http://127.0.0.1:{api_port}'
-    web_url = f'http://127.0.0.1:{web_port}'
-    env = os.environ.copy()
-    env.update(DATABASE_URL='sqlite+aiosqlite:///' + (Path(tmp) / 'isolated.db').as_posix(),
-               APP_ENV='development', INDOFLOW_API_TOKEN='', INDOFLOW_ADMIN_TOKEN='',
-               VITE_ENABLE_DEMO_SEED='false' if args.empty_only else 'true')
-    log = open(Path(tmp) / 'servers.log', 'w', encoding='utf-8')
-    processes = []
-    try:
-        processes.append(subprocess.Popen([str(ROOT / '.venv' / 'Scripts' / 'python.exe'), '-m',
-            'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', str(api_port)],
-            cwd=args.backend_root.resolve(), env=env, stdout=log, stderr=subprocess.STDOUT))
-        ready(api_url + '/health', processes[-1])
-        # Invoke Vite directly so terminating the process does not leave an npm child behind.
-        processes.append(subprocess.Popen(['node', str(FRONTEND / 'node_modules' / 'vite' / 'bin' / 'vite.js'),
-            '--host', '127.0.0.1', '--port', str(web_port), '--strictPort'], cwd=FRONTEND,
-            env=env, stdout=log, stderr=subprocess.STDOUT))
-        ready(web_url, processes[-1])
-        with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(
-                channel=os.environ.get('BROWSER_CHANNEL', 'msedge'),
-                headless=not args.system_reduced_motion,
-            )
-            if args.empty_only:
-                check_unseeded(browser, web_url, api_url, args.screenshots, args.axe_script, args.system_reduced_motion)
-                browser.close()
-                raise SystemExit(0)
-            page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
-            page.set_default_timeout(30000)
-            seen = []
-            fail_first = [True]
-            def route_api(route):
-                req = route.request
-                path = '/' + req.url.split('/', 3)[3]
-                seen.append((req.method, path, req.post_data_json if req.post_data else None))
-                if path == '/api/flow-board' and fail_first[0]:
-                    route.fulfill(status=503, content_type='application/json', body='{"detail":"Smoke test outage"}')
+    with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
+        api_port, web_port = free_port(), free_port()
+        while web_port == api_port:
+            web_port = free_port()
+        api_url = f'http://127.0.0.1:{api_port}'
+        web_url = f'http://127.0.0.1:{web_port}'
+        database = Path(tmp) / 'isolated.db'
+        if args.historical_db:
+            try:
+                copy_snapshot(args.historical_db, database)
+            except sqlite3.Error as error:
+                raise SystemExit(f'Cannot copy historical SQLite snapshot: {error}') from None
+        env = os.environ.copy()
+        env.update(DATABASE_URL='sqlite+aiosqlite:///' + database.as_posix(),
+                   APP_ENV='development', INDOFLOW_API_TOKEN='', INDOFLOW_ADMIN_TOKEN='',
+                   VITE_ENABLE_DEMO_SEED='true' if args.synthetic else 'false')
+        log = open(Path(tmp) / 'servers.log', 'w', encoding='utf-8')
+        processes = []
+        try:
+            processes.append(subprocess.Popen([str(ROOT / '.venv' / 'Scripts' / 'python.exe'), '-m',
+                'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', str(api_port)],
+                cwd=args.backend_root.resolve(), env=env, stdout=log, stderr=subprocess.STDOUT))
+            ready(api_url + '/health', processes[-1])
+            if args.historical_db:
+                check_historical_catalog(api_url, args.outage_resource_id)
+            # Invoke Vite directly so terminating the process does not leave an npm child behind.
+            processes.append(subprocess.Popen(['node', str(FRONTEND / 'node_modules' / 'vite' / 'bin' / 'vite.js'),
+                '--host', '127.0.0.1', '--port', str(web_port), '--strictPort'], cwd=FRONTEND,
+                env=env, stdout=log, stderr=subprocess.STDOUT))
+            ready(web_url, processes[-1])
+            with sync_playwright() as playwright:
+                browser = playwright.chromium.launch(
+                    channel=os.environ.get('BROWSER_CHANNEL', 'msedge'),
+                    headless=not args.system_reduced_motion,
+                )
+                if empty_only:
+                    check_unseeded(browser, web_url, api_url, args.screenshots or SCREENSHOTS,
+                                   args.axe_script, args.system_reduced_motion)
+                    browser.close()
                     return
-                response = route.fetch(url=api_url + path, timeout=120000)
-                route.fulfill(response=response)
-            page.route('**/api/**', route_api)
-            page.goto(web_url)
-            expect(page.get_by_role('alert')).to_contain_text('Smoke test outage')
-            seed_button = page.get_by_role('button', name='Load synthetic demo data')
-            expect(seed_button).to_be_disabled()
-            expect(seed_button).to_have_attribute('aria-describedby', 'welcome-seed-help')
-            expect(page.locator('#welcome-seed-help')).to_be_visible()
-            fail_first[0] = False
-            retry = page.get_by_role('button', name='Retry API connection')
-            retry.focus()
-            page.keyboard.press('Enter')
-            expect(page.get_by_role('heading', name='No open work orders')).to_be_visible()
-            expect(page.get_by_role('button', name='Refresh data')).to_be_focused()
-            page.once('dialog', lambda dialog: dialog.accept())
-            page.get_by_role('button', name='Load synthetic example').click()
-            expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
-            expect(page.get_by_role('heading', name='No open work orders')).to_have_count(0)
-            args.screenshots.mkdir(parents=True, exist_ok=True)
-            page.screenshot(path=str(args.screenshots / 'real-api-board.png'), full_page=True)
-            page.get_by_role('button', name='Run comparison').click()
-            expect(page.get_by_text('Proposed model schedule ready')).to_be_visible(timeout=120000)
-            timeline = page.get_by_role('region', name='Schedule timeline. Use the scroll area to review all resources and hours.')
-            bar = timeline.locator('button.gantt-bar').first
-            expect(bar).to_be_visible()
-            bar.focus()
-            page.keyboard.press('Enter')
-            expect(page.get_by_role('region', name='Selected operation details')).to_be_focused()
-            page.keyboard.press('Escape')
-            expect(bar).to_be_focused()
-            page.get_by_role('button', name='Baseline', exact=True).click()
-            expect(timeline.locator('button.gantt-bar').first).to_be_visible()
-            page.get_by_role('button', name='Optimized', exact=True).click()
-            page.get_by_label('Zoom').select_option('2')
-            expect(timeline.locator('.gantt-canvas')).to_have_attribute('style', 'width: 200%;')
-            page.locator('.gantt-controls').get_by_label('Status').select_option('late')
-            expect(page.get_by_role('button', name='Clear filters (1)')).to_be_enabled()
-            page.get_by_role('button', name='Clear filters (1)').click()
-            expect(timeline.locator('button.gantt-bar').first).to_be_visible()
-            page.screenshot(path=str(args.screenshots / 'real-api-optimizer.png'), full_page=True)
-            page.get_by_role('button', name='Scenario lab').click()
-            machine = page.get_by_label('Machine unavailable')
-            machine.select_option(index=1)
-            selected = machine.input_value()
-            page.get_by_role('button', name='Run scenario').click()
-            expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
-            expect(page.get_by_text(f'({selected})', exact=False).first).to_be_visible()
-            expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
-            page.screenshot(path=str(args.screenshots / 'real-api-scenario.png'), full_page=True)
-            page.get_by_role('button', name='Reset inputs').click()
-            expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
-            page.get_by_role('button', name='Run scenario').click()
-            expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
-            assert sum(method == 'POST' and path == '/api/seed' for method, path, _ in seen) == 1
-            assert sum(method == 'POST' and path == '/api/schedule/simulate' for method, path, _ in seen) == 2
-            assert any(path == '/api/schedule/simulate' and data['down_resource_ids'] == [] and data['demand_spike_pct'] == 0 for _, path, data in seen)
-            browser.close()
-        print('PASS: isolated real API, outage/retry, empty/seed, optimize, timeline keyboard/tabs, outage and zero-input scenarios')
-    finally:
-        for process in reversed(processes):
-            if process.poll() is None:
-                subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True, check=False)
-            process.wait(timeout=10)
-        log.close()
+                page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
+                page.set_default_timeout(30000)
+                seen = []
+                fail_first = args.synthetic
+                allowed = {('GET', '/api/flow-board'), ('GET', '/api/catalog'),
+                           ('POST', '/api/schedule/optimize'), ('POST', '/api/schedule/simulate')}
+                if args.synthetic:
+                    allowed.add(('POST', '/api/seed'))
+
+                def route_api(route):
+                    req = route.request
+                    path = '/' + req.url.split('/', 3)[3]
+                    if (req.method, path) not in allowed:
+                        seen.append((req.method, path, None))
+                        route.abort()
+                        return
+                    seen.append((req.method, path, req.post_data_json if req.post_data else None))
+                    if path == '/api/flow-board' and fail_first:
+                        route.fulfill(status=503, content_type='application/json', body='{"detail":"Smoke test outage"}')
+                        return
+                    response = route.fetch(url=api_url + path, timeout=120000)
+                    route.fulfill(response=response)
+                page.route('**/api/**', route_api)
+                page.goto(web_url)
+                if args.synthetic:
+                    expect(page.get_by_role('alert')).to_contain_text('Smoke test outage')
+                    seed_button = page.get_by_role('button', name='Load synthetic demo data')
+                    expect(seed_button).to_be_disabled()
+                    expect(seed_button).to_have_attribute('aria-describedby', 'welcome-seed-help')
+                    expect(page.locator('#welcome-seed-help')).to_be_visible()
+                    fail_first = False
+                    retry = page.get_by_role('button', name='Retry API connection')
+                    retry.focus()
+                    page.keyboard.press('Enter')
+                    expect(page.get_by_role('heading', name='No open work orders')).to_be_visible()
+                    expect(page.get_by_role('button', name='Refresh data')).to_be_focused()
+                    page.once('dialog', lambda dialog: dialog.accept())
+                    page.get_by_role('button', name='Load synthetic example').click()
+                screenshots = args.screenshots
+                if args.synthetic and screenshots is None:
+                    screenshots = SCREENSHOTS
+                check_populated(page, screenshots, args.outage_resource_id)
+                assert all((method, path) in allowed for method, path, _ in seen), 'Unexpected API request.'
+                check_schedule_requests(seen, args.outage_resource_id)
+                if args.synthetic:
+                    assert sum(path == '/api/seed' for _, path, _ in seen) == 1
+                browser.close()
+            mode_name = 'historical snapshot copy' if args.historical_db else 'temporary synthetic demo'
+            print(f'PASS: {mode_name}, comparison, timeline keyboard controls, outage and reset scenarios')
+        finally:
+            for process in reversed(processes):
+                if process.poll() is None:
+                    subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'], capture_output=True, check=False)
+                process.wait(timeout=10)
+            log.close()
+
+
+if __name__ == '__main__':
+    main()

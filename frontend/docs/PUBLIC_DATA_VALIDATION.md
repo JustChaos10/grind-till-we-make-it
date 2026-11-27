@@ -25,4 +25,16 @@ python scripts/public_data_records.py $dataPath
 node scripts/validate-public-timeline.mjs (Join-Path $dataPath 'observed-timeline.json')
 ```
 
-The plant workflow still needs a permission-cleared metal injection molding dataset with work orders, due dates, machine capabilities, routings, calendars, and schedule results under the backend contract. See [Backend requests](BACKEND_REQUESTS.md).
+## Verify an approved historical snapshot
+
+The public records above cover chart layout. The populated browser flow requires metal injection molding work orders, due dates, machine capabilities, routes and calendars under the backend contract. A published visit to INDO-MIM's San Antonio plant describes how it links batch IDs to machines and orders, but provides no downloadable work orders, timestamps or calendars. [PIM International plant report](https://www.pim-international.com/articles/indo-mim-in-north-america-scaling-mim-and-developing-binder-jetting-to-meet-evolving-market-needs/)
+
+Ask the backend owner for a permission-cleared SQLite snapshot and the ID of an active resource with a feasible outage scenario. See [Backend requests](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
+
+From the repository root, set `$approvedSnapshot` to the absolute path of the supplied SQLite file and `$outageResourceId` to the supplied resource ID. With the local Python environment, Playwright, Edge and frontend dependencies installed, run:
+
+```powershell
+python frontend/scripts/browser_real_api.py --historical-db $approvedSnapshot --outage-resource-id $outageResourceId
+```
+
+The script opens the snapshot read-only, copies it to a temporary directory and starts the API on that copy. The API saves the comparison there. The script checks the comparison, Gantt keyboard navigation, a resource outage and a reset scenario. Screenshots are off by default. If the data owner approves captures, use `--screenshots` with a private folder outside the repository.
