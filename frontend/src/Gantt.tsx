@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Wrench } from 'lucide-react'
 import { fmt } from './api'
+import { layoutScheduleRow } from './scheduleRange'
 import type { ScheduledOperation as Operation } from './types'
 import { stages } from './stages'
 import './Gantt.css'
@@ -450,15 +451,7 @@ export function Gantt({
                 </div>
               </div>
               {rows.map(([resourceId, items]) => {
-                const ends: number[] = []
-                const slots = [...items]
-                  .sort((a, b) => a.start_hour - b.start_hour || a.end_hour - b.end_hour)
-                  .map((item) => {
-                    let slot = ends.findIndex((end) => end <= item.start_hour)
-                    if (slot < 0) slot = ends.length
-                    ends[slot] = item.end_hour
-                    return { item, slot }
-                  })
+                const { bars, laneCount } = layoutScheduleRow(items, maxHour)
                 return (
                   <div className="gantt-row" key={resourceId}>
                     <div className="gantt-resource">
@@ -472,11 +465,9 @@ export function Gantt({
                     </div>
                     <div
                       className="gantt-lane"
-                      style={{ height: `${Math.max(25, ends.length * 25)}px` }}
+                      style={{ height: `${Math.max(25, laneCount * 25)}px` }}
                     >
-                      {slots.map(({ item, slot }, index) => {
-                        const left = Math.max(0, (item.start_hour / maxHour) * 100)
-                        const width = (Math.max(0, item.end_hour - item.start_hour) / maxHour) * 100
+                      {bars.map(({ item, slot, left, width }, index) => {
                         const accessibleName = `${item.wo_number}, ${item.sku_code}, ${item.stage}, ${item.resource_name}, ${fmt(item.start_hour)} to ${fmt(item.end_hour)} hours, ${item.is_late ? 'late' : 'on time'}${item.batch_id ? `, batch ${item.batch_id}` : ''}${item.delay_reason ? `, ${item.delay_reason}` : ''}`
                         return (
                           <button
@@ -485,7 +476,7 @@ export function Gantt({
                             key={`${item.work_order_id}-${item.stage}-${index}`}
                             style={{
                               left: `${left}%`,
-                              width: `${Math.min(width, 100 - left)}%`,
+                              width: `${width}%`,
                               top: `${slot * 25 + 3}px`,
                             }}
                             aria-label={accessibleName}
