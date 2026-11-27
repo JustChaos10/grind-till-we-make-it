@@ -106,7 +106,7 @@ export function Gantt({
   }
   const activeFilters = Object.values(filters).filter(Boolean).length
   const [selected, setSelected] = useState<Operation | null>(null)
-  const [selectionNotice, setSelectionNotice] = useState('')
+  const [selectionUnavailable, setSelectionUnavailable] = useState(false)
   const [hovered, setHovered] = useState<{ item: Operation; rect: DOMRect } | null>(null)
   const detailId = useId()
   const focusedSelection = useRef<Operation | null>(null)
@@ -154,7 +154,7 @@ export function Gantt({
       page === 0 ? 'next' : (page + 1) * chartPageSize >= filtered.length ? 'previous' : null
     setSelected(null)
     setHovered(null)
-    setSelectionNotice('')
+    setSelectionUnavailable(false)
     setChartPage(page)
   }
   const previousChartPage = useRef(currentChartPage)
@@ -170,6 +170,10 @@ export function Gantt({
       filtered.find((item) => sameOperation(item, selected)) ??
       null)
     : null
+  if (selected && !selectedOperation) {
+    setSelected(null)
+    setSelectionUnavailable(true)
+  }
   const hoveredOperation = hovered
     ? (filtered.find((item) => item === hovered.item) ??
       filtered.find((item) => sameOperation(item, hovered.item)) ??
@@ -192,12 +196,10 @@ export function Gantt({
     focusedSelection.current = selected
   }, [selected, selectedOperation])
   useEffect(() => {
-    if (!selected || selectedOperation) return
+    if (!selectionUnavailable) return
     if (detailHasFocus.current) stageFilter.current?.focus()
     detailHasFocus.current = false
-    setSelected(null)
-    setSelectionNotice('The selected operation is no longer available in this schedule.')
-  }, [selected, selectedOperation])
+  }, [selectionUnavailable])
   useEffect(() => {
     if (!hoveredOperation || selectedOperation) return
     const dismiss = (event: KeyboardEvent) => {
@@ -234,7 +236,7 @@ export function Gantt({
   return (
     <>
       <div className="sr-only" role="status">
-        {selectionNotice}
+        {selectionUnavailable && 'The selected operation is no longer available in this schedule.'}
       </div>
       <div className="gantt-controls" aria-label="Timeline filters">
         <label>
@@ -349,7 +351,7 @@ export function Gantt({
                       onClick={(event) => {
                         selectedBar.current = event.currentTarget
                         setHovered(null)
-                        setSelectionNotice('')
+                        setSelectionUnavailable(false)
                         setSelected(item)
                         if (selectedOperation === item) detailRef.current?.focus()
                       }}
@@ -503,7 +505,7 @@ export function Gantt({
                             onClick={(event) => {
                               selectedBar.current = event.currentTarget
                               setHovered(null)
-                              setSelectionNotice('')
+                              setSelectionUnavailable(false)
                               setSelected(item)
                             }}
                           >
