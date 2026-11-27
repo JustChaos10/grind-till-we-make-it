@@ -38,6 +38,30 @@ def capture_screen(page, screenshots, name):
         page.screenshot(path=str(screenshots / f'{name}.png'), full_page=True)
 
 
+def run_scenario(page, down_resource_ids):
+    with page.expect_response(
+        lambda response: response.url.endswith('/api/schedule/simulate') and response.request.method == 'POST',
+        timeout=120000,
+    ) as result:
+        page.get_by_role('button', name='Run scenario').click()
+
+    response = result.value
+    assert response.ok, f'Scenario request failed with HTTP {response.status}.'
+    scenario = response.json()
+    assert scenario['scenario_inputs'] == {
+        'down_resource_ids': down_resource_ids,
+        'rush_order_ids': [],
+        'demand_spike_pct': 0,
+    }, 'The API returned different inputs from those submitted.'
+    assert scenario['gantt'], 'The API returned no scenario operations.'
+    assert all(operation['resource_id'] not in down_resource_ids for operation in scenario['gantt']), (
+        'The scenario assigned an operation to an unavailable resource.'
+    )
+    expect(page.get_by_role('status', name='Scenario run status')).to_have_text(
+        'Simulation complete. Results are available below.',
+    )
+
+
 def check_populated(page, screenshots, outage_resource_id, axe_script):
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
     expect(page.get_by_role('heading', name='No open work orders')).to_have_count(0)
@@ -74,7 +98,7 @@ def check_populated(page, screenshots, outage_resource_id, axe_script):
         outage_resource_id = machine.input_value()
     else:
         machine.select_option(value=outage_resource_id)
-    page.get_by_role('button', name='Run scenario').click()
+    run_scenario(page, [outage_resource_id])
     expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
     expect(page.get_by_text(f'({outage_resource_id})', exact=False).first).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
@@ -83,8 +107,9 @@ def check_populated(page, screenshots, outage_resource_id, axe_script):
     page.get_by_role('button', name='Reset inputs').click()
     expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
     check_accessibility(page, axe_script, 'populated scenario after input reset', private=True)
-    page.get_by_role('button', name='Run scenario').click()
-    expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
+    run_scenario(page, [])
+    expect(page.get_by_text('Resource outages: none · Priority orders: none · Demand increase: 0%', exact=True)).to_be_visible()
+    expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible()
 
 
 def check_schedule_requests(seen, outage_resource_id):
