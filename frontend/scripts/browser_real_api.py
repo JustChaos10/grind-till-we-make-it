@@ -38,9 +38,10 @@ def capture_screen(page, screenshots, name):
         page.screenshot(path=str(screenshots / f'{name}.png'), full_page=True)
 
 
-def check_populated(page, screenshots, outage_resource_id):
+def check_populated(page, screenshots, outage_resource_id, axe_script):
     expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
     expect(page.get_by_role('heading', name='No open work orders')).to_have_count(0)
+    check_accessibility(page, axe_script, 'populated flow board', private=True)
     capture_screen(page, screenshots, 'real-api-board')
 
     page.get_by_role('button', name='Run comparison').click()
@@ -51,6 +52,7 @@ def check_populated(page, screenshots, outage_resource_id):
     bar.focus()
     page.keyboard.press('Enter')
     expect(page.get_by_role('region', name='Selected operation details')).to_be_focused()
+    check_accessibility(page, axe_script, 'populated operation details', private=True)
     page.keyboard.press('Escape')
     expect(bar).to_be_focused()
     page.get_by_role('button', name='Baseline', exact=True).click()
@@ -62,6 +64,7 @@ def check_populated(page, screenshots, outage_resource_id):
     expect(page.get_by_role('button', name='Clear filters (1)')).to_be_enabled()
     page.get_by_role('button', name='Clear filters (1)').click()
     expect(timeline.locator('button.gantt-bar').first).to_be_visible()
+    check_accessibility(page, axe_script, 'populated optimizer timeline', private=True)
     capture_screen(page, screenshots, 'real-api-optimizer')
 
     page.get_by_role('button', name='Scenario lab').click()
@@ -75,9 +78,11 @@ def check_populated(page, screenshots, outage_resource_id):
     expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
     expect(page.get_by_text(f'({outage_resource_id})', exact=False).first).to_be_visible()
     expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
+    check_accessibility(page, axe_script, 'populated outage scenario', private=True)
     capture_screen(page, screenshots, 'real-api-scenario')
     page.get_by_role('button', name='Reset inputs').click()
     expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
+    check_accessibility(page, axe_script, 'populated scenario after input reset', private=True)
     page.get_by_role('button', name='Run scenario').click()
     expect(page.get_by_text('Submitted inputs: Resource outage: none · Priority order: none · Demand increase: 0%')).to_be_visible(timeout=120000)
 
@@ -121,27 +126,24 @@ def ready(url, process):
             time.sleep(.25)
     raise RuntimeError(f'Timed out waiting for {url}')
 
-def check_accessibility(page, axe_script, scope):
+def check_accessibility(page, axe_script, scope, *, private=False):
     if axe_script is None:
         return
     if not page.evaluate("typeof window.axe !== 'undefined'"):
         page.add_script_tag(path=str(axe_script))
-    result = page.evaluate("""async () => {
+    result = page.evaluate("""async (privateReport) => {
         const { testEngine, violations, incomplete } = await axe.run({
             runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
         });
+        const summarize = ({ id, nodes }) => privateReport
+            ? { id, count: nodes.length }
+            : { id, targets: nodes.map(node => node.target) };
         return {
             version: testEngine.version,
-            violations: violations.map(rule => ({
-                id: rule.id,
-                targets: rule.nodes.map(node => node.target),
-            })),
-            manual: incomplete.map(rule => ({
-                id: rule.id,
-                targets: rule.nodes.map(node => node.target),
-            })),
+            violations: violations.map(summarize),
+            manual: incomplete.map(summarize),
         };
-    }""")
+    }""", private)
     assert not result['violations'], f"{scope}: {result['violations']}"
     manual = result['manual'] or 'none flagged'
     print(f"PASS: axe-core {result['version']}, {scope}, no violations; manual review: {manual}")
@@ -354,7 +356,7 @@ def main():
     mode.add_argument('--synthetic', action='store_true', help='Opt in to seeding a temporary synthetic demo database.')
     parser.add_argument('--outage-resource-id', help='Active resource with a feasible outage, required for --historical-db.')
     parser.add_argument('--screenshots', type=Path, help='Directory for screenshots. Historical mode captures only when supplied.')
-    parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for the unseeded WCAG scan.')
+    parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for empty or historical WCAG scans.')
     parser.add_argument('--system-reduced-motion', action='store_true',
                         help='Use the OS reduced-motion setting in headed Edge. Requires --empty-only and reduced motion enabled.')
     parser.add_argument('--backend-root', type=Path, default=ROOT,
@@ -372,8 +374,11 @@ def main():
                 parser.error('--historical-db requires a screenshot directory outside both checkouts')
     elif args.outage_resource_id:
         parser.error('--outage-resource-id requires --historical-db')
-    if args.axe_script is not None and (not empty_only or not args.axe_script.is_file()):
-        parser.error('--axe-script requires --empty-only and a readable axe.min.js file')
+    if args.axe_script is not None:
+        if args.synthetic:
+            parser.error('--axe-script requires empty or historical mode')
+        if not args.axe_script.is_file():
+            parser.error('--axe-script must point to a readable axe.min.js file')
     if args.system_reduced_motion and not empty_only:
         parser.error('--system-reduced-motion requires --empty-only')
     if not (args.backend_root / 'main.py').is_file():
@@ -460,7 +465,7 @@ def main():
                 screenshots = args.screenshots
                 if args.synthetic and screenshots is None:
                     screenshots = SCREENSHOTS
-                check_populated(page, screenshots, args.outage_resource_id)
+                check_populated(page, screenshots, args.outage_resource_id, args.axe_script)
                 assert all((method, path) in allowed for method, path, _ in seen), 'Unexpected API request.'
                 check_schedule_requests(seen, args.outage_resource_id)
                 if args.synthetic:
