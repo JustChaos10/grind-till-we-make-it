@@ -252,6 +252,8 @@ describe('frontend data states', () => {
 
     expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeVisible()
     expect(screen.queryByRole('button', { name: /load synthetic example/i })).toBeNull()
+    expect(screen.getByText('API data · no live ERP')).toBeVisible()
+    expect(screen.queryByText('DEMO DATA ONLY', { exact: false })).toBeNull()
   })
 
   it('directs users to add work orders when demo seeding is off', async () => {
@@ -270,12 +272,13 @@ describe('frontend data states', () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/seed'))).toBe(false)
   })
 
-  it('requires explicit confirmation before the opt-in synthetic seed request', async () => {
+  it('keeps the label from a confirmed synthetic seed until the catalog changes', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'true')
     const fetchMock = mockApi()
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     render(<App />)
     await screen.findByRole('heading', { name: 'No open work orders' })
+    expect(screen.getByText('API data · no live ERP')).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'Load synthetic example' }))
     await waitFor(() =>
@@ -284,6 +287,17 @@ describe('frontend data states', () => {
         expect.objectContaining({ method: 'POST' }),
       ),
     )
+    expect(await screen.findByText('Synthetic demo · no live ERP')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByText(/^Updated /)).toBeVisible()
+    expect(screen.getByText('Synthetic demo · no live ERP')).toBeVisible()
+
+    fetchMock.mockImplementation(async (input) =>
+      Response.json(String(input).endsWith('/api/catalog') ? makeCatalog() : emptyBoard),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh data' }))
+    expect(await screen.findByText('API data · no live ERP')).toBeVisible()
   })
 
   it('does not seed when the user cancels the confirmation', async () => {
@@ -297,6 +311,7 @@ describe('frontend data states', () => {
 
     expect(window.confirm).toHaveBeenCalledOnce()
     expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/seed'))).toBe(false)
+    expect(screen.getByText('API data · no live ERP')).toBeVisible()
   })
 
   it('keeps the demand control within the documented API range', async () => {

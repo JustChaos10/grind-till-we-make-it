@@ -37,4 +37,4 @@ From the repository root, set `$approvedSnapshot` to the absolute path of the su
 python frontend/scripts/browser_real_api.py --historical-db $approvedSnapshot --outage-resource-id $outageResourceId
 ```
 
-The script opens the snapshot read-only, copies it to a temporary directory and starts the API on that copy. The API saves the comparison there. The script checks the comparison, Gantt keyboard navigation, a resource outage and a reset scenario. Screenshots are off by default. If the data owner approves captures, use `--screenshots` with a private folder outside the repository.
+The script opens the snapshot read-only, copies it to a temporary directory and starts the API on that copy. The API saves the comparison there. The script checks the comparison, Gantt keyboard navigation, a resource outage and a reset scenario. Screenshots are off by default. If the data owner approves captures, use `--screenshots` with a private folder outside both the frontend and backend checkouts. The runner rejects capture paths inside either checkout.

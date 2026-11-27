@@ -93,6 +93,7 @@ function App() {
   const [board, setBoard] = useState<Board | null>(null)
   const [resources, setResources] = useState<Resource[]>([])
   const [orders, setOrders] = useState<WorkOrder[]>([])
+  const [isSeededSnapshot, setIsSeededSnapshot] = useState(false)
   const [optimization, setOptimization] = useState<Optimization | null>(null)
   const [scenarioRun, setScenarioRun] = useState<ScenarioRun | null>(null)
   const [scenarioAnnouncement, setScenarioAnnouncement] = useState('')
@@ -147,6 +148,7 @@ function App() {
   }
   const refreshSequence = useRef(0)
   const refreshController = useRef<AbortController | null>(null)
+  const seededCatalog = useRef<string | null>(null)
   const scheduleRequestInFlight = useRef(false)
   const scenarioFieldRevisions = useRef<Record<string, number>>({})
   const simulation = scenarioRun?.result ?? null
@@ -172,7 +174,7 @@ function App() {
       scenarioRun.inputs.demand !== demand),
   )
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (afterDemoSeed = false) => {
     const sequence = ++refreshSequence.current
     setLoading(true)
     refreshController.current?.abort()
@@ -190,6 +192,16 @@ function App() {
       setBoard(b)
       setResources(catalog.resources)
       setOrders(catalog.work_orders)
+      // The API has no provenance field. Keep the demo label while the catalog still matches.
+      if (afterDemoSeed) {
+        seededCatalog.current = JSON.stringify(catalog)
+      } else if (
+        seededCatalog.current !== null &&
+        seededCatalog.current !== JSON.stringify(catalog)
+      ) {
+        seededCatalog.current = null
+      }
+      setIsSeededSnapshot(seededCatalog.current !== null)
       setLastUpdated(new Date())
       setRefreshFailed(false)
       setError('')
@@ -246,7 +258,7 @@ function App() {
       await api('/api/seed', { method: 'POST' })
       setOptimization(null)
       setScenarioRun(null)
-      await refresh()
+      await refresh(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load demo data.')
     } finally {
@@ -436,8 +448,8 @@ function App() {
               <Factory size={16} />
             </span>
             <div>
-              <b>{demoSeedEnabled ? 'Synthetic factory' : 'Factory data'}</b>
-              <small>{demoSeedEnabled ? 'Example resources' : 'API catalog'}</small>
+              <b>{isSeededSnapshot ? 'Synthetic factory' : 'Factory data'}</b>
+              <small>{isSeededSnapshot ? 'Example resources' : 'API catalog'}</small>
             </div>
           </div>
           <div className="side-user">
@@ -457,7 +469,7 @@ function App() {
           </div>
           <div className="top-actions">
             <span className="live-indicator">
-              <i /> {demoSeedEnabled ? 'Synthetic demo · no live ERP' : 'API data · no live ERP'}
+              <i /> {isSeededSnapshot ? 'Synthetic demo · no live ERP' : 'API data · no live ERP'}
             </span>
             <span className="top-divider" />
             <span className="updated" role="status">
@@ -1492,7 +1504,7 @@ function App() {
               INDOFLOW <i>·</i> FACTORY FLOW INTELLIGENCE
             </span>
             <span>
-              {demoSeedEnabled && (
+              {isSeededSnapshot && (
                 <>
                   DEMO DATA ONLY <i>·</i>{' '}
                 </>

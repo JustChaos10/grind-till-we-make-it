@@ -366,6 +366,10 @@ def main():
             parser.error('--historical-db must point to a readable SQLite snapshot')
         if not args.outage_resource_id:
             parser.error('--historical-db requires --outage-resource-id')
+        if args.screenshots is not None:
+            capture_folder = args.screenshots.resolve()
+            if any(capture_folder.is_relative_to(repo.resolve()) for repo in (ROOT, args.backend_root)):
+                parser.error('--historical-db requires a screenshot directory outside both checkouts')
     elif args.outage_resource_id:
         parser.error('--outage-resource-id requires --historical-db')
     if args.axe_script is not None and (not empty_only or not args.axe_script.is_file()):
