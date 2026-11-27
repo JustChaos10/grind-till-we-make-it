@@ -2,6 +2,7 @@
 
 ## Current state
 
+- The unseeded Edge smoke confirms main landmarks, named navigation destinations and readable hover states. All 600 solid-background text samples met 4.5:1. Nine hover samples met 6.09:1. Review instructions now use an isolated database and disable demo seeding.
 - Compact and secondary typography, spacing and corner radii now share the existing design scale across the app and timeline. All 71 frontend tests, the production build and lint passed. Edge forced-colors emulation confirmed visible keyboard focus, navigation, onboarding and disabled run actions across desktop, tablet and phone against the unseeded API.
 
 - On 2026-11-27, Google Dataset Search and source searches led to published bottling, CNC and textile records. The shared Gantt layout passed checks on 1,512 observed intervals. The textile scheduling input was checked separately. See [public data validation](PUBLIC_DATA_VALIDATION.md) for the sources, checksums and field limits.

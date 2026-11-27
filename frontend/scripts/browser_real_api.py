@@ -84,6 +84,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         release_reads()
         board_heading = page.get_by_role('heading', name='No open work orders')
         expect(board_heading).to_be_visible()
+        expect(page.get_by_role('main')).to_be_visible()
         refresh = page.get_by_role('button', name='Refresh data')
         target = refresh.bounding_box()
         assert target and target['width'] >= 44 and target['height'] >= 44, target
@@ -127,6 +128,8 @@ def check_unseeded(browser, web_url, api_url, screenshots):
                 page.screenshot(path=str(screenshots / f'unseeded-{filename}-{device}.png'))
             if action:
                 back = page.get_by_role('button', name='Go to Flow board')
+                back.hover()
+                assert check_text_contrast(f'{device}: {nav} return link hover', back) == 0
                 back.focus()
                 page.keyboard.press('Enter')
                 expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
@@ -153,6 +156,8 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         retry = page.get_by_role('button', name='Retry API connection')
         expect(retry).to_be_enabled()
         assert check_text_contrast(f'{device}: connection interrupted', page.locator('body')) == 0
+        retry.hover()
+        assert check_text_contrast(f'{device}: retry hover', retry) == 0
         connection_interrupted = False
         retry.press('Enter')
         expect(board_heading).to_be_visible()

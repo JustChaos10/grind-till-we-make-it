@@ -53,7 +53,9 @@ Global Python 3.13 did not have `aiosqlite`, so its initial pytest run failed du
 
 The final responsive captures were made with browser device metrics set to each CSS viewport, then visually reviewed at 1920×1080, 1280×800, 768×1024, and 390×844. At all four widths, `document.documentElement.scrollWidth` matched `clientWidth` (1920, 1280, 753, and 375 respectively; the smaller client widths at tablet and phone exclude the vertical scrollbar), so there is no horizontal page overflow. The mobile view uses a two-column KPI and stage layout and a bottom navigation bar. Screenshots are in `docs/screenshots/flow-{desktop-1920,laptop-1280,tablet-768,mobile-390}.png`. An Edge keyboard-only walkthrough at 1280×800 passed for seed confirmation, board onboarding, optimization, timeline scroll focus, operation selection and Escape focus restoration, and scenario control changes and submission. Scenario input names and help links resolved. Synthetic solid text contrast checks also cover initial API failure and empty board, optimizer, and scenario states at 1280×800 and 390×844, with no measured failures. Screen-reader review, full state contrast, visible focus, and a spoken five-minute founder walkthrough remain open. Field-error associations have source and component-test coverage, but have not been checked with a screen reader. The browser smoke scripts cover representative fixture and isolated local API flows. The fixture walkthrough passed with reduced-motion media emulation, and the stylesheet contains a reduced-motion rule. An OS setting remains untested. At 1440 px, sampled text on the fixture Flow Board and optimizer and scenario results met 4.5:1. See the unchecked checklist items for exact follow-up. Do not describe this branch as fully acceptance-complete until those checks are done.
 
-The current browser/API smoke is against local synthetic demo data only. It is not evidence of production ERP integration, validated plant constraints, solver optimality, realized savings, or production readiness.
+The results above describe the original fixture review. The current review uses an isolated, unseeded API. Edge checked hover, keyboard focus, disabled actions, loading, empty screens, refresh failure and recovery at 1440 × 900, 768 × 1024 and 390 × 844. The lowest ratio across 600 sampled solid-background text pairs was 4.69:1. Named navigation, main landmarks, and forced-colors focus were also checked. The [current checklist](UI_ACCEPTANCE_CHECKLIST.md) records the coverage.
+
+The [public-data review](PUBLIC_DATA_VALIDATION.md) checked chart layout separately against 1,512 observed production intervals. A populated solver and browser review requires [approved historical metal injection molding records](BACKEND_REQUESTS.md#permission-cleared-historical-mim-snapshot).
 
 ## Backend requests
 
@@ -64,7 +66,7 @@ Requests for the backend owner are listed in `BACKEND_REQUESTS.md`. They include
 From the repository root, start the API in one terminal:
 
 ```powershell
-$env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-demo.db"
+$env:DATABASE_URL = "sqlite+aiosqlite:///./indoflow-review.db"
 $env:APP_ENV = "development"
 .\.venv\Scripts\python.exe -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -73,17 +75,17 @@ In a second terminal:
 
 ```powershell
 cd frontend
-$env:VITE_ENABLE_DEMO_SEED = "true"
-npm ci
-npm run dev -- --host 127.0.0.1
+$env:VITE_ENABLE_DEMO_SEED = "false"
+npm.cmd ci
+npm.cmd run dev -- --host 127.0.0.1
 ```
 
-Only enable the seed control after confirming the API uses the dedicated local demo database. The seed route deletes and recreates factory and saved schedule rows in its connected database. Do not use it with shared, customer, or production data.
+Keep seeding disabled and use a fresh, isolated database for the empty-workspace review. Ask the backend owner to prepare a separate isolated snapshot for a populated test.
 
 ## Next work
 
-1. Complete screen-reader, visible-focus, and full-state contrast checks. Scenario field-error associations have source and component-test coverage, but still need screen-reader review. Reduced motion was checked with browser media emulation; an OS setting remains untested. Record results in `UI_ACCEPTANCE_CHECKLIST.md`.
-2. Rehearse the spoken founder presentation using `docs/CEO_DEMO.md` and the local synthetic data.
+1. Review form labels, error announcements and timeline details with a screen reader. Browser media emulation covered reduced motion. An OS setting remains untested.
+2. Rehearse the populated founder presentation in `docs/CEO_DEMO.md` after the backend owner loads approved historical records into an isolated database.
 3. Review `BACKEND_REQUESTS.md` with the backend owner before stronger solver or metric claims are made.
 
 ## Final commit record
