@@ -129,7 +129,8 @@
 - [x] Final `git status` and commit SHA recorded in the task handoff; implementation SHA is in `FRONTEND_AUDIT.md`.
 - [x] Frontend setup/run instructions verified in PowerShell; exact commands are in `FRONTEND_AUDIT.md`.
 - [x] Backend requests listed separately in `frontend/docs/BACKEND_REQUESTS.md`.
-- [ ] Five-minute spoken founder walkthrough rehearsed against actual UI. Use `docs/CEO_DEMO.md` and time the prepared presentation.
+- [x] Five-minute unseeded walkthrough timed against the running UI in Edge. Windows text-to-speech rendered the narration for each screen, including pauses between sections.
+- [ ] Populated five-minute founder walkthrough rehearsed by the presenter. Use `docs/CEO_DEMO.md` after approved historical records are loaded.
 - [x] `CEO_DEMO.md` describes the empty-workspace review and a populated walkthrough with approved historical records, comparison, disruption testing, and plant planner validation.
 - [x] All incomplete items explicitly listed with specific next steps below and in `FRONTEND_AUDIT.md`.
 
