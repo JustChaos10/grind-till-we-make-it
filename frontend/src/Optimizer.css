@@ -5,7 +5,7 @@
 .operation-list {
   margin: 12px 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
 }
 .operation-list summary {
@@ -19,7 +19,7 @@
 }
 .operation-list p {
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: var(--font-size-secondary);
   line-height: 1.5;
   margin: 8px 0;
 }
@@ -28,7 +28,7 @@
   padding: 0;
   margin: 8px 0 0;
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
 }
 .operation-list-item {
   width: 100%;
@@ -53,7 +53,7 @@
 }
 .optimizer-metadata {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-secondary);
   margin: 12px 0;
 }
 .optimizer-metadata summary {
@@ -66,7 +66,7 @@
 }
 .optimizer-late-table {
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--font-size-secondary);
   min-width: 740px;
   text-align: left;
   width: 100%;

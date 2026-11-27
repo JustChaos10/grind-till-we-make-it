@@ -7,9 +7,9 @@
 }
 .gantt-controls label {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   color: var(--gantt-label);
-  font-size: 12px;
+  font-size: var(--font-size-compact);
   font-weight: 600;
 }
 .gantt-controls select,

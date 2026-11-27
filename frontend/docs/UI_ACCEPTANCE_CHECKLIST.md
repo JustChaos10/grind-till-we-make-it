@@ -82,8 +82,8 @@
 
 ## 5. Design and responsiveness
 
-- [ ] Consistent tokens for color, spacing, typography, borders and status semantics (source review is partial; a full token/contrast audit is open).
-- [ ] Body text comfortably legible; no unnecessary 7–10px labels (source scan found no 7–10 px font-size declarations; review all screens and states for legibility).
+- [x] Consistent tokens for color, spacing, typography, borders and status semantics. The screen and timeline styles share the compact and secondary text scales, spacing steps, and corner radii documented in `DESIGN.md`.
+- [x] Body text and labels reviewed in Edge across the board, optimizer, and scenario lab at desktop, tablet, and phone sizes. A source scan found no 7–10 px font declarations.
 - [x] Desktop 1920×1080 reviewed (`docs/screenshots/flow-desktop-1920.png`).
 - [x] Desktop 1440×900 reviewed.
 - [x] Laptop 1280×800 reviewed (`docs/screenshots/flow-laptop-1280.png`).
@@ -92,12 +92,13 @@
 - [x] No unintended horizontal page overflow at reviewed viewport sizes. Browser measurements showed `scrollWidth === clientWidth` at desktop 1920, laptop 1280, tablet 768 (753 px client area after vertical scrollbar), and mobile 390 (375 px client area after vertical scrollbar). Populated optimizer and scenario results also passed at 320, 390, 768 and 1440 px in the synthetic browser flow.
 - [x] Dense chart and tables use intentional scroll in reviewed browser views. Scenario late-order explanations also use a named keyboard-scrollable region; a 30-order synthetic fixture reached the last entry at 390 px (`docs/screenshots/scenario-late-list-mobile.png`).
 - [ ] Hover, focus, disabled, loading, empty and failure states visually consistent. A failed refresh retains a notice after error dismissal; synthetic Edge checks covered failure and recovery at 390 and 1280 px. The dismiss target measures at least 44 px (`docs/screenshots/refresh-error-mobile.png`). Scenario selector and late timeline operation focus were checked in Edge forced-colors emulation (`docs/screenshots/scenario-forced-colors-focus.png`, `docs/screenshots/gantt-forced-colors-focus.png`). At 390 px, keyboard focus on optimizer and scenario timeline controls clears the fixed navigation in normal and forced colors (`scripts/mobile_focus_visibility.py`); other states remain open.
-- [ ] Interaction affordances correspond to working actions; no decorative dead buttons.
+- [x] Button handlers and disabled conditions reviewed in the app, stage flow, and Gantt. The three navigation destinations, refresh, retry and onboarding link worked against the unseeded API. Earlier browser runs exercised the actions that require orders.
 - [x] A `prefers-reduced-motion` stylesheet rule disables smooth scrolling and reduces animation/transition duration (`src/styles.css`); the synthetic Edge walkthrough also passed with reduced motion emulated; an OS setting has not been checked.
 - [x] Keyboard-only walkthrough passed across all three screens in Edge at 1280×800 with synthetic fixtures. It covered seed confirmation dismissal and acceptance, optimization, timeline scroll focus, operation selection and Escape focus restoration, and changing and submitting scenario inputs.
 - [x] Form controls have accessible names, help, and error associations. Source review covered all nine native controls; browser checks confirmed scenario labels and help, and component tests cover errors and clearing for all three scenario fields. Screen-reader review remains open.
 - [x] Keyboard checks verified focus retention when the native seed confirmation is dismissed and Escape focus restoration in the inline Gantt details. Retrying an unavailable API moves focus to the persistent refresh control before the retry screen is removed; the isolated real-API Edge smoke verifies this. At 390 × 844, a focused operation clears the sticky resource label after horizontal scrolling (`scripts/gantt_focus_check.py`).
 - [ ] Color contrast and no color-only status indicators checked (synthetic Edge runs of `scripts/contrast_states.py` measured solid text/background pairs across the initial API failure, empty board, empty optimizer, empty scenario lab, populated board, optimizer, scenario results, stage help, scenario failure, scenario field validation and selected error/detail states at 1280 px and 390 px, with no measured failures; control borders previously measured 3.91:1 against white; the board warning icon measures 6.09:1 against its background and has adjacent text; the Gantt also has a text-labelled operation list; coverage of all states remains open).
+- [x] Unseeded Edge walkthrough covered initial and refresh loading, disabled actions, empty screens, refresh failure and recovery at 1440 × 900, 768 × 1024 and 390 × 844. Forced-colors emulation preserved keyboard focus and named navigation destinations on all three screens. The lowest contrast ratio of the 591 sampled solid-background text pairs was 4.69:1.
 
 ## 6. Engineering and tests
 

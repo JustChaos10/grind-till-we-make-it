@@ -24,6 +24,8 @@ The visual review also uses ideas from [Taste](https://github.com/Leonxlnx/taste
 
 - Use the existing DM Sans/system sans stack and Georgia only for intentional display emphasis.
 - Use readable body text. Do not shrink chart, table, or control text to fit a fixed width.
+- Use the shared compact and secondary type sizes for table text, chart labels, and supporting copy. These sizes scale with the browser's default text size.
+- Use the shared spacing and border-radius tokens for recurring control and panel shapes. Keep chart geometry and touch target sizes tied to their interaction requirements.
 - Preserve manufacturing units (hours, orders, percent) beside their values.
 - Show unknown or absent metrics as an em dash; do not render unknown as zero.
 

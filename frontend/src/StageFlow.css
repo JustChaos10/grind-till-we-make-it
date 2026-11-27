@@ -1,7 +1,7 @@
 .stage-help {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 44px;
   min-height: 44px;
   padding: 4px 2px;
@@ -9,13 +9,13 @@
   background: transparent;
   color: var(--green-dark);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-secondary);
 }
 .stage-route-note,
 .stage-help-detail {
   margin: 12px 0 0;
   color: var(--stage-label);
-  font-size: 13px;
+  font-size: var(--font-size-secondary);
 }
 .stage-help-detail {
   min-height: 2.5em;

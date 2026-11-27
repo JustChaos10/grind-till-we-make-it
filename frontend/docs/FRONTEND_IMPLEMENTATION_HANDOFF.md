@@ -2,6 +2,8 @@
 
 ## Current state
 
+- Compact and secondary typography, spacing and corner radii now share the existing design scale across the app and timeline. All 71 frontend tests, the production build and lint passed. Edge forced-colors emulation confirmed visible keyboard focus, navigation, onboarding and disabled run actions across desktop, tablet and phone against the unseeded API.
+
 - On 2026-11-27, Google Dataset Search and source searches led to published bottling, CNC and textile records. The shared Gantt layout passed checks on 1,512 observed intervals. The textile scheduling input was checked separately. See [public data validation](PUBLIC_DATA_VALIDATION.md) for the sources, checksums and field limits.
 - Phone users can see when API data is loading, refreshing, or stale. Edge checks passed at 1440 × 900, 768 × 1024 and 390 × 844 against an isolated, unseeded API. Checks cover each empty screen, the 44 px refresh target, keyboard focus, retained data during refresh and after failure, and recovery after an initial connection failure. The lowest contrast ratio among 591 solid-background text samples was 4.69:1. See the [desktop board](screenshots/unseeded-board-desktop.png), [tablet optimizer](screenshots/unseeded-optimizer-tablet.png) and [phone scenario lab](screenshots/unseeded-scenario-phone.png).
 - The Gantt clears stale operation details while preserving focus for an unchanged selection. All 71 frontend tests passed. The production build and lint passed with zero warnings.

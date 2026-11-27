@@ -159,9 +159,22 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         expect(refresh).to_be_focused()
         expect(page.get_by_role('alert')).to_have_count(0)
 
+        page.emulate_media(forced_colors='active')
+        assert page.evaluate("matchMedia('(forced-colors: active)').matches")
+        expect(refresh).to_be_focused()
+        expect(refresh).to_have_css('outline-style', 'solid')
+        expect(refresh).to_have_css('outline-width', '3px')
+        for nav, _, empty_message, action, _ in screens:
+            nav_button = page.get_by_role('navigation').get_by_role('button', name=nav, exact=True)
+            nav_button.press('Enter')
+            expect(nav_button).to_have_attribute('aria-current', 'page')
+            expect(page.get_by_text(empty_message, exact=True)).to_be_visible()
+            if action:
+                expect(page.get_by_role('button', name=action, exact=True)).to_be_disabled()
+
         assert set(requests) == {('GET', '/api/flow-board'), ('GET', '/api/catalog')}, requests
         page.close()
-        print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, read-only API')
+        print(f'PASS: {device} ({width}×{height}), loading, empty screens, keyboard actions, refresh and outage recovery, forced colors, read-only API')
 
 
 parser = argparse.ArgumentParser(description=__doc__)
