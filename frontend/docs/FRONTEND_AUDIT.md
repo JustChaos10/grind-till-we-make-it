@@ -82,6 +82,18 @@ npm.cmd run dev -- --host 127.0.0.1
 
 Keep seeding disabled and use a fresh, isolated database for the empty-workspace review. Ask the backend owner to prepare a separate isolated snapshot for a populated test.
 
+## Reproduce the unseeded accessibility scan
+
+From the repository root, use Python with Playwright installed and the backend dependencies installed in `.venv`. The command starts a local API and Vite against a temporary, empty database and checks 21 states in Edge. axe-core 4.14.1 reported zero violations across WCAG 2, 2.1 and 2.2 A and AA rules.
+
+```powershell
+$axeDir = Join-Path $env:TEMP 'IndoFlow-axe-4.14.1'
+npm.cmd install --prefix $axeDir --ignore-scripts --no-audit --no-fund --save-exact axe-core@4.14.1
+python frontend/scripts/browser_real_api.py --empty-only --axe-script (Join-Path $axeDir 'node_modules\axe-core\axe.min.js') --screenshots (Join-Path $axeDir 'screenshots')
+```
+
+The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed at 390 × 844. Screen-reader announcements and the Windows reduced-motion setting still need manual checks.
+
 ## Next work
 
 1. Review form labels, error announcements and timeline details with a screen reader. Browser media emulation covered reduced motion. An OS setting remains untested.

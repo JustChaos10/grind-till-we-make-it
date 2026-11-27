@@ -19,6 +19,7 @@ import {
   GitBranch,
   Truck,
   Wrench,
+  X,
   Zap,
 } from 'lucide-react'
 import { api, ApiError, fmt } from './api'
@@ -506,7 +507,7 @@ function App() {
                 }}
                 aria-label="Dismiss"
               >
-                ×
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
           )}

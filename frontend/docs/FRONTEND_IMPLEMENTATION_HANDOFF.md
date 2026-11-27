@@ -2,6 +2,7 @@
 
 ## Current state
 
+- axe-core 4.14.1 reported zero violations across 21 unseeded Edge states at desktop, tablet and phone sizes. The alert dismiss icon keeps its accessible button name and keyboard focus returns to Refresh. The [phone connection error](screenshots/unseeded-api-error-phone.png) was visually reviewed. The [scan instructions](FRONTEND_AUDIT.md#reproduce-the-unseeded-accessibility-scan) cover setup and exact commands. Manual screen-reader and OS reduced-motion checks remain open.
 - A 300-second Edge rehearsal followed the unseeded narration in [CEO_DEMO.md](../../docs/CEO_DEMO.md). Windows text-to-speech rendered a matching audio track. The board, optimizer and scenario lab loaded at their planned times against the GET-only API. The populated rehearsal and the presenter's spoken run still require approved records.
 - The unseeded Edge smoke confirms main landmarks, named navigation destinations and readable hover states. All 600 solid-background text samples met 4.5:1. Nine hover samples met 6.09:1. Review instructions now use an isolated database and disable demo seeding.
 - Compact and secondary typography, spacing and corner radii now share the existing design scale across the app and timeline. All 71 frontend tests, the production build and lint passed. Edge forced-colors emulation confirmed visible keyboard focus, navigation, onboarding and disabled run actions across desktop, tablet and phone against the unseeded API.

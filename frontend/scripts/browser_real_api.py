@@ -37,7 +37,33 @@ def ready(url, process):
             time.sleep(.25)
     raise RuntimeError(f'Timed out waiting for {url}')
 
-def check_unseeded(browser, web_url, api_url, screenshots):
+def check_accessibility(page, axe_script, scope):
+    if axe_script is None:
+        return
+    if not page.evaluate("typeof window.axe !== 'undefined'"):
+        page.add_script_tag(path=str(axe_script))
+    result = page.evaluate("""async () => {
+        const { testEngine, violations, incomplete } = await axe.run({
+            runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+        });
+        return {
+            version: testEngine.version,
+            violations: violations.map(rule => ({
+                id: rule.id,
+                targets: rule.nodes.map(node => node.target),
+            })),
+            manual: incomplete.map(rule => ({
+                id: rule.id,
+                targets: rule.nodes.map(node => node.target),
+            })),
+        };
+    }""")
+    assert not result['violations'], f"{scope}: {result['violations']}"
+    manual = result['manual'] or 'none flagged'
+    print(f"PASS: axe-core {result['version']}, {scope}, no violations; manual review: {manual}")
+
+
+def check_unseeded(browser, web_url, api_url, screenshots, axe_script):
     screens = (
         ('Flow board', 'Production flow overview', 'No open work orders', None, 'board'),
         ('Schedule optimizer', 'Schedule optimizer', 'No work orders to schedule', 'Run optimization', 'optimizer'),
@@ -81,6 +107,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         expect(page.get_by_role('heading', name='Loading factory data')).to_be_visible()
         expect(page.get_by_role('status').filter(has_text='Loading API data')).to_be_visible()
         assert check_text_contrast(f'{device}: initial load', page.locator('body')) == 0
+        check_accessibility(page, axe_script, f'{device}: initial load')
         release_reads()
         board_heading = page.get_by_role('heading', name='No open work orders')
         expect(board_heading).to_be_visible()
@@ -103,6 +130,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
             expect(page.get_by_role('status').filter(has_text='Refreshing API data')).to_be_visible()
             expect(refresh).to_be_focused()
             assert check_text_contrast(f'{device}: refresh in progress', page.locator('body')) == 0
+            check_accessibility(page, axe_script, f'{device}: refresh in progress')
             release_reads()
         assert board_response.value.json()['total_wip_orders'] == 0
         assert catalog_response.value.json()['work_orders'] == []
@@ -124,6 +152,7 @@ def check_unseeded(browser, web_url, api_url, screenshots):
                 expect(page.get_by_role('button', name=action, exact=True)).to_be_disabled()
             assert page.evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), (device, nav)
             assert check_text_contrast(f'{device}: {nav}', page.locator('body')) == 0
+            check_accessibility(page, axe_script, f'{device}: {nav}')
             if index == capture:
                 page.screenshot(path=str(screenshots / f'unseeded-{filename}-{device}.png'))
             if action:
@@ -141,7 +170,12 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         failed_refresh = page.get_by_role('status').filter(has_text='Showing the last successfully loaded data')
         expect(failed_refresh).to_be_visible()
         assert check_text_contrast(f'{device}: refresh failed', page.locator('body')) == 0
-        page.get_by_role('button', name='Dismiss').press('Enter')
+        check_accessibility(page, axe_script, f'{device}: refresh failed')
+        dismiss = page.get_by_role('button', name='Dismiss', exact=True)
+        target = dismiss.bounding_box()
+        assert target and target['width'] >= 44 and target['height'] >= 44, target
+        expect(dismiss.locator('svg')).to_have_attribute('aria-hidden', 'true')
+        dismiss.press('Enter')
         expect(refresh).to_be_focused()
         expect(page.get_by_role('alert')).to_have_count(0)
         expect(failed_refresh).to_be_visible()
@@ -156,6 +190,9 @@ def check_unseeded(browser, web_url, api_url, screenshots):
         retry = page.get_by_role('button', name='Retry API connection')
         expect(retry).to_be_enabled()
         assert check_text_contrast(f'{device}: connection interrupted', page.locator('body')) == 0
+        check_accessibility(page, axe_script, f'{device}: connection interrupted')
+        if device == 'phone':
+            page.screenshot(path=str(screenshots / 'unseeded-api-error-phone.png'))
         retry.hover()
         assert check_text_contrast(f'{device}: retry hover', retry) == 0
         connection_interrupted = False
@@ -185,7 +222,10 @@ def check_unseeded(browser, web_url, api_url, screenshots):
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--empty-only', action='store_true', help='Verify an isolated API with no factory records.')
 parser.add_argument('--screenshots', type=Path, default=SCREENSHOTS, help='Directory for captured screenshots.')
+parser.add_argument('--axe-script', type=Path, help='Path to a local axe.min.js for the unseeded WCAG scan.')
 args = parser.parse_args()
+if args.axe_script is not None and (not args.empty_only or not args.axe_script.is_file()):
+    parser.error('--axe-script requires --empty-only and a readable axe.min.js file')
 
 with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
     api_port, web_port = free_port(), free_port()
@@ -212,7 +252,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
             if args.empty_only:
-                check_unseeded(browser, web_url, api_url, args.screenshots)
+                check_unseeded(browser, web_url, api_url, args.screenshots, args.axe_script)
                 browser.close()
                 raise SystemExit(0)
             page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
