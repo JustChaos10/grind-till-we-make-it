@@ -338,8 +338,9 @@ a {
   border: 1px solid var(--line);
   background: var(--surface);
   color: #637168;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   border-radius: 7px;
   display: grid;
   place-items: center;
@@ -922,17 +923,6 @@ a {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-.welcome-note {
-  margin-top: 27px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-.welcome-note svg {
-  color: #679474;
 }
 .comparison-grid {
   display: grid;
@@ -1944,10 +1934,6 @@ a {
   }
   .welcome-copy {
     font-size: 12px;
-  }
-  .welcome-note {
-    align-items: flex-start;
-    line-height: 1.5;
   }
   .gantt-axis,
   .gantt-row {

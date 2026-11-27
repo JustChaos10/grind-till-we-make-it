@@ -1,10 +1,11 @@
 """End-to-end smoke test using an isolated, temporary SQLite database.
 
-Run from frontend: python scripts/browser_real_api.py
+Run from frontend: python scripts/browser_real_api.py --empty-only
+Omit --empty-only to run the original opt-in synthetic demo smoke test.
 Requires Python Playwright, Edge, npm dependencies, and the root .venv.
 Starts private API/Vite processes on ephemeral ports; removes only its own temp DB.
 """
-import json
+import argparse
 import os
 from pathlib import Path
 import socket
@@ -35,6 +36,75 @@ def ready(url, process):
             time.sleep(.25)
     raise RuntimeError(f'Timed out waiting for {url}')
 
+def check_unseeded(browser, web_url, api_url, screenshots):
+    screens = (
+        ('Flow board', 'Production flow overview', 'No open work orders', None, 'board'),
+        ('Schedule optimizer', 'Schedule optimizer', 'No work orders to schedule', 'Run optimization', 'optimizer'),
+        ('Scenario lab', 'Scenario lab', 'No schedulable work orders are available.', 'Run scenario', 'scenario'),
+    )
+    viewports = ((1440, 900, 'desktop'), (768, 1024, 'tablet'), (390, 844, 'phone'))
+    screenshots.mkdir(parents=True, exist_ok=True)
+    for capture, (width, height, device) in enumerate(viewports):
+        page = browser.new_page(viewport={'width': width, 'height': height}, reduced_motion='reduce')
+        requests = []
+
+        def route_api(route):
+            path = route.request.url.removeprefix(web_url)
+            requests.append((route.request.method, path))
+            if route.request.method != 'GET':
+                route.abort()
+                return
+            route.fulfill(response=route.fetch(url=api_url + path))
+
+        page.route('**/api/**', route_api)
+        page.goto(web_url)
+        board_heading = page.get_by_role('heading', name='No open work orders')
+        expect(board_heading).to_be_visible()
+        refresh = page.get_by_role('button', name='Refresh data')
+        target = refresh.bounding_box()
+        assert target and target['width'] >= 44 and target['height'] >= 44, target
+        page.keyboard.press('Tab')
+        for _ in range(10):
+            if refresh.evaluate("element => element.matches(':focus-visible')"):
+                break
+            page.keyboard.press('Tab')
+        expect(refresh).to_be_focused()
+        expect(refresh).to_have_css('outline-style', 'solid')
+        expect(refresh).to_have_css('outline-width', '3px')
+        with page.expect_response('**/api/flow-board') as board_response, page.expect_response('**/api/catalog') as catalog_response:
+            page.keyboard.press('Enter')
+        assert board_response.value.json()['total_wip_orders'] == 0
+        assert catalog_response.value.json()['work_orders'] == []
+        expect(board_heading).to_be_visible()
+
+        for index, (nav, title, empty_message, action, filename) in enumerate(screens):
+            if index:
+                page.get_by_role('navigation').get_by_role('button', name=nav, exact=True).click()
+                expect(page.get_by_role('heading', name=title, exact=True)).to_be_focused()
+            expect(page.get_by_text(empty_message, exact=True)).to_be_visible()
+            if index != 1:
+                expect(page.get_by_text('factory data administrator', exact=False)).to_be_visible()
+            expect(page.get_by_text('synthetic', exact=False)).to_have_count(0)
+            expect(page.get_by_text('demo data only', exact=False)).to_have_count(0)
+            if action:
+                expect(page.get_by_role('button', name=action, exact=True)).to_be_disabled()
+            assert page.evaluate('document.documentElement.scrollWidth <= document.documentElement.clientWidth'), (device, nav)
+            if index == capture:
+                page.screenshot(path=str(screenshots / f'unseeded-{filename}-{device}.png'))
+            if action:
+                page.get_by_role('button', name='Go to Flow board').click()
+                expect(page.get_by_role('heading', name='Production flow overview')).to_be_focused()
+
+        assert set(requests) == {('GET', '/api/flow-board'), ('GET', '/api/catalog')}, requests
+        page.close()
+        print(f'PASS: {device} ({width}×{height}), empty screens, keyboard refresh, and read-only API')
+
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--empty-only', action='store_true', help='Verify an isolated API with no factory records.')
+parser.add_argument('--screenshots', type=Path, default=SCREENSHOTS, help='Directory for captured screenshots.')
+args = parser.parse_args()
+
 with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
     api_port, web_port = free_port(), free_port()
     while web_port == api_port:
@@ -44,7 +114,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
     env = os.environ.copy()
     env.update(DATABASE_URL='sqlite+aiosqlite:///' + (Path(tmp) / 'isolated.db').as_posix(),
                APP_ENV='development', INDOFLOW_API_TOKEN='', INDOFLOW_ADMIN_TOKEN='',
-               VITE_ENABLE_DEMO_SEED='true')
+               VITE_ENABLE_DEMO_SEED='false' if args.empty_only else 'true')
     log = open(Path(tmp) / 'servers.log', 'w', encoding='utf-8')
     processes = []
     try:
@@ -59,6 +129,10 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
         ready(web_url, processes[-1])
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel=os.environ.get('BROWSER_CHANNEL', 'msedge'), headless=True)
+            if args.empty_only:
+                check_unseeded(browser, web_url, api_url, args.screenshots)
+                browser.close()
+                raise SystemExit(0)
             page = browser.new_page(viewport={'width': 1280, 'height': 800}, reduced_motion='reduce')
             page.set_default_timeout(30000)
             seen = []
@@ -89,8 +163,8 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             page.get_by_role('button', name='Load synthetic example').click()
             expect(page.get_by_role('heading', name='Production flow overview')).to_be_visible()
             expect(page.get_by_role('heading', name='No open work orders')).to_have_count(0)
-            SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-            page.screenshot(path=str(SCREENSHOTS / 'real-api-board.png'), full_page=True)
+            args.screenshots.mkdir(parents=True, exist_ok=True)
+            page.screenshot(path=str(args.screenshots / 'real-api-board.png'), full_page=True)
             page.get_by_role('button', name='Run comparison').click()
             expect(page.get_by_text('Proposed model schedule ready')).to_be_visible(timeout=120000)
             timeline = page.get_by_role('region', name='Schedule timeline. Use the scroll area to review all resources and hours.')
@@ -110,7 +184,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             expect(page.get_by_role('button', name='Clear filters (1)')).to_be_enabled()
             page.get_by_role('button', name='Clear filters (1)').click()
             expect(timeline.locator('button.gantt-bar').first).to_be_visible()
-            page.screenshot(path=str(SCREENSHOTS / 'real-api-optimizer.png'), full_page=True)
+            page.screenshot(path=str(args.screenshots / 'real-api-optimizer.png'), full_page=True)
             page.get_by_role('button', name='Scenario lab').click()
             machine = page.get_by_label('Machine unavailable')
             machine.select_option(index=1)
@@ -119,7 +193,7 @@ with tempfile.TemporaryDirectory(prefix='indoflow-browser-smoke-') as tmp:
             expect(page.get_by_text('Scenario inputs returned by the API')).to_be_visible(timeout=120000)
             expect(page.get_by_text(f'({selected})', exact=False).first).to_be_visible()
             expect(page.get_by_role('heading', name='Scenario schedule')).to_be_visible()
-            page.screenshot(path=str(SCREENSHOTS / 'real-api-scenario.png'), full_page=True)
+            page.screenshot(path=str(args.screenshots / 'real-api-scenario.png'), full_page=True)
             page.get_by_role('button', name='Reset inputs').click()
             expect(page.get_by_role('status').filter(has_text='Inputs changed since this run')).to_be_visible()
             page.get_by_role('button', name='Run scenario').click()

@@ -57,7 +57,6 @@ const stageShort: Record<string, string> = {
   'CNC Machining': 'CNC',
   Finishing: 'Finishing',
 }
-const canSeedDemo = () => import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
 const planningAlertTitle = (message: string) => {
   if (/active bottleneck/i.test(message)) return 'Modeled busy-hours signal'
   if (/queue has/i.test(message)) return 'Stage queue'
@@ -85,6 +84,7 @@ function throughputCaption(
 }
 
 function App() {
+  const demoSeedEnabled = import.meta.env.VITE_ENABLE_DEMO_SEED === 'true'
   const [page, setPage] = useState<Page>(pageFromHash)
   const destinationHeading = useRef<HTMLHeadingElement>(null)
   const refreshButton = useRef<HTMLButtonElement>(null)
@@ -227,7 +227,7 @@ function App() {
   const maxHour = scheduleEndHour(shownOperations)
 
   async function seedDemo() {
-    if (!canSeedDemo()) {
+    if (!demoSeedEnabled) {
       setError(
         'Demo seeding is disabled. Enable VITE_ENABLE_DEMO_SEED=true only for a dedicated local demo database.',
       )
@@ -435,14 +435,14 @@ function App() {
               <Factory size={16} />
             </span>
             <div>
-              <b>Synthetic factory</b>
-              <small>Example resources</small>
+              <b>{demoSeedEnabled ? 'Synthetic factory' : 'Factory data'}</b>
+              <small>{demoSeedEnabled ? 'Example resources' : 'API catalog'}</small>
             </div>
           </div>
           <div className="side-user">
             <div className="avatar">IF</div>
             <div>
-              <b>IndoFlow demo</b>
+              <b>IndoFlow</b>
               <small>Operations workspace</small>
             </div>
           </div>
@@ -456,7 +456,7 @@ function App() {
           </div>
           <div className="top-actions">
             <span className="live-indicator">
-              <i /> Synthetic demo · no live ERP
+              <i /> {demoSeedEnabled ? 'Synthetic demo · no live ERP' : 'API data · no live ERP'}
             </span>
             <span className="top-divider" />
             <span className="updated" role="status">
@@ -528,34 +528,29 @@ function App() {
                   ? 'Schedule optimizer'
                   : page === 'scenario'
                     ? 'Scenario lab'
-                    : 'Connect to the factory demo'}
+                    : 'Connect to the IndoFlow API'}
               </h1>
               <p className="welcome-copy">
                 {page === 'optimizer'
                   ? 'Connect to the IndoFlow API and load factory data to generate a proposed schedule.'
                   : page === 'scenario'
                     ? 'Connect to the IndoFlow API and load factory data to explore operational what-if scenarios.'
-                    : 'Connect to the IndoFlow API and load a synthetic factory dataset to explore WIP, proposed schedules, and operational what-if scenarios.'}
+                    : 'Connect to the IndoFlow API to view work orders and resource availability.'}
               </p>
               <div className="welcome-actions">
+                {demoSeedEnabled && (
+                  <button
+                    className="primary-button"
+                    onClick={seedDemo}
+                    disabled={busy !== null || !lastUpdated}
+                    aria-describedby="welcome-seed-help"
+                  >
+                    <Play size={16} fill="currentColor" />
+                    {busy === 'seed' ? 'Loading demo data…' : 'Load synthetic demo data'}
+                  </button>
+                )}
                 <button
-                  className="primary-button"
-                  onClick={seedDemo}
-                  disabled={busy !== null || !lastUpdated || !canSeedDemo()}
-                  aria-describedby="welcome-seed-help"
-                  title={
-                    !canSeedDemo()
-                      ? 'Seeding is off. Enable it only for a dedicated local demo database.'
-                      : !lastUpdated
-                        ? 'Connect to the API before loading demo records.'
-                        : undefined
-                  }
-                >
-                  <Play size={16} fill="currentColor" />
-                  {busy === 'seed' ? 'Loading demo data…' : 'Load synthetic demo data'}
-                </button>
-                <button
-                  className="text-button"
+                  className={demoSeedEnabled ? 'text-button' : 'primary-button'}
                   onClick={() => {
                     refreshButton.current?.focus()
                     void refresh()
@@ -564,14 +559,12 @@ function App() {
                   <RefreshCw size={15} /> Retry API connection
                 </button>
               </div>
-              <p className="field-help" id="welcome-seed-help">
-                Connect to the API before loading demo records. Seeding must also be enabled for a
-                dedicated local demo database.
-              </p>
-              <div className="welcome-note">
-                <ShieldCheck size={15} /> Demo records are synthetic. Seeding is off unless
-                explicitly enabled for a dedicated local demo database.
-              </div>
+              {demoSeedEnabled && (
+                <p className="field-help" id="welcome-seed-help">
+                  Connect to the API before loading demo records. Use a dedicated local demo
+                  database.
+                </p>
+              )}
             </section>
           )}
 
@@ -642,37 +635,31 @@ function App() {
                   <span className="placeholder-orbit">
                     <Boxes size={22} />
                   </span>
+                  <h2>No open work orders</h2>
                   {orders.length > 0 ? (
+                    <p>
+                      The catalog contains work orders. Select Refresh data to check for updates.
+                    </p>
+                  ) : demoSeedEnabled ? (
                     <>
-                      <h2>No open work orders</h2>
                       <p>
-                        The flow snapshot has no open work orders. The catalog still contains work
-                        orders; refresh the data if this is unexpected.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h2>No open work orders</h2>
-                      <p>
-                        The API reports no open work orders. This does not mean the database is
-                        empty. Loading the synthetic example resets factory data, so use it only
-                        with a dedicated local demo database.
+                        Loading the synthetic example resets factory data. Use only a dedicated
+                        local demo database.
                       </p>
                       <button
                         className="primary-button"
                         onClick={seedDemo}
-                        disabled={busy !== null || !lastUpdated || !canSeedDemo()}
-                        aria-describedby={!canSeedDemo() ? 'empty-board-seed-note' : undefined}
+                        disabled={busy !== null || !lastUpdated}
                       >
                         <GitBranch size={16} />{' '}
                         {busy === 'seed' ? 'Loading example…' : 'Load synthetic example'}
                       </button>
-                      {!canSeedDemo() && (
-                        <p id="empty-board-seed-note">
-                          Demo seeding is off. Enable it only for a dedicated local demo database.
-                        </p>
-                      )}
                     </>
+                  ) : (
+                    <p>
+                      Ask your factory data administrator to add work orders to the connected API.
+                      Then select Refresh data.
+                    </p>
                   )}
                 </section>
               ) : (
@@ -735,7 +722,7 @@ function App() {
                     <h2>Compare production schedules</h2>
                     <p>
                       Compare an illustrative FIFO baseline with a proposed schedule based on the
-                      resource constraints supplied by this demo API.
+                      resource constraints supplied by the API.
                     </p>
                   </div>
                   <button
@@ -1202,7 +1189,11 @@ function App() {
                   {orders.length === 0 && (
                     <div className="scenario-no-data" role="status">
                       <b>No schedulable work orders are available.</b>
-                      <span>Load the synthetic example from the Flow board before simulating.</span>
+                      <span>
+                        {demoSeedEnabled
+                          ? 'Load the synthetic example from the Flow board before simulating.'
+                          : 'Ask your factory data administrator to add schedulable work orders, then refresh the Flow board.'}
+                      </span>
                       <button className="link-button" onClick={() => navigateTo('board')}>
                         Go to Flow board
                       </button>
@@ -1509,7 +1500,12 @@ function App() {
               INDOFLOW <i>·</i> FACTORY FLOW INTELLIGENCE
             </span>
             <span>
-              DEMO DATA ONLY <i>·</i> READ-ONLY SCHEDULING
+              {demoSeedEnabled && (
+                <>
+                  DEMO DATA ONLY <i>·</i>{' '}
+                </>
+              )}
+              READ-ONLY SCHEDULING
             </span>
           </footer>
         </div>

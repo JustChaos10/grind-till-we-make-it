@@ -108,10 +108,12 @@ afterEach(() => {
 
 describe('frontend data states', () => {
   it('identifies and focuses the selected screen when the API is unavailable', async () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Network error')))
     window.history.replaceState(null, '', '#board')
     render(<App />)
-    await screen.findByRole('heading', { name: 'Connect to the factory demo' })
+    await screen.findByRole('heading', { name: 'Connect to the IndoFlow API' })
+    expect(screen.queryByRole('button', { name: /load synthetic/i })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Schedule optimizer' }))
     expect(screen.getByRole('heading', { name: 'Schedule optimizer' })).toHaveFocus()
@@ -252,15 +254,16 @@ describe('frontend data states', () => {
     expect(screen.queryByRole('button', { name: /load synthetic example/i })).toBeNull()
   })
 
-  it('keeps destructive synthetic seeding disabled unless explicitly enabled for a local demo', async () => {
+  it('directs users to add work orders when demo seeding is off', async () => {
     vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = mockApi()
     render(<App />)
 
     expect(await screen.findByRole('heading', { name: 'No open work orders' })).toBeTruthy()
-    expect(screen.getByText(/this does not mean the database is empty/i)).toBeVisible()
-    expect(screen.getByRole('button', { name: /load synthetic example/i })).toBeDisabled()
-    expect(screen.getByText(/demo seeding is off\. enable it only/i)).toBeVisible()
+    expect(
+      screen.getByText(/ask your factory data administrator to add work orders/i),
+    ).toBeVisible()
+    expect(screen.queryByRole('button', { name: /load synthetic example/i })).toBeNull()
     expect(screen.queryByText('Clear for now')).toBeNull()
     expect(screen.getAllByText('—')).toHaveLength(2)
 
@@ -329,6 +332,7 @@ describe('frontend data states', () => {
   })
 
   it('does not offer scenario simulation when the API has no work orders', async () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = mockApi()
     render(<App />)
     await screen.findByRole('heading', { name: 'No open work orders' })
@@ -338,6 +342,10 @@ describe('frontend data states', () => {
       screen.getByText('No schedulable work orders are available.').closest('[role="status"]'),
     ).toBeTruthy()
     expect(screen.getByRole('button', { name: /run scenario/i })).toBeDisabled()
+    expect(
+      screen.getByText(/ask your factory data administrator to add schedulable work orders/i),
+    ).toBeVisible()
+    expect(screen.queryByText(/load the synthetic example/i)).toBeNull()
     expect(
       fetchMock.mock.calls.some(([input]) => String(input).endsWith('/api/schedule/simulate')),
     ).toBe(false)
@@ -561,6 +569,7 @@ describe('frontend data states', () => {
   })
 
   it('shows populated queue signals as snapshot counts, not proven bottlenecks', async () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_SEED', 'false')
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input)
       const body = path.endsWith('/api/flow-board')
@@ -591,7 +600,7 @@ describe('frontend data states', () => {
     expect(screen.getByText('Stage queue')).toBeTruthy()
     expect(screen.getByText('Modeled busy-hours signal')).toBeTruthy()
     expect(screen.getByText(/validate constraints with a planner/i)).toBeTruthy()
-    expect(screen.getByText('Synthetic demo · no live ERP')).toBeTruthy()
+    expect(screen.getByText('API data · no live ERP')).toBeTruthy()
   })
 
   it('renders and exposes every operation, including a long horizon', () => {
